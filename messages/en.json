@@ -1,0 +1,165 @@
+{
+  "brand": {
+    "name": "Highzcore",
+    "tagline": "Your account. Your money. Our bot."
+  },
+  "nav": {
+    "howItWorks": "How it works",
+    "pricing": "Pricing",
+    "performance": "Performance",
+    "signIn": "Sign in",
+    "getStarted": "Get started",
+    "skipToContent": "Skip to content"
+  },
+  "home": {
+    "hero": {
+      "eyebrow": "Automated trading on your own Vantage account",
+      "title": "You keep your money where it is. The bot does the trading.",
+      "body": "Open a Vantage account in your own name, fund it, and give our bot permission to trade it. Permission to trade — never permission to withdraw. We never hold your funds.",
+      "primaryCta": "Get started",
+      "secondaryCta": "See how it works"
+    },
+    "steps": {
+      "title": "Three steps",
+      "one": {
+        "title": "Open your Vantage account",
+        "body": "In your own name, funded by you, held by Vantage. We never touch the money."
+      },
+      "two": {
+        "title": "Give trade permission",
+        "body": "Sign Vantage's limited power of attorney. It lets our bot place trades on your account. It does not let anyone withdraw."
+      },
+      "three": {
+        "title": "Watch it trade",
+        "body": "Every position the bot opens on your account, live in your dashboard. Disconnect whenever you want."
+      }
+    },
+    "performance": {
+      "title": "The live record",
+      "body": "Every trade the bot has made, published in full.",
+      "cta": "See the full record",
+      "unavailable": "Live figures are unavailable right now."
+    },
+    "pricing": {
+      "title": "{price} a month",
+      "body": "A flat software subscription. Pay for longer and save 5%.",
+      "cta": "See pricing"
+    },
+    "faq": {
+      "title": "Questions",
+      "items": {
+        "custody": {
+          "q": "Do you hold my money?",
+          "a": "No. Your account is opened with Vantage in your own name and funded by you. We are granted permission to trade it and nothing else. We cannot withdraw from it, and neither can anyone else but you."
+        },
+        "stop": {
+          "q": "Can I stop at any time?",
+          "a": "Yes. You can detach the bot from your Vantage account whenever you want, and cancel the subscription. There is no lock-in period."
+        },
+        "cost": {
+          "q": "What does it cost?",
+          "a": "$20 per month for the software. Longer terms are 5% cheaper. There is also a performance fee, which is configured inside Vantage's management panel and paid out by Vantage — it never passes through us."
+        },
+        "losses": {
+          "q": "Can I lose money?",
+          "a": "Yes. Trading carries risk of loss, and an automated strategy is no exception. Past performance does not predict future results. Only trade money you can afford to lose."
+        },
+        "broker": {
+          "q": "Why Vantage specifically?",
+          "a": "Vantage supports the account structure this needs: you hold your own account, and a manager is granted trade-only permission on it. That is what keeps your funds in your name."
+        }
+      }
+    }
+  },
+  "howItWorks": {
+    "title": "How it works",
+    "intro": "Five things happen, in this order. At no point do we hold your money.",
+    "steps": {
+      "open": {
+        "title": "You open your own Vantage account",
+        "body": "The account is in your name, with Vantage, not with us. You complete their verification directly."
+      },
+      "fund": {
+        "title": "You fund it",
+        "body": "You deposit with Vantage. The money is in your account, under your control, the whole time."
+      },
+      "lpoa": {
+        "title": "You sign Vantage's limited power of attorney",
+        "body": "This grants permission to place trades on your account. It does not grant permission to withdraw, transfer, or move funds anywhere. That restriction is enforced by Vantage, not by our promise."
+      },
+      "trade": {
+        "title": "Our bot trades it",
+        "body": "The bot places the same positions on your account that it places on the master. You see each one in your dashboard."
+      },
+      "disconnect": {
+        "title": "You can disconnect at any time",
+        "body": "Detach the bot from your account in Vantage and cancel your subscription. Your account, and the money in it, stay yours throughout."
+      }
+    },
+    "custody": {
+      "title": "We never hold your funds",
+      "body": "There is no stage of this where your money sits with us. You deposit with Vantage and withdraw from Vantage. The only money you pay us is the $20 software subscription."
+    },
+    "cta": "Get started"
+  },
+  "pricing": {
+    "title": "Pricing",
+    "intro": "One price for the software. 5% off any term longer than one month.",
+    "table": {
+      "term": "Term",
+      "price": "Price",
+      "perMonth": "Per month",
+      "youSave": "You save"
+    },
+    "term": {
+      "one": "1 month",
+      "other": "{months} months"
+    },
+    "perMonth": "{price}/mo",
+    "cta": "Get started",
+    "performanceFee": {
+      "title": "The performance fee",
+      "body": "Separately from this subscription, a performance fee is configured inside Vantage's management panel and paid out by Vantage. It is calculated and taken by Vantage on your account — it never passes through us."
+    },
+    "noRefund": {
+      "title": "Before you subscribe",
+      "body": "You need a funded Vantage account linked to us for the bot to trade. Subscribing on its own does not start anything."
+    }
+  },
+  "risk": {
+    "title": "Risk disclosure",
+    "updated": "Last updated {date}",
+    "intro": "Read this before you subscribe or link an account.",
+    "loss": {
+      "title": "Trading carries risk of loss",
+      "body": "You can lose money, including more than you expected to. Leveraged trading can lose money faster than unleveraged trading. Only trade money you can afford to lose entirely."
+    },
+    "past": {
+      "title": "Past performance does not predict future results",
+      "body": "Any record we publish describes trades that have already happened. It is not a forecast, a projection, or a promise. A strategy that has been profitable can stop being profitable without warning."
+    },
+    "ai": {
+      "title": "AI can make mistakes",
+      "body": "The bot makes decisions automatically. It can misread a market, act on bad data, or behave in ways we did not anticipate. Software, connections and the broker's systems can all fail. None of these are hypothetical."
+    },
+    "noAdvice": {
+      "title": "This is not financial advice",
+      "body": "Nothing on this site is a personal recommendation. We do not know your circumstances, and nothing here is tailored to them. If you need advice, get it from someone licensed to give it."
+    },
+    "custody": {
+      "title": "What we can and cannot do with your account",
+      "body": "We are granted permission to place trades on your account. We cannot withdraw from it or transfer money out of it. Your funds are held by Vantage in your own name throughout."
+    }
+  },
+  "footer": {
+    "tagline": "Automated trading on your own Vantage account.",
+    "product": "Product",
+    "legal": "Legal",
+    "company": "Company",
+    "riskDisclosure": "Risk disclosure",
+    "terms": "Terms of service",
+    "privacy": "Privacy policy",
+    "rights": "© {year} Highzcore. All rights reserved.",
+    "disclaimer": "Trading carries risk of loss. Past performance does not predict future results. We never hold client funds — your account is held with Vantage in your own name, and we are granted permission to trade it only, never to withdraw."
+  }
+}

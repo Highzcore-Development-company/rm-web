@@ -1,0 +1,26 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Netlify installs @netlify/plugin-nextjs automatically for Next.js sites.
+# Pinned here so the build does not change underneath us without a commit.
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Preview deploys on PRs (P2-005). Not indexed — only the production domain is.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    X-Frame-Options = "DENY"
+
+[context.deploy-preview]
+  [context.deploy-preview.environment]
+    NEXT_PUBLIC_SITE_URL = "https://deploy-preview.highzcore.com"
+
+[context.production.environment]
+  NEXT_PUBLIC_SITE_URL = "https://highzcore.com"
