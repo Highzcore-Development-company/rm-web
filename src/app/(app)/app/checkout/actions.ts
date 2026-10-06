@@ -12,6 +12,7 @@ import {
 import { getWatchXpub, tronAddressFromXpub } from "@/lib/tron";
 import { createVirtualAccount, isAlatPayConfigured } from "@/lib/alatpay";
 import type { PaymentMethod } from "@/lib/supabase/types";
+import { envNumberOr } from "@/lib/env";
 
 export type CheckoutResult =
   | {
@@ -154,7 +155,7 @@ export async function startCryptoInvoice(
 
   const price = priceFor(months);
   const micro = usdCentsToMicroUsdt(price.totalCents);
-  const confirmations = Number(process.env.DEPOSIT_CONFIRMATIONS ?? 20);
+  const confirmations = envNumberOr(process.env.DEPOSIT_CONFIRMATIONS, 20);
 
   const service = createServiceClient();
 

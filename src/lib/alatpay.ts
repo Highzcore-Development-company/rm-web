@@ -1,3 +1,4 @@
+import { envOr } from "@/lib/env";
 /**
  * P2-304 / P2-305 — ALATPay.
  *
@@ -27,7 +28,7 @@
  * ---------------------------------------------------------------------------
  */
 
-const API_BASE = process.env.ALATPAY_API_BASE ?? "https://apibox.alatpay.ng";
+const API_BASE = envOr(process.env.ALATPAY_API_BASE, "https://apibox.alatpay.ng");
 
 const PATHS = {
   /** Issues a virtual account for one payment. Verify against their docs. */

@@ -1,3 +1,4 @@
+import { envOr } from "@/lib/env";
 /**
  * P2-307 — watching TRON for incoming USDT.
  *
@@ -14,7 +15,7 @@
  * promised.
  */
 
-const API_URL = process.env.TRON_API_URL ?? "https://api.trongrid.io";
+const API_URL = envOr(process.env.TRON_API_URL, "https://api.trongrid.io");
 
 export type IncomingTransfer = {
   txHash: string;

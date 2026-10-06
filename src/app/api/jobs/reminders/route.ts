@@ -4,6 +4,7 @@ import { isAuthorisedJob } from "@/lib/job-auth";
 import { isEmailConfigured, renewalReminder, sendEmail } from "@/lib/email";
 import { entitlementFrom } from "@/lib/entitlement";
 import type { Subscription } from "@/lib/supabase/types";
+import { envOr } from "@/lib/env";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,7 +36,7 @@ export async function POST(request: Request) {
   }
 
   const service = createServiceClient();
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://highzcore.com";
+  const siteUrl = envOr(process.env.NEXT_PUBLIC_SITE_URL, "https://highzcore.com");
 
   const { data: rows, error } = await service
     .from("subscriptions")

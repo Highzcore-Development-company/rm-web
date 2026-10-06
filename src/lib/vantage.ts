@@ -1,3 +1,4 @@
+import { envNumberOr, envOr } from "@/lib/env";
 /**
  * Vantage-side constants.
  *
@@ -13,14 +14,17 @@
 
 /** Our Vantage IB link. Investors must open their account through this. */
 export const PARTNER_LINK =
-  process.env.NEXT_PUBLIC_VANTAGE_PARTNER_LINK ?? "https://www.vantagemarkets.com/";
+  envOr(
+    process.env.NEXT_PUBLIC_VANTAGE_PARTNER_LINK,
+    "https://www.vantagemarkets.com/",
+  );
 
 /** The MAM manager ID an investor attaches their account to. */
-export const MANAGER_ID = process.env.NEXT_PUBLIC_VANTAGE_MANAGER_ID ?? "TBC";
+export const MANAGER_ID = envOr(process.env.NEXT_PUBLIC_VANTAGE_MANAGER_ID, "TBC");
 
 /** Vantage's own account minimum, in whole USD. */
 export const BROKER_MINIMUM_USD = Number(
-  process.env.NEXT_PUBLIC_VANTAGE_MINIMUM_USD ?? 200,
+  envNumberOr(process.env.NEXT_PUBLIC_VANTAGE_MINIMUM_USD, 200),
 );
 
 /**
@@ -33,7 +37,7 @@ export const BROKER_MINIMUM_USD = Number(
  * TODO(Victor): set from the actual minimum lot size and worst-case drawdown.
  */
 export const RECOMMENDED_MINIMUM_USD = Number(
-  process.env.NEXT_PUBLIC_RECOMMENDED_MINIMUM_USD ?? 1000,
+  envNumberOr(process.env.NEXT_PUBLIC_RECOMMENDED_MINIMUM_USD, 1000),
 );
 
 /**

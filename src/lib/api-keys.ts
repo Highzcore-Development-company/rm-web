@@ -1,4 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
+import { envNumberOr } from "@/lib/env";
 
 /**
  * P2-601 — API key issuance.
@@ -60,5 +61,5 @@ export function keyFromRequest(request: Request): string | null {
 
 /** Calls per minute, per key. Documented in the API docs page (P2-605). */
 export const RATE_LIMIT_PER_MINUTE = Number(
-  process.env.API_RATE_LIMIT_PER_MINUTE ?? 60,
+  envNumberOr(process.env.API_RATE_LIMIT_PER_MINUTE, 60),
 );

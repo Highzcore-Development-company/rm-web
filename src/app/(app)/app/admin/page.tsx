@@ -9,6 +9,7 @@ import { summarise } from "@/lib/billing-summary";
 import { isAlatPayConfigured } from "@/lib/alatpay";
 import { formatUsd } from "@/lib/pricing";
 import type { Investor, Subscription } from "@/lib/supabase/types";
+import { envOr } from "@/lib/env";
 
 export const metadata: Metadata = {
   title: "Admin",
@@ -120,7 +121,7 @@ export default async function AdminHomePage() {
   const trading = investors.filter((i) => i.status === "active").length;
 
   const botConnected = createRmServerClient() !== null;
-  const cryptoTestnet = (process.env.TRON_API_URL ?? "").includes("nile");
+  const cryptoTestnet = envOr(process.env.TRON_API_URL, "").includes("nile");
 
   return (
     <div>

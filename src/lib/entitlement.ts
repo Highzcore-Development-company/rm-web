@@ -1,4 +1,5 @@
 import type { Subscription } from "@/lib/supabase/types";
+import { envNumberOr } from "@/lib/env";
 
 /**
  * P2-311 — expiry handling.
@@ -15,7 +16,7 @@ import type { Subscription } from "@/lib/supabase/types";
 
 /** Grace period after expiry before detachment is flagged. Victor's call. */
 export const GRACE_PERIOD_DAYS = Number(
-  process.env.NEXT_PUBLIC_GRACE_PERIOD_DAYS ?? 3,
+  envNumberOr(process.env.NEXT_PUBLIC_GRACE_PERIOD_DAYS, 3),
 );
 
 const DAY_MS = 24 * 60 * 60 * 1000;

@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { envNumberOr, envOr } from "@/lib/env";
 
 /**
  * P2-310 — outbound mail.
@@ -18,7 +19,7 @@ function transport() {
   const pass = process.env.SMTP_PASSWORD;
   if (!host || !user || !pass) return null;
 
-  const port = Number(process.env.SMTP_PORT ?? 587);
+  const port = envNumberOr(process.env.SMTP_PORT, 587);
 
   return nodemailer.createTransport({
     host,
@@ -46,7 +47,7 @@ export async function sendEmail(input: {
 
   try {
     await mailer.sendMail({
-      from: process.env.EMAIL_FROM ?? "Highzcore <noreply@highzcore.tech>",
+      from: envOr(process.env.EMAIL_FROM, "Highzcore <noreply@highzcore.tech>"),
       replyTo: process.env.EMAIL_REPLY_TO,
       to: input.to,
       subject: input.subject,
@@ -79,7 +80,7 @@ export async function sendEmail(input: {
  * the many clients that block images by default.
  */
 function layout(body: string): string {
-  const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://highzcore.com";
+  const site = envOr(process.env.NEXT_PUBLIC_SITE_URL, "https://highzcore.com");
 
   return `<!doctype html><html><body style="margin:0;padding:24px;background:#f6f6f6;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#111">
 <table role="presentation" style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;padding:32px">

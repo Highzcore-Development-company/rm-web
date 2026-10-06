@@ -61,6 +61,15 @@ function CopyRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+/** Codes the server is allowed to surface. Anything else is ours to explain. */
+const KNOWN_ERRORS = new Set([
+  "bad_term",
+  "bad_method",
+  "not_configured",
+  "not_signed_in",
+  "generic",
+]);
+
 /** P2-303 — pick duration, see the discount, pick a method, see the total. */
 export function CheckoutForm({
   initial = null,
@@ -94,6 +103,18 @@ export function CheckoutForm({
     });
   }
 
+  /**
+   * Only translate codes we recognise.
+   *
+   * The action returns the provider's error text for anything unexpected, and
+   * next-intl renders a missing key as the key itself — so a network fault
+   * surfaced as "checkout.errors.Failed to parse URL from /bank-transfer/...".
+   * That tells an investor nothing and tells an attacker about our plumbing.
+   */
+  function messageFor(code: string): string {
+    return KNOWN_ERRORS.has(code) ? t(`errors.${code}`) : t("errors.generic");
+  }
+
   function start() {
     setError(null);
     startTransition(async () => {
@@ -105,7 +126,7 @@ export function CheckoutForm({
           : await startBankTransfer(months, method);
 
       if (res.ok) setResult(res);
-      else setError(t(`errors.${res.error}`, { fallback: t("errors.generic") }));
+      else setError(messageFor(res.error));
     });
   }
 
