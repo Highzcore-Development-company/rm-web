@@ -50,6 +50,8 @@ export type Subscription = {
   method: PaymentMethod;
   status: SubscriptionStatus;
   provider_ref: string | null;
+  provider_account_number: string | null;
+  provider_bank_name: string | null;
   starts_at: string | null;
   expires_at: string | null;
   created_at: string;

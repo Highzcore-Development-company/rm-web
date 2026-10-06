@@ -836,7 +836,24 @@
     },
     "markDetached": "Mark detached",
     "detached": "Marked detached. Remember to detach them in Vantage too.",
-    "detachFailed": "Could not mark that. Try again."
+    "detachFailed": "Could not mark that. Try again.",
+    "paymentsTitle": "Payments",
+    "paymentsIntro": "Confirmed payments arrive here on their own — card and transfer from ALATPay, crypto from the chain watcher. Nothing here needs confirming by hand.",
+    "paymentsNone": "No payments yet.",
+    "awaitingTitle": "Awaiting payment",
+    "awaitingIntro": "Invoices raised but not paid. These clear themselves when the money lands; check one only if someone says they have paid and it has not.",
+    "awaitingNone": "Nothing outstanding.",
+    "checkNow": "Check now",
+    "checked": "Checked — still nothing received.",
+    "checkedPaid": "Found it. The payment is now confirmed.",
+    "checkFailed": "Could not check that one.",
+    "cols": {
+      "when": "When",
+      "method": "Method",
+      "amount": "Amount",
+      "ref": "Reference",
+      "status": "Status"
+    }
   },
   "adminHome": {
     "title": "Admin",

@@ -61,12 +61,18 @@ function CopyRow({ label, value }: { label: string; value: string }) {
 }
 
 /** P2-303 — pick duration, see the discount, pick a method, see the total. */
-export function CheckoutForm() {
+export function CheckoutForm({
+  initial = null,
+}: {
+  initial?: CheckoutResult | null;
+}) {
   const t = useTranslations("checkout");
 
   const [months, setMonths] = useState<number>(1);
   const [method, setMethod] = useState<Method>("alatpay_transfer");
-  const [result, setResult] = useState<CheckoutResult | null>(null);
+  // Seeded from the server, so an open invoice is on screen in the first
+  // frame instead of appearing after a flash of the plan chooser.
+  const [result, setResult] = useState<CheckoutResult | null>(initial);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 

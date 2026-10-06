@@ -107,9 +107,16 @@ export async function startBankTransfer(
   // The provider reference is stored now so a webhook arriving in seconds can
   // find this row. It does NOT confirm anything — activation is a separate,
   // idempotent step that only runs once money is verified.
+  // Stored, not just returned. The payer will refresh, close the tab, or come
+  // back from their banking app, and the account number has to survive all
+  // three — otherwise they see the chooser again and may pay twice.
   await service
     .from("subscriptions")
-    .update({ provider_ref: result.data.reference })
+    .update({
+      provider_ref: result.data.reference,
+      provider_account_number: result.data.accountNumber,
+      provider_bank_name: result.data.bankName,
+    })
     .eq("id", subscription.id);
 
   return {

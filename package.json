@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:smtp": "node scripts/test-smtp.mjs",
-    "test:tron": "node scripts/test-tron.mjs"
+    "test:tron": "node scripts/test-tron.mjs",
+    "simulate:payment": "node scripts/simulate-payment.mjs"
   },
   "dependencies": {
     "@noble/curves": "^2.4.0",

@@ -13,6 +13,8 @@ const base: Subscription = {
   method: "usdt_trc20",
   status: "confirmed",
   provider_ref: "TX-ABC123",
+  provider_account_number: null,
+  provider_bank_name: null,
   starts_at: "2026-06-01T00:00:00Z",
   expires_at: "2026-09-01T00:00:00Z",
   created_at: "2026-06-01T00:00:00Z",

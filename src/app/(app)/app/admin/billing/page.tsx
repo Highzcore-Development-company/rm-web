@@ -5,6 +5,7 @@ import { Card } from "@/components/ui";
 import { isAdmin } from "@/lib/admin";
 import { createServiceClient } from "@/lib/supabase/service";
 import { DetachButton } from "@/components/admin/detach-button";
+import { RecheckButton } from "@/components/admin/recheck-button";
 import { entitlementFrom } from "@/lib/entitlement";
 import { summarise } from "@/lib/billing-summary";
 import { formatUsd } from "@/lib/pricing";
@@ -66,6 +67,14 @@ export default async function AdminBillingPage() {
   const investors = (investorsResult.data ?? []) as Investor[];
   const summary = summarise(subscriptions);
 
+  const awaiting = subscriptions
+    .filter((s) => s.status === "awaiting")
+    .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+
+  const confirmed = subscriptions
+    .filter((s) => s.status === "confirmed")
+    .sort((a, b) => ((a.starts_at ?? "") < (b.starts_at ?? "") ? 1 : -1));
+
   // Who the "lapsed" number actually refers to. A count with no names cannot
   // be acted on, and acting on it is the entire point of P2-311.
   //
@@ -124,6 +133,93 @@ export default async function AdminBillingPage() {
           </dl>
         </Card>
       </div>
+
+      {/* What has actually been paid, and what has not. The headline figures
+          above answer "how much"; an admin asking "did this person's money
+          arrive" needs the rows. */}
+      <section className="mt-12">
+        <h2 className="text-lg font-semibold">{t("awaitingTitle")}</h2>
+        <p className="mt-2 max-w-2xl text-sm text-fg-muted">
+          {t("awaitingIntro")}
+        </p>
+
+        {awaiting.length === 0 ? (
+          <p className="mt-4 text-sm text-fg-muted">{t("awaitingNone")}</p>
+        ) : (
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[34rem] border-collapse text-left text-sm">
+              <thead>
+                <tr className="border-b border-border text-xs uppercase tracking-wide text-fg-muted">
+                  <th scope="col" className="py-2 pr-4 font-medium">{t("cols.when")}</th>
+                  <th scope="col" className="py-2 pr-4 font-medium">{t("cols.method")}</th>
+                  <th scope="col" className="py-2 pr-4 font-medium">{t("cols.amount")}</th>
+                  <th scope="col" className="py-2 font-medium" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {awaiting.map((s) => (
+                  <tr key={s.id}>
+                    <td className="py-3 pr-4 text-fg-muted">
+                      {new Date(s.created_at).toLocaleDateString("en-GB")}
+                    </td>
+                    <td className="py-3 pr-4">{t(`method.${s.method}`)}</td>
+                    <td className="py-3 pr-4 tabular-nums">
+                      {formatUsd(s.amount_usd)}
+                    </td>
+                    <td className="py-3">
+                      <RecheckButton subscriptionId={s.id} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section className="mt-12">
+        <h2 className="text-lg font-semibold">{t("paymentsTitle")}</h2>
+        <p className="mt-2 max-w-2xl text-sm text-fg-muted">
+          {t("paymentsIntro")}
+        </p>
+
+        {confirmed.length === 0 ? (
+          <p className="mt-4 text-sm text-fg-muted">{t("paymentsNone")}</p>
+        ) : (
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[38rem] border-collapse text-left text-sm">
+              <thead>
+                <tr className="border-b border-border text-xs uppercase tracking-wide text-fg-muted">
+                  <th scope="col" className="py-2 pr-4 font-medium">{t("cols.when")}</th>
+                  <th scope="col" className="py-2 pr-4 font-medium">{t("cols.method")}</th>
+                  <th scope="col" className="py-2 pr-4 font-medium">{t("cols.amount")}</th>
+                  <th scope="col" className="py-2 font-medium">{t("cols.ref")}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {confirmed.slice(0, 20).map((s) => (
+                  <tr key={s.id}>
+                    <td className="py-3 pr-4 text-fg-muted">
+                      {s.starts_at
+                        ? new Date(s.starts_at).toLocaleDateString("en-GB")
+                        : "—"}
+                    </td>
+                    <td className="py-3 pr-4">{t(`method.${s.method}`)}</td>
+                    <td className="py-3 pr-4 tabular-nums">
+                      {formatUsd(s.amount_usd)}
+                    </td>
+                    {/* The provider's own reference, so a figure here can be
+                        matched against the bank or the chain. */}
+                    <td className="py-3 font-mono text-xs text-fg-muted">
+                      {s.provider_ref ?? "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
 
       <section className="mt-12">
         <h2 className="text-lg font-semibold">{t("detachTitle")}</h2>

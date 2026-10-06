@@ -75,6 +75,8 @@ function sub(expiresAt: string | null, status = "confirmed"): Subscription {
     method: "alatpay_transfer",
     status: status as Subscription["status"],
     provider_ref: "ref",
+  provider_account_number: null,
+  provider_bank_name: null,
     starts_at: "2026-01-01T00:00:00Z",
     expires_at: expiresAt,
     created_at: "2026-01-01T00:00:00Z",

@@ -5,6 +5,7 @@ import { Container } from "@/components/ui";
 import { CheckoutForm } from "@/components/checkout/checkout-form";
 import { createClient } from "@/lib/supabase/server";
 import { getInvestor } from "@/lib/investors";
+import { getOutstandingPayment } from "./outstanding";
 
 export const metadata: Metadata = {
   title: "Subscribe",
@@ -18,6 +19,8 @@ export default async function CheckoutPage() {
   const t = await getTranslations("checkout");
   const supabase = await createClient();
   const investor = await getInvestor(supabase);
+  // Survives a refresh, a closed tab, and a trip to a banking app.
+  const outstanding = await getOutstandingPayment();
 
   return (
     <Container className="py-10 sm:py-14">
@@ -39,7 +42,7 @@ export default async function CheckoutPage() {
       </div>
 
       <div className="mt-10">
-        <CheckoutForm />
+        <CheckoutForm initial={outstanding} />
       </div>
     </Container>
   );

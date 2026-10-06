@@ -1,5 +1,8 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import {
   Document,
+  Image,
   Page,
   StyleSheet,
   Text,
@@ -34,8 +37,8 @@ const styles = StyleSheet.create({
     fontFamily: "Helvetica",
     backgroundColor: "#FFFFFF",
   },
-  brand: { fontSize: 16, fontFamily: "Helvetica-Bold" },
-  rule: { marginTop: 10, height: 2, backgroundColor: ACCENT, width: 56 },
+  logo: { width: 150 },
+  rule: { marginTop: 12, height: 2, backgroundColor: ACCENT, width: 56 },
   title: { marginTop: 28, fontSize: 20, fontFamily: "Helvetica-Bold" },
   meta: { marginTop: 6, color: MUTED },
   section: { marginTop: 28 },
@@ -72,6 +75,22 @@ const styles = StyleSheet.create({
     lineHeight: 1.5,
   },
 });
+
+/**
+ * Read from disk rather than fetched over HTTP.
+ *
+ * A receipt is rendered on the server, often by a background job, and a URL
+ * would make it depend on the site being reachable from inside itself — which
+ * is exactly the moment it is not, during a deploy. Read once and cached,
+ * since the file does not change between renders.
+ *
+ * The light wordmark, because the page is white.
+ */
+let logoCache: Buffer | null = null;
+function logo(): Buffer {
+  logoCache ??= readFileSync(path.join(process.cwd(), "public", "logo-light.png"));
+  return logoCache;
+}
 
 const METHOD_LABEL: Record<Subscription["method"], string> = {
   alatpay_transfer: "Bank transfer",
@@ -112,7 +131,8 @@ export function Receipt({
       author="Highzcore"
     >
       <Page size="A4" style={styles.page}>
-        <Text style={styles.brand}>Highzcore</Text>
+        {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image, not an <img>; PDFs carry no alt text */}
+        <Image style={styles.logo} src={logo()} />
         <View style={styles.rule} />
 
         <Text style={styles.title}>Receipt</Text>
