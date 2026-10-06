@@ -151,6 +151,50 @@
       "body": "We are granted permission to place trades on your account. We cannot withdraw from it or transfer money out of it. Your funds are held by Vantage in your own name throughout."
     }
   },
+  "performance": {
+    "title": "The record",
+    "intro": "Every trade the bot has made on the master account. Published in full, including the losing ones.",
+    "sampleWarning": "SAMPLE DATA — this is generated for development and is not a record of any real trading.",
+    "unavailable": "The performance feed is unavailable right now, so there is nothing to show. We would rather show you nothing than a figure we cannot stand behind.",
+    "equity": {
+      "title": "Account equity"
+    },
+    "stats": {
+      "title": "The numbers",
+      "totalReturn": "Total return",
+      "totalReturnDef": "Change in account equity from the first day to the last, as a percentage.",
+      "maxDrawdown": "Max drawdown",
+      "maxDrawdownDef": "The largest fall from a peak to the following trough. The worst it has felt to hold.",
+      "winRate": "Win rate",
+      "winRateDef": "Share of closed trades that made money. A high win rate does not mean profitable.",
+      "profitFactor": "Profit factor",
+      "profitFactorDef": "Gross profit divided by gross loss. Above 1 means the winners outweigh the losers.",
+      "tradeCount": "Trades",
+      "tradeCountDef": "Closed trades in this record.",
+      "monthsLive": "Months live",
+      "monthsLiveDef": "Calendar months the strategy has been running."
+    },
+    "monthly": {
+      "title": "Month by month",
+      "month": "Month",
+      "ret": "Return",
+      "note": "Every month since the record began. No start date has been chosen to flatter it."
+    },
+    "trades": {
+      "title": "Recent trades",
+      "market": "Market",
+      "side": "Side",
+      "duration": "Held",
+      "result": "Result",
+      "closed": "Closed",
+      "buy": "Buy",
+      "sell": "Sell",
+      "hours": "{hours}h",
+      "note": "Lot sizes and balances are deliberately not shown — they would reveal the account size, and with it every investor’s allocation."
+    },
+    "disclosure": "Past performance does not predict future results. This is a record of {trades} trades over {months} months. Trading carries risk of loss.",
+    "demoCaveat": "This record was earned on a demo account, where fills are idealised and slippage is not modelled, and on a different Vantage entity whose spreads may differ from the live master’s."
+  },
   "auth": {
     "signup": {
       "title": "Create your account",
