@@ -244,9 +244,20 @@
       "title": "Check your email",
       "body": "We have sent a confirmation link to {email}. Click it to verify your address — nothing else happens on your account until you do.",
       "noEmail": "No email? Check your spam folder, or",
-      "resend": "send it again",
-      "resent": "Sent. It can take a minute to arrive.",
-      "backToSignIn": "Back to sign in"
+      "resend": "Send a new code",
+      "resent": "Sent. Check your inbox.",
+      "backToSignIn": "Back to sign in",
+      "codeTitle": "Enter your code",
+      "codeIntro": "We sent a 6-digit code to {email}. It expires in an hour.",
+      "code": "6-digit code",
+      "verify": "Verify",
+      "verifying": "Verifying…",
+      "resending": "Sending…",
+      "errors": {
+        "invalid": "That code is not right. Check it and try again.",
+        "expired": "That code has expired. Request a new one.",
+        "generic": "We could not verify that code. Please try again."
+      }
     },
     "login": {
       "title": "Sign in",
@@ -286,7 +297,12 @@
         "generic": "We could not update your password. The link may have expired."
       }
     },
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "google": {
+      "continue": "Continue with Google",
+      "or": "or",
+      "error": "We could not start Google sign-in. Try again, or use your email."
+    }
   },
   "onboarding": {
     "title": "Getting set up",

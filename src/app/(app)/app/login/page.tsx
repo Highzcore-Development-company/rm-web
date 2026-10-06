@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { useTranslations } from "next-intl";
 import { AuthCard } from "@/components/auth/auth-card";
+import { GoogleButton } from "@/components/auth/google-button";
 import { LoginForm } from "@/components/auth/login-form";
 
 export const metadata: Metadata = {
@@ -39,6 +40,7 @@ export default function LoginPage() {
       }
     >
       {/* useSearchParams needs a Suspense boundary to stay statically rendered. */}
+      <GoogleButton />
       <Suspense>
         <LoginForm />
       </Suspense>

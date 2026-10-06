@@ -44,6 +44,25 @@ export type ClosedTrade = {
  */
 const LIVE_ONLY = { column: "is_dry_run", value: false } as const;
 
+/**
+ * PostgREST's code for "no such table". On rm-server that means the bot has
+ * not been migrated onto it yet — a known state, not a fault. Reporting it as
+ * an error makes the dev overlay cry wolf until a real error is lost in the
+ * noise. Anything else IS a fault and stays loud.
+ */
+function reportReadFailure(
+  which: string,
+  error: { code?: string; message: string },
+) {
+  if (error.code === "PGRST205") {
+    console.info(
+      `[positions] ${which}: rm-server has no data yet — showing the unavailable state.`,
+    );
+    return;
+  }
+  console.error(`[positions] ${which} read failed:`, error.message);
+}
+
 export async function getLivePositions(): Promise<LivePosition[] | null> {
   const client = createRmServerClient();
   if (!client) return null;
@@ -57,10 +76,9 @@ export async function getLivePositions(): Promise<LivePosition[] | null> {
     .limit(50);
 
   if (error) {
-    // Expected until rm-server exposes a view to anon. Logged, not thrown: a
-    // dashboard that 500s because one panel cannot load is worse than one with
-    // a panel that says it cannot load.
-    console.error("[positions] live read failed:", error.message);
+    // Logged, not thrown: a dashboard that 500s because one panel cannot load
+    // is worse than one with a panel saying it cannot load.
+    reportReadFailure("live", error);
     return null;
   }
 
@@ -87,7 +105,7 @@ export async function getClosedTrades(): Promise<ClosedTrade[] | null> {
     .limit(50);
 
   if (error) {
-    console.error("[positions] closed read failed:", error.message);
+    reportReadFailure("closed", error);
     return null;
   }
 

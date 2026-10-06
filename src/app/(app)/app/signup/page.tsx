@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { AuthCard } from "@/components/auth/auth-card";
+import { GoogleButton } from "@/components/auth/google-button";
 import { SignupForm } from "@/components/auth/signup-form";
 
 export const metadata: Metadata = {
@@ -26,6 +27,7 @@ export default function SignupPage() {
         </>
       }
     >
+      <GoogleButton />
       <SignupForm />
     </AuthCard>
   );
