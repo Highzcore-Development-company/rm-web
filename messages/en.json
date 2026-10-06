@@ -505,14 +505,16 @@
       "label": "MT5 login number",
       "submit": "Submit for verification",
       "submitting": "Submitting…",
-      "pending": "We have your login number and are confirming it against our Vantage panel. This is done by a person, so it is not instant.",
+      "pending": "Submitted. We will confirm the link and email you once it is active. There is nothing else for you to do.",
       "confirmed": "Confirmed. Your account is linked to our manager ID.",
       "errors": {
         "invalid_login": "That does not look like an MT5 login. It should be digits only.",
         "already_claimed": "That login number is already linked to another account. Check it, and contact us if you believe it is yours.",
         "not_signed_in": "Your session expired. Sign in and try again.",
         "generic": "We could not save that. Please try again."
-      }
+      },
+      "submitted": "Submitted for verification",
+      "change": "Use a different number"
     },
     "disconnect": {
       "title": "Disconnecting",

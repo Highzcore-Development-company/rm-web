@@ -1,9 +1,18 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { useTranslations } from "next-intl";
-import { claimAccount, type ActionResult } from "@/app/(app)/app/link-account/actions";
-import { Field, FormError, inputClass, submitClass } from "@/components/auth/auth-card";
+import { Clock3 } from "lucide-react";
+import {
+  claimAccount,
+  type ActionResult,
+} from "@/app/(app)/app/link-account/actions";
+import {
+  Field,
+  FormError,
+  inputClass,
+  submitClass,
+} from "@/components/auth/auth-card";
 
 export function ClaimForm({ initialLogin }: { initialLogin: string | null }) {
   const t = useTranslations("linkAccount.claim");
@@ -13,7 +22,44 @@ export function ClaimForm({ initialLogin }: { initialLogin: string | null }) {
     FormData
   >(claimAccount, null);
 
+  // Opens the form again for someone who mistyped. Starts closed when a number
+  // is already on file: leaving a live submit button under a submitted claim
+  // invites double-submits and makes it look like nothing happened.
+  const [editing, setEditing] = useState(false);
+
   const errorKey = state && !state.ok ? state.error : null;
+  const submitted = Boolean(initialLogin) && !editing;
+
+  if (submitted) {
+    return (
+      <div className="mt-6 max-w-sm">
+        <div className="flex items-start gap-3 rounded-lg border border-border bg-bg px-4 py-3">
+          <Clock3
+            className="mt-0.5 size-4 shrink-0 text-accent"
+            aria-hidden="true"
+          />
+          <div className="min-w-0">
+            <p className="text-sm font-medium">{t("submitted")}</p>
+            <p className="mt-1 font-mono text-sm text-fg-muted">
+              {initialLogin}
+            </p>
+          </div>
+        </div>
+
+        <p className="mt-3 text-sm leading-relaxed text-fg-muted">
+          {t("pending")}
+        </p>
+
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          className="mt-3 text-sm text-accent underline underline-offset-2"
+        >
+          {t("change")}
+        </button>
+      </div>
+    );
+  }
 
   return (
     <form action={formAction} className="mt-6 max-w-sm space-y-5">

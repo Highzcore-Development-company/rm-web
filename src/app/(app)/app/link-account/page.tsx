@@ -32,7 +32,6 @@ export default async function LinkAccountPage() {
   const supabase = await createClient();
   const investor = await getInvestor(supabase);
 
-  const claimed = Boolean(investor?.vantage_account_id);
   const confirmed =
     investor?.status === "linked" || investor?.status === "active";
 
@@ -142,14 +141,10 @@ export default async function LinkAccountPage() {
               {t("claim.confirmed")}
             </p>
           ) : (
-            <>
-              {/* Once confirmed the RLS policy stops accepting changes, so the
-                  form is not shown rather than shown and silently ignored. */}
-              <ClaimForm initialLogin={investor?.vantage_account_id ?? null} />
-              {claimed ? (
-                <p className="mt-4 text-sm text-fg-muted">{t("claim.pending")}</p>
-              ) : null}
-            </>
+            /* Once confirmed the RLS policy stops accepting changes, so the
+               form is not shown rather than shown and silently ignored. The
+               submitted-vs-editable state lives inside ClaimForm. */
+            <ClaimForm initialLogin={investor?.vantage_account_id ?? null} />
           )}
         </Card>
 
