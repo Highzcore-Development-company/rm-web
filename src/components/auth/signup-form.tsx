@@ -5,12 +5,12 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
+import { Field, FormError, inputClass } from "@/components/auth/auth-card";
 import {
-  Field,
-  FormError,
-  inputClass,
-  submitClass,
-} from "@/components/auth/auth-card";
+  PasswordField,
+  PasswordStrength,
+  SubmitButton,
+} from "@/components/auth/fields";
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -103,7 +103,7 @@ export function SignupForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-5">
+    <form onSubmit={onSubmit} className="space-y-6">
       <FormError>{error}</FormError>
 
       <Field id="email" label={t("email")}>
@@ -119,21 +119,25 @@ export function SignupForm() {
         />
       </Field>
 
-      <Field id="password" label={t("password")} hint={t("passwordHint")}>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="new-password"
-          required
-          minLength={MIN_PASSWORD_LENGTH}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className={inputClass}
-        />
-      </Field>
+      <PasswordField
+        id="password"
+        label={t("password")}
+        hint={t("passwordHint")}
+        value={password}
+        onChange={setPassword}
+        autoComplete="new-password"
+        minLength={MIN_PASSWORD_LENGTH}
+      >
+        <PasswordStrength password={password} />
+      </PasswordField>
 
-      <div className="flex gap-3 rounded-md border border-border bg-surface p-4">
+      <div
+        className={`flex gap-3 rounded-lg border p-4 transition-colors ${
+          acknowledged
+            ? "border-accent/40 bg-accent/[0.06]"
+            : "border-border bg-[var(--input-bg)]"
+        }`}
+      >
         <input
           id="acknowledge"
           name="acknowledge"
@@ -157,9 +161,9 @@ export function SignupForm() {
         </div>
       </div>
 
-      <button type="submit" disabled={submitting} className={submitClass}>
-        {submitting ? t("submitting") : t("submit")}
-      </button>
+      <SubmitButton pending={submitting} pendingLabel={t("submitting")}>
+        {t("submit")}
+      </SubmitButton>
     </form>
   );
 }
