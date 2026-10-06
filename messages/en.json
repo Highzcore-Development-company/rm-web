@@ -462,6 +462,19 @@
       "not_configured": "That payment method is not switched on yet.",
       "not_signed_in": "Your session expired. Sign in and try again.",
       "generic": "We could not start that payment. Please try again."
+    },
+    "status": {
+      "awaiting": "Waiting for your payment",
+      "awaitingHint": "This page checks the network every few seconds. You can leave it open, or close it — we will email you either way.",
+      "seen": "Payment spotted, confirming",
+      "seenHint": "{confirmations} of {required} confirmations. The network decides how long this takes, usually a minute or two.",
+      "confirmed": "Payment confirmed",
+      "confirmedHint": "Your subscription is active and the receipt is on its way to your inbox.",
+      "expired": "This payment window has closed",
+      "expiredHint": "Start a new one and you will get a fresh address. If you already sent funds, contact us — nothing is lost.",
+      "toDashboard": "Go to my dashboard",
+      "startAgain": "Start again",
+      "checking": "Checking…"
     }
   },
   "legal": {

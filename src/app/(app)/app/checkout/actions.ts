@@ -17,6 +17,7 @@ export type CheckoutResult =
   | {
       ok: true;
       kind: "bank_transfer";
+      subscriptionId: string;
       accountNumber: string;
       bankName: string | null;
       amountNgn: number;
@@ -25,6 +26,7 @@ export type CheckoutResult =
   | {
       ok: true;
       kind: "crypto";
+      subscriptionId: string;
       address: string;
       microUsdt: number;
       confirmations: number;
@@ -113,6 +115,7 @@ export async function startBankTransfer(
   return {
     ok: true,
     kind: "bank_transfer",
+    subscriptionId: subscription.id,
     accountNumber: result.data.accountNumber,
     bankName: result.data.bankName,
     amountNgn: amountNgnKobo,
@@ -198,6 +201,7 @@ export async function startCryptoInvoice(
   return {
     ok: true,
     kind: "crypto",
+    subscriptionId: subscription.id,
     address,
     microUsdt: micro,
     confirmations,

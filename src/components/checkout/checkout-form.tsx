@@ -17,6 +17,7 @@ import {
   usdCentsToNgnKobo,
 } from "@/lib/money";
 import { Card } from "@/components/ui";
+import { PaymentWatcher } from "@/components/checkout/payment-watcher";
 
 type Method = "alatpay_transfer" | "alatpay_card" | "usdt_trc20";
 
@@ -104,6 +105,7 @@ export function CheckoutForm() {
         <p className="mt-5 text-xs leading-relaxed text-fg-muted">
           {t("transfer.note")}
         </p>
+        <PaymentWatcher subscriptionId={result.subscriptionId} />
       </Card>
     );
   }
@@ -132,6 +134,7 @@ export function CheckoutForm() {
           {t("crypto.confirmations", { count: result.confirmations })}{" "}
           {t("crypto.expires")}
         </p>
+        <PaymentWatcher subscriptionId={result.subscriptionId} />
       </Card>
     );
   }
