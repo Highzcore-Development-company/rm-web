@@ -1,7 +1,7 @@
 {
   "brand": {
     "name": "Highzcore",
-    "tagline": "Your account. Your money. Our bot."
+    "tagline": "Your account. Your money. Your call."
   },
   "nav": {
     "howItWorks": "How it works",
@@ -9,15 +9,18 @@
     "performance": "Performance",
     "signIn": "Sign in",
     "getStarted": "Get started",
-    "skipToContent": "Skip to content"
+    "skipToContent": "Skip to content",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "menuTitle": "Menu"
   },
   "home": {
     "hero": {
-      "eyebrow": "Automated trading on your own Vantage account",
-      "title": "You keep your money where it is. The bot does the trading.",
-      "body": "Open a Vantage account in your own name, fund it, and give our bot permission to trade it. Permission to trade — never permission to withdraw. We never hold your funds.",
-      "primaryCta": "Get started",
-      "secondaryCta": "See how it works",
+      "eyebrow": "AI trading analysis for forex and crypto",
+      "title": "Know what the market is doing before you trade it.",
+      "body": "Our AI reads volatility, trend structure and risk across 30 forex and crypto markets, and tells you what it sees in plain English. You still make every call — it just means you make it with the analysis you would never have time to do yourself.",
+      "primaryCta": "Start free",
+      "secondaryCta": "See what it reads",
       "trust": {
         "custody": "Your money stays at Vantage, in your name",
         "permission": "Trade permission only — never withdrawal",
@@ -75,6 +78,81 @@
           "a": "Vantage supports the account structure this needs: you hold your own account, and a manager is granted trade-only permission on it. That is what keeps your funds in your name."
         }
       }
+    },
+    "custody": {
+      "eyebrow": "The part that matters",
+      "title": "Your money never moves.",
+      "body": "Most people assume letting a bot trade means handing over your funds. It does not work that way here, and it cannot.",
+      "yours": {
+        "label": "Stays with you",
+        "items": [
+          "Your Vantage account, in your name",
+          "Your deposits, your withdrawals",
+          "Disconnect whenever you like"
+        ]
+      },
+      "ours": {
+        "label": "What we get",
+        "items": [
+          "Permission to open and close trades",
+          "Nothing else"
+        ]
+      },
+      "never": {
+        "label": "What we never get",
+        "items": [
+          "Withdrawal access",
+          "Your login",
+          "Custody of a single dollar"
+        ]
+      }
+    },
+    "plans": {
+      "eyebrow": "Pricing",
+      "title": "One price. Pay longer, pay less.",
+      "body": "A flat software subscription — not a share of your profits. The performance fee is set inside Vantage and paid by Vantage.",
+      "month": "{count} month",
+      "months": "{count} months",
+      "perMonth": "{price}/mo",
+      "save": "Save {percent}",
+      "cta": "Get started",
+      "note": "Cancel any time. Your Vantage account is yours either way."
+    },
+    "cta": {
+      "title": "Start reading the market properly.",
+      "body": "Free to start. Add managed trading whenever you want it.",
+      "primary": "Start free",
+      "secondary": "See the live record"
+    },
+    "analysis": {
+      "eyebrow": "What it reads",
+      "title": "Four questions, answered before you commit.",
+      "body": "Not signals, and not a prediction of where price is going — nobody can do that honestly. What it gives you is the condition of the market you are about to trade.",
+      "items": [
+        {
+          "title": "How violent is this market right now?",
+          "body": "Volatility forecast against its own normal range, so you size the position to the conditions instead of to habit."
+        },
+        {
+          "title": "Is it trending or going nowhere?",
+          "body": "Trend state across timeframes, so you know whether you are trading with structure or against it."
+        },
+        {
+          "title": "Where are the levels that matter?",
+          "body": "Support and resistance found mechanically — the same lines every time, not whichever ones you happen to draw."
+        },
+        {
+          "title": "What is this trade actually risking?",
+          "body": "Spread, commission and overnight cost per market, so the cost of being right is visible before you are."
+        }
+      ],
+      "disclaimer": "Analysis, not advice. AI can make mistakes, and you are responsible for your own trades."
+    },
+    "managed": {
+      "eyebrow": "Or let it trade for you",
+      "title": "Managed trading on your own broker account.",
+      "body": "Rather trade hands-free? Open a Vantage account in your own name, fund it, and give our bot permission to trade it. Permission to trade — never permission to withdraw. Your funds never leave your broker.",
+      "cta": "How managed trading works"
     },
     "proof": {
       "title": "Why anyone should trust this",
@@ -172,50 +250,6 @@
       "body": "We are granted permission to place trades on your account. We cannot withdraw from it or transfer money out of it. Your funds are held by Vantage in your own name throughout."
     }
   },
-  "performance": {
-    "title": "The record",
-    "intro": "Every trade the bot has made on the master account. Published in full, including the losing ones.",
-    "sampleWarning": "SAMPLE DATA — this is generated for development and is not a record of any real trading.",
-    "unavailable": "The performance feed is unavailable right now, so there is nothing to show. We would rather show you nothing than a figure we cannot stand behind.",
-    "equity": {
-      "title": "Account equity"
-    },
-    "stats": {
-      "title": "The numbers",
-      "totalReturn": "Total return",
-      "totalReturnDef": "Change in account equity from the first day to the last, as a percentage.",
-      "maxDrawdown": "Max drawdown",
-      "maxDrawdownDef": "The largest fall from a peak to the following trough. The worst it has felt to hold.",
-      "winRate": "Win rate",
-      "winRateDef": "Share of closed trades that made money. A high win rate does not mean profitable.",
-      "profitFactor": "Profit factor",
-      "profitFactorDef": "Gross profit divided by gross loss. Above 1 means the winners outweigh the losers.",
-      "tradeCount": "Trades",
-      "tradeCountDef": "Closed trades in this record.",
-      "monthsLive": "Months live",
-      "monthsLiveDef": "Calendar months the strategy has been running."
-    },
-    "monthly": {
-      "title": "Month by month",
-      "month": "Month",
-      "ret": "Return",
-      "note": "Every month since the record began. No start date has been chosen to flatter it."
-    },
-    "trades": {
-      "title": "Recent trades",
-      "market": "Market",
-      "side": "Side",
-      "duration": "Held",
-      "result": "Result",
-      "closed": "Closed",
-      "buy": "Buy",
-      "sell": "Sell",
-      "hours": "{hours}h",
-      "note": "Lot sizes and balances are deliberately not shown — they would reveal the account size, and with it every investor’s allocation."
-    },
-    "disclosure": "Past performance does not predict future results. This is a record of {trades} trades over {months} months. Trading carries risk of loss.",
-    "demoCaveat": "This record was earned on a demo account, where fills are idealised and slippage is not modelled, and on a different Vantage entity whose spreads may differ from the live master’s."
-  },
   "auth": {
     "signup": {
       "title": "Create your account",
@@ -286,7 +320,30 @@
         "generic": "We could not update your password. The link may have expired."
       }
     },
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "backToSite": "Back to site",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "panel": {
+      "title": "Know what the market is doing before you trade it.",
+      "body": "Volatility, trend structure and risk across 30 forex and crypto markets — read continuously, explained in plain English.",
+      "points": [
+        "Your money stays in your own broker account",
+        "Trade permission only — never withdrawal",
+        "Cancel or disconnect whenever you want"
+      ],
+      "stat": {
+        "value": "30",
+        "label": "forex and crypto markets watched"
+      }
+    },
+    "strength": {
+      "label": "Password strength",
+      "weak": "Weak",
+      "fair": "Fair",
+      "good": "Good",
+      "strong": "Strong"
+    }
   },
   "onboarding": {
     "title": "Getting set up",
@@ -322,6 +379,137 @@
       "suspended": "Your account is not currently being traded. Contact us if this is unexpected."
     },
     "notReady": "We could not load your account just now. Reload the page, and contact us if it keeps happening."
+  },
+  "checkout": {
+    "title": "Subscribe",
+    "intro": "Pick how long you want to pay for, then how you want to pay. The total is always shown before you pay anything.",
+    "term": {
+      "legend": "How long",
+      "one": "1 month",
+      "other": "{months} months",
+      "save": "Save {amount}",
+      "perMonth": "{price}/mo"
+    },
+    "method": {
+      "legend": "How you want to pay",
+      "alatpay_transfer": "Bank transfer",
+      "alatpay_transferHint": "We show you an account number to transfer to.",
+      "alatpay_card": "Card",
+      "alatpay_cardHint": "Pay by debit or credit card.",
+      "usdt_trc20": "USDT (TRC-20)",
+      "usdt_trc20Hint": "We give you a one-time address. Credited after confirmations."
+    },
+    "total": {
+      "label": "Total",
+      "subtotal": "Subtotal",
+      "discount": "Discount",
+      "ngnNote": "Charged in naira at {rate} per US dollar.",
+      "usdtNote": "Sent as USDT on the TRON network."
+    },
+    "submit": "Continue to payment",
+    "unavailable": "Payments are not switched on yet. The provider accounts still need to be connected.",
+    "notLinked": "You can subscribe before linking your Vantage account, but the bot cannot trade until both are done."
+  },
+  "legal": {
+    "terms": {
+      "title": "Terms of service",
+      "draft": "Draft — under legal review. Not binding until published.",
+      "permission": {
+        "title": "What you grant us",
+        "body": "You grant permission to place trades on your Vantage account, and nothing else. We cannot withdraw funds, transfer funds, or move money out of your account. That limit is enforced by Vantage under the limited power of attorney you sign with them, not by our undertaking alone."
+      },
+      "subscription": {
+        "title": "The subscription",
+        "body": "The $20 monthly fee is for access to the software. It is not a payment into your trading account and it is not an investment. A performance fee is configured inside Vantage's management panel and is calculated and paid out by Vantage; it does not pass through us."
+      },
+      "noGuarantee": {
+        "title": "No guarantee of results",
+        "body": "We do not guarantee any level of return, and nothing on this site should be read as a promise of one. You may lose money. See the risk disclosure."
+      },
+      "termination": {
+        "title": "Ending the arrangement",
+        "body": "You may cancel your subscription and detach the bot from your Vantage account at any time. Detaching is done in Vantage; cancelling is done here. Both are needed to stop trading entirely."
+      },
+      "attribution": {
+        "title": "Attribution",
+        "body": "Charts on this site are powered by TradingView."
+      }
+    },
+    "privacy": {
+      "title": "Privacy policy",
+      "draft": "Draft — under legal review. Not binding until published.",
+      "collect": {
+        "title": "What we collect",
+        "body": "Your email address, your subscription and payment records, and your Vantage MT5 login number. We do not collect or store your Vantage password, and we never ask for it."
+      },
+      "use": {
+        "title": "What we use it for",
+        "body": "To run your account: confirming your account link, managing your subscription, and sending you notifications you have not opted out of."
+      },
+      "share": {
+        "title": "Who we share it with",
+        "body": "Our payment providers, to take payment, and Vantage, to confirm the link between your account and our manager ID. We do not sell your data."
+      },
+      "rights": {
+        "title": "Your data",
+        "body": "You can ask us for a copy of what we hold about you, or ask us to delete it. Deleting your account here does not close your Vantage account — that is held by you, with them."
+      }
+    }
+  },
+  "footer": {
+    "tagline": "Automated trading on your own Vantage account.",
+    "product": "Product",
+    "legal": "Legal",
+    "company": "Company",
+    "riskDisclosure": "Risk disclosure",
+    "terms": "Terms of service",
+    "privacy": "Privacy policy",
+    "rights": "© {year} Highzcore. All rights reserved.",
+    "disclaimer": "Trading carries risk of loss. Past performance does not predict future results. We never hold client funds — your account is held with Vantage in your own name, and we are granted permission to trade it only, never to withdraw."
+  },
+  "performance": {
+    "title": "The record",
+    "intro": "Every trade the bot has made on the master account. Published in full, including the losing ones.",
+    "sampleWarning": "SAMPLE DATA — this is generated for development and is not a record of any real trading.",
+    "unavailable": "The performance feed is unavailable right now, so there is nothing to show. We would rather show you nothing than a figure we cannot stand behind.",
+    "equity": {
+      "title": "Account equity"
+    },
+    "stats": {
+      "title": "The numbers",
+      "totalReturn": "Total return",
+      "totalReturnDef": "Change in account equity from the first day to the last, as a percentage.",
+      "maxDrawdown": "Max drawdown",
+      "maxDrawdownDef": "The largest fall from a peak to the following trough. The worst it has felt to hold.",
+      "winRate": "Win rate",
+      "winRateDef": "Share of closed trades that made money. A high win rate does not mean profitable.",
+      "profitFactor": "Profit factor",
+      "profitFactorDef": "Gross profit divided by gross loss. Above 1 means the winners outweigh the losers.",
+      "tradeCount": "Trades",
+      "tradeCountDef": "Closed trades in this record.",
+      "monthsLive": "Months live",
+      "monthsLiveDef": "Calendar months the strategy has been running."
+    },
+    "monthly": {
+      "title": "Month by month",
+      "month": "Month",
+      "ret": "Return",
+      "note": "Every month since the record began. No start date has been chosen to flatter it."
+    },
+    "trades": {
+      "title": "Recent trades",
+      "market": "Market",
+      "side": "Side",
+      "duration": "Held",
+      "result": "Result",
+      "closed": "Closed",
+      "buy": "Buy",
+      "sell": "Sell",
+      "hours": "{hours}h",
+      "note": "Lot sizes and balances are deliberately not shown — they would reveal the account size, and with it every investor’s allocation."
+    },
+    "disclosure": "Past performance does not predict future results. This is a record of {trades} trades over {months} months. Trading carries risk of loss.",
+    "demoCaveat": "This record was earned on a demo account, where fills are idealised and slippage is not modelled, and on a different Vantage entity whose spreads may differ from the live master’s."
   },
   "dashboard": {
     "title": "Dashboard",
@@ -555,92 +743,5 @@
       "usdt_trc20": "USDT (TRC-20)"
     },
     "detachNote": "Lapsed investors are past the grace period and should be detached from the MAM. This is a manual step — nothing here does it for you."
-  },
-  "checkout": {
-    "title": "Subscribe",
-    "intro": "Pick how long you want to pay for, then how you want to pay. The total is always shown before you pay anything.",
-    "term": {
-      "legend": "How long",
-      "one": "1 month",
-      "other": "{months} months",
-      "save": "Save {amount}",
-      "perMonth": "{price}/mo"
-    },
-    "method": {
-      "legend": "How you want to pay",
-      "alatpay_transfer": "Bank transfer",
-      "alatpay_transferHint": "We show you an account number to transfer to.",
-      "alatpay_card": "Card",
-      "alatpay_cardHint": "Pay by debit or credit card.",
-      "usdt_trc20": "USDT (TRC-20)",
-      "usdt_trc20Hint": "We give you a one-time address. Credited after confirmations."
-    },
-    "total": {
-      "label": "Total",
-      "subtotal": "Subtotal",
-      "discount": "Discount",
-      "ngnNote": "Charged in naira at {rate} per US dollar.",
-      "usdtNote": "Sent as USDT on the TRON network."
-    },
-    "submit": "Continue to payment",
-    "unavailable": "Payments are not switched on yet. The provider accounts still need to be connected.",
-    "notLinked": "You can subscribe before linking your Vantage account, but the bot cannot trade until both are done."
-  },
-  "legal": {
-    "terms": {
-      "title": "Terms of service",
-      "draft": "Draft — under legal review. Not binding until published.",
-      "permission": {
-        "title": "What you grant us",
-        "body": "You grant permission to place trades on your Vantage account, and nothing else. We cannot withdraw funds, transfer funds, or move money out of your account. That limit is enforced by Vantage under the limited power of attorney you sign with them, not by our undertaking alone."
-      },
-      "subscription": {
-        "title": "The subscription",
-        "body": "The $20 monthly fee is for access to the software. It is not a payment into your trading account and it is not an investment. A performance fee is configured inside Vantage's management panel and is calculated and paid out by Vantage; it does not pass through us."
-      },
-      "noGuarantee": {
-        "title": "No guarantee of results",
-        "body": "We do not guarantee any level of return, and nothing on this site should be read as a promise of one. You may lose money. See the risk disclosure."
-      },
-      "termination": {
-        "title": "Ending the arrangement",
-        "body": "You may cancel your subscription and detach the bot from your Vantage account at any time. Detaching is done in Vantage; cancelling is done here. Both are needed to stop trading entirely."
-      },
-      "attribution": {
-        "title": "Attribution",
-        "body": "Charts on this site are powered by TradingView."
-      }
-    },
-    "privacy": {
-      "title": "Privacy policy",
-      "draft": "Draft — under legal review. Not binding until published.",
-      "collect": {
-        "title": "What we collect",
-        "body": "Your email address, your subscription and payment records, and your Vantage MT5 login number. We do not collect or store your Vantage password, and we never ask for it."
-      },
-      "use": {
-        "title": "What we use it for",
-        "body": "To run your account: confirming your account link, managing your subscription, and sending you notifications you have not opted out of."
-      },
-      "share": {
-        "title": "Who we share it with",
-        "body": "Our payment providers, to take payment, and Vantage, to confirm the link between your account and our manager ID. We do not sell your data."
-      },
-      "rights": {
-        "title": "Your data",
-        "body": "You can ask us for a copy of what we hold about you, or ask us to delete it. Deleting your account here does not close your Vantage account — that is held by you, with them."
-      }
-    }
-  },
-  "footer": {
-    "tagline": "Automated trading on your own Vantage account.",
-    "product": "Product",
-    "legal": "Legal",
-    "company": "Company",
-    "riskDisclosure": "Risk disclosure",
-    "terms": "Terms of service",
-    "privacy": "Privacy policy",
-    "rights": "© {year} Highzcore. All rights reserved.",
-    "disclaimer": "Trading carries risk of loss. Past performance does not predict future results. We never hold client funds — your account is held with Vantage in your own name, and we are granted permission to trade it only, never to withdraw."
   }
 }
