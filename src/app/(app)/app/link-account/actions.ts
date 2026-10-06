@@ -71,9 +71,6 @@ export async function requestDisconnect(): Promise<ActionResult> {
   // parameter here an attacker could point at somebody else's row.
   const { error } = await service
     .from("investors")
-    // @ts-expect-error status is intentionally absent from the Update type —
-    // investors may not write it. The service role may, and this is the one
-    // place that is true.
     .update({ status: "suspended" })
     .eq("user_id", auth.user.id);
 

@@ -35,8 +35,6 @@ export async function confirmLink(investorId: string): Promise<AdminResult> {
 
   const { error } = await service
     .from("investors")
-    // @ts-expect-error status and linked_at are deliberately absent from the
-    // Update type: no investor may write them. Admin action, service role.
     .update({ status: "linked", linked_at: new Date().toISOString() })
     .eq("id", investorId);
 
@@ -61,7 +59,6 @@ export async function rejectLink(investorId: string): Promise<AdminResult> {
   const service = createServiceClient();
   const { error } = await service
     .from("investors")
-    // @ts-expect-error see above — service-role write of protected columns.
     .update({ vantage_account_id: null, linked_at: null, status: "pending" })
     .eq("id", investorId);
 

@@ -1,5 +1,5 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "./types";
+import type { ServiceDatabase } from "./types";
 
 /**
  * The service-role client. BYPASSES RLS ENTIRELY.
@@ -21,7 +21,7 @@ export function createServiceClient() {
     );
   }
 
-  return createSupabaseClient<Database>(
+  return createSupabaseClient<ServiceDatabase>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     key,
     {

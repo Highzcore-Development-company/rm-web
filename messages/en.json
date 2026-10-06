@@ -297,6 +297,150 @@
     },
     "notReady": "We could not load your account just now. Reload the page, and contact us if it keeps happening."
   },
+  "dashboard": {
+    "title": "Dashboard",
+    "nav": {
+      "overview": "Overview",
+      "link": "My Vantage account",
+      "billing": "Subscription",
+      "developer": "Developer",
+      "onboarding": "Setup"
+    },
+    "account": {
+      "title": "My account",
+      "status": "Status",
+      "login": "MT5 login",
+      "notLinked": "Not linked yet",
+      "balanceUnavailable": "Vantage does not expose your balance to us, so we cannot show it here. Check it in your Vantage account.",
+      "cta": "Manage my account"
+    },
+    "subscription": {
+      "title": "Subscription",
+      "active": "Paid up until {date}",
+      "grace": "Expired {date} — still trading during a short grace period. Renew to avoid interruption.",
+      "lapsed": "Not active. The bot is not trading your account.",
+      "never": "You have not subscribed yet.",
+      "renew": "Renew",
+      "subscribe": "Subscribe",
+      "history": "Payment history",
+      "receipt": "Receipt",
+      "term": "{months} months",
+      "termOne": "1 month",
+      "noPayments": "No payments yet."
+    },
+    "positions": {
+      "title": "Live positions",
+      "subtitle": "What the bot has open on the master account. Your account mirrors these in proportion to its size.",
+      "symbol": "Market",
+      "side": "Side",
+      "opened": "Opened",
+      "price": "Entry",
+      "age": "Held",
+      "empty": "Nothing open right now.",
+      "unavailable": "Live positions are not available yet. The bot is not connected to this site."
+    },
+    "trades": {
+      "title": "Trade history",
+      "subtitle": "Closed trades on the master account.",
+      "symbol": "Market",
+      "side": "Side",
+      "closed": "Closed",
+      "result": "Result",
+      "empty": "No closed trades yet.",
+      "unavailable": "Trade history is not available yet."
+    },
+    "notifications": {
+      "title": "Notifications",
+      "subtitle": "Email me when:",
+      "trade_opened": "A trade is opened",
+      "trade_closed": "A trade is closed",
+      "subscription_expiring": "My subscription is about to expire",
+      "bot_switched_off": "The bot is switched off",
+      "always": "Receipts and security emails are always sent. We will not quietly stop telling you about your own money.",
+      "saved": "Saved.",
+      "error": "Could not save that. Try again."
+    }
+  },
+  "developer": {
+    "title": "Developer",
+    "intro": "Build on our data. Keys are shown once — store yours somewhere safe.",
+    "keys": {
+      "title": "API keys",
+      "name": "Name",
+      "prefix": "Key",
+      "created": "Created",
+      "lastUsed": "Last used",
+      "never": "Never",
+      "create": "Create a key",
+      "namePlaceholder": "e.g. my-dashboard",
+      "creating": "Creating…",
+      "revoke": "Revoke",
+      "revoked": "Revoked",
+      "empty": "No keys yet.",
+      "shownOnce": "Copy this now. It will not be shown again.",
+      "errors": {
+        "name": "Give the key a name.",
+        "generic": "Could not create the key. Try again.",
+        "noInvestor": "Finish signing up before creating a key."
+      }
+    },
+    "usage": {
+      "title": "Usage",
+      "calls": "Calls in the last 24 hours",
+      "limit": "Limit is {limit} requests per minute, per key.",
+      "none": "No calls yet."
+    },
+    "docsLink": "Read the API documentation"
+  },
+  "apiDocs": {
+    "title": "API documentation",
+    "intro": "A small, honest API over the same figures the site publishes. JSON, bearer auth, documented limits.",
+    "auth": {
+      "title": "Authentication",
+      "body": "Send your key as a bearer token. Keys are created in your dashboard, shown once, and stored only as a hash — we cannot recover one for you."
+    },
+    "limits": {
+      "title": "Rate limits",
+      "body": "{limit} requests per minute, per key. Over that you get 429 with a Retry-After header saying how many seconds until the window rolls over. Every successful response carries X-RateLimit-Limit and X-RateLimit-Remaining."
+    },
+    "errors": {
+      "title": "Errors",
+      "body": "Errors are JSON with an error code and a message. 401 means the key is missing or not valid; 403 means the endpoint is not open to you; 429 is the rate limit; 503 means we have no trustworthy data to return — not that the figure is zero."
+    },
+    "endpoints": {
+      "title": "Endpoints"
+    },
+    "performance": {
+      "summary": "Headline performance of the master account."
+    },
+    "markets": {
+      "summary": "The markets we trade and whether each is currently open."
+    },
+    "signals": {
+      "summary": "Open positions. Not currently available on the public API."
+    },
+    "termsLink": "API terms"
+  },
+  "apiTerms": {
+    "title": "API terms",
+    "draft": "Draft — under legal review. Not binding until published.",
+    "use": {
+      "title": "What you may do",
+      "body": "Build applications that display our published figures, with attribution. Cache responses. Show them to your own users."
+    },
+    "resale": {
+      "title": "What you may not do",
+      "body": "Resell our signals or redistribute them as a feed without a written agreement. Present our figures as your own track record. Use them to solicit investment on our behalf."
+    },
+    "accuracy": {
+      "title": "No warranty of accuracy",
+      "body": "The data describes trades that have already happened on one account. It can be delayed, wrong, or unavailable. Do not build anything that places real trades off it without your own checks."
+    },
+    "revoke": {
+      "title": "We can revoke a key",
+      "body": "If a key is abusing the limits or the terms we will revoke it, usually after telling you."
+    }
+  },
   "linkAccount": {
     "title": "Link your Vantage account",
     "intro": "Three things, in order. Your account stays in your name throughout and we never gain the ability to withdraw from it.",

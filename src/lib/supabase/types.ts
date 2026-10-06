@@ -52,6 +52,85 @@ export type Subscription = {
   updated_at: string;
 };
 
+/**
+ * What the SERVICE ROLE may write, which is more than an investor may.
+ *
+ * Modelled as a separate Database type rather than loosened everywhere, so the
+ * restriction is enforced by the compiler on the ordinary client and the
+ * widening is visible exactly where it is used. Before this, every
+ * service-role write needed a @ts-expect-error, which is a comment saying
+ * "trust me" in the one place that most deserves checking.
+ */
+export type ServiceDatabase = {
+  public: Omit<Database["public"], "Tables"> & {
+    Tables: Omit<
+      Database["public"]["Tables"],
+      "investors" | "subscriptions" | "api_keys"
+    > & {
+      investors: {
+        Row: Investor;
+        Insert: Partial<Investor> & { user_id: string };
+        Update: Partial<Investor>;
+        Relationships: [];
+      };
+      subscriptions: {
+        Row: Subscription;
+        Insert: Partial<Subscription> & {
+          investor_id: string;
+          months: number;
+          amount_usd: number;
+          method: PaymentMethod;
+        };
+        Update: Partial<Subscription>;
+        Relationships: [];
+      };
+      api_keys: {
+        Row: ApiKey;
+        Insert: {
+          investor_id: string;
+          name: string;
+          key_hash: string;
+          key_prefix: string;
+        };
+        Update: Partial<Pick<ApiKey, "revoked_at" | "last_used_at" | "name">>;
+        Relationships: [];
+      };
+    };
+  };
+};
+
+/** Mirrors the notification_preferences migration. */
+export type NotificationPreferences = {
+  investor_id: string;
+  trade_opened: boolean;
+  trade_closed: boolean;
+  subscription_expiring: boolean;
+  bot_switched_off: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type NotificationPreferencesWrite = {
+  investor_id: string;
+  trade_opened?: boolean;
+  trade_closed?: boolean;
+  subscription_expiring?: boolean;
+  bot_switched_off?: boolean;
+};
+
+/** Mirrors the api_keys migration. Never carries the plaintext key. */
+export type ApiKey = {
+  id: string;
+  investor_id: string;
+  name: string;
+  key_hash: string;
+  key_prefix: string;
+  revoked_at: string | null;
+  last_used_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -74,8 +153,37 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      /**
+       * Read-only here. Invoices are raised and banked by the service role at
+       * a price we calculated — a client that could insert one could insert
+       * twelve months for one cent.
+       */
       subscriptions: {
         Row: Subscription;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      /** The one table an investor genuinely owns and writes themselves. */
+      notification_preferences: {
+        Row: NotificationPreferences;
+        Insert: NotificationPreferencesWrite;
+        Update: Partial<NotificationPreferencesWrite>;
+        Relationships: [];
+      };
+      /**
+       * Read-only. Keys are minted by the service role so a client can never
+       * choose the hash it is registering — that would let someone install a
+       * key they already knew.
+       */
+      api_keys: {
+        Row: ApiKey;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      api_usage: {
+        Row: { api_key_id: string; window_start: string; calls: number };
         Insert: never;
         Update: never;
         Relationships: [];
@@ -86,6 +194,11 @@ export type Database = {
       is_admin: {
         Args: Record<string, never>;
         Returns: boolean;
+      };
+      /** Service role only. Increments and checks in one statement. */
+      record_api_call: {
+        Args: { p_key_hash: string; p_limit: number };
+        Returns: { allowed: boolean; calls: number; key_id: string | null }[];
       };
     };
     Enums: {
