@@ -49,7 +49,7 @@ export function NotificationSwitches({
             name={key}
             defaultChecked={initial[key]}
             disabled={pending}
-            className="size-4 accent-[#FFB020]"
+            className="control"
           />
           {t(key)}
         </label>

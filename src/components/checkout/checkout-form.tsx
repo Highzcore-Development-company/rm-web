@@ -160,7 +160,7 @@ export function CheckoutForm() {
                       value={p.months}
                       checked={selected}
                       onChange={() => setMonths(p.months)}
-                      className="mt-1 size-4 accent-[#FFB020]"
+                      className="control mt-0.5"
                     />
                     <span>
                       <span className="block text-sm font-medium">
@@ -214,7 +214,7 @@ export function CheckoutForm() {
                     value={m}
                     checked={selected}
                     onChange={() => setMethod(m)}
-                    className="mt-1 size-4 accent-[#FFB020]"
+                    className="control mt-0.5"
                   />
                   <span>
                     <span className="block text-sm font-medium">

@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { sendVerificationCode } from "@/app/(app)/app/verify-email/actions";
+import { acknowledgeRisk } from "@/app/(app)/app/risk-acknowledgement/actions";
 import { Field, FormError, inputClass } from "@/components/auth/auth-card";
 import {
   PasswordField,
@@ -104,7 +105,9 @@ export function SignupForm() {
     // investor yet. Without this the verify page would sit there asking for a
     // code that was never issued.
     if (data.session) {
-      await sendVerificationCode();
+      // They ticked the box on this form; recording it here means the gate
+      // does not stop and ask them the same question again.
+      await Promise.all([acknowledgeRisk(), sendVerificationCode()]);
     }
 
     router.push(`/app/verify-email?email=${encodeURIComponent(email)}`);
@@ -153,7 +156,7 @@ export function SignupForm() {
           required
           checked={acknowledged}
           onChange={(e) => setAcknowledged(e.target.checked)}
-          className="mt-0.5 size-4 shrink-0 accent-[#FFB020]"
+          className="control mt-0.5"
         />
         <div className="text-sm">
           <label htmlFor="acknowledge" className="leading-relaxed text-fg-muted">

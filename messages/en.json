@@ -272,7 +272,8 @@
         "already_registered": "There is already an account with that email. Try signing in, or reset your password.",
         "provider_disabled": "Account creation is temporarily switched off. Please try again shortly.",
         "signup_disabled": "We are not accepting new accounts right now."
-      }
+      },
+      "continue": "I understand — continue"
     },
     "verifyEmail": {
       "title": "Check your email",
@@ -363,6 +364,10 @@
       "continue": "Continue with Google",
       "or": "or",
       "error": "We could not start Google sign-in. Try again, or use your email."
+    },
+    "riskGate": {
+      "title": "Before you continue",
+      "intro": "Trading your own money carries real risk. Please read this and confirm you understand it."
     }
   },
   "onboarding": {

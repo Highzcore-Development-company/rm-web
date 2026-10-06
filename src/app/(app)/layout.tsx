@@ -21,6 +21,7 @@ import { ensureInvestor, getInvestor } from "@/lib/investors";
 /** Reachable while unverified: the gate itself, and the way back out. */
 const UNGATED = [
   "/app/verify-email",
+  "/app/risk-acknowledgement",
   "/app/login",
   "/app/signup",
   "/app/forgot-password",
@@ -52,6 +53,13 @@ export default async function AppLayout({
         redirect(
           `/app/verify-email?email=${encodeURIComponent(auth.user.email ?? "")}`,
         );
+      }
+
+      // P2-104. The email form has its own checkbox, but Google signup never
+      // saw one — and a disclosure that one of two routes in can skip is not
+      // "shown during signup". Checked here so the route taken cannot matter.
+      if (investor && !investor.risk_acknowledged_at) {
+        redirect("/app/risk-acknowledgement");
       }
     }
   }

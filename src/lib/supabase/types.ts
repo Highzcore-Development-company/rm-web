@@ -14,6 +14,8 @@ export type Investor = {
   user_id: string;
   /** Set when OUR code was accepted. Supabase auto-confirms, so its flag is not meaningful. */
   email_verified_at: string | null;
+  /** P2-104. Server-written, and the RLS policy only allows null -> a value. */
+  risk_acknowledged_at: string | null;
   status: InvestorStatus;
   vantage_account_id: string | null;
   linked_at: string | null;
@@ -194,7 +196,10 @@ export type Database = {
         // Status and account are not insertable: the column grants in the
         // migration omit them, so they take their defaults whatever we send.
         Insert: { user_id: string };
-        Update: { vantage_account_id?: string | null };
+        Update: {
+          vantage_account_id?: string | null;
+          risk_acknowledged_at?: string | null;
+        };
         Relationships: [];
       };
       /**
