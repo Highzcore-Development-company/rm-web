@@ -116,16 +116,20 @@ master's account size, and from that every investor's allocation.
 
 ---
 
-## 4. Things Esther can do without anyone — about an hour
+## 4. Things Esther can do without anyone
 
-1. **Supabase → Authentication → Sign In / Providers → Email → enable.**
-   Currently off, which refuses every signup. Then inside that panel turn
-   **Confirm email** off while testing, and back on before launch.
-2. **Add yourself to `app_admins`** with your auth user id, or `/app/admin/links`
-   and `/app/admin/billing` will 404 for you.
-3. **Netlify (P2-005).** Create the site, connect the repo, set env vars, point
+**Done 6 Oct:** email provider enabled, confirm-email turned off for testing,
+and admin access handled by migration — `estherolukorede12@gmail.com` is
+promoted automatically the moment that account signs up.
+
+Still outstanding:
+
+1. **Netlify (P2-005).** Create the site, connect the repo, set env vars, point
    `highzcore.com` at it. `netlify.toml` is committed and ready.
-4. **Screenshots for P2-201**, once the master account exists.
+2. **Turn Confirm email back ON before launch.** It is off so the flow can be
+   tested without the email rate limit. P2-106 requires verification, and it is
+   what stops someone registering an address they do not control.
+3. **Screenshots for P2-201**, once the master account exists.
 
 ---
 
