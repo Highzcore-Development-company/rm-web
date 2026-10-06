@@ -40,10 +40,10 @@ export default function LoginPage() {
       }
     >
       {/* useSearchParams needs a Suspense boundary to stay statically rendered. */}
-      <GoogleButton />
       <Suspense>
         <LoginForm />
       </Suspense>
+      <GoogleButton />
     </AuthCard>
   );
 }

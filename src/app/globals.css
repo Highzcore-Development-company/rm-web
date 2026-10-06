@@ -163,3 +163,102 @@ body {
 :root[data-theme="light"] .theme-icon-dark {
   display: none;
 }
+
+/* ---------------------------------------------------------------------------
+   Surfaces.
+
+   A card is a gradient with a lit top edge, not a flat fill. One utility so
+   every panel reads as the same material — otherwise each page invents its own
+   and the product looks assembled rather than designed.
+   --------------------------------------------------------------------------- */
+
+.surface {
+  background-image: linear-gradient(to bottom, var(--surface-top), var(--surface));
+  box-shadow: var(--raise), var(--elev-1);
+}
+
+.surface-raised {
+  background-image: linear-gradient(to bottom, var(--surface-top), var(--surface));
+  box-shadow: var(--raise), var(--elev-2);
+}
+
+/* The page's ambient light: one soft accent bloom behind the content. Subtle
+   on purpose — you do not see it, you only notice its absence. */
+.ambient::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: -12rem;
+  height: 40rem;
+  pointer-events: none;
+  z-index: -1;
+  background: radial-gradient(
+    60% 50% at 50% 0%,
+    rgb(255 176 32 / 0.1),
+    transparent 70%
+  );
+}
+
+:root[data-theme="light"] .ambient::before {
+  background: radial-gradient(
+    60% 50% at 50% 0%,
+    rgb(255 176 32 / 0.18),
+    transparent 70%
+  );
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .ambient::before {
+    background: radial-gradient(
+      60% 50% at 50% 0%,
+      rgb(255 176 32 / 0.18),
+      transparent 70%
+    );
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Form controls.
+
+   Inputs RECEDE below the card they sit on. A field the same colour as its
+   container does not look typeable — and with no background and no border at
+   all it is simply invisible, which is exactly what happened when this block
+   went missing.
+
+   The border is deliberately louder than --border: that token separates
+   regions, and is far too quiet for something a person has to find and click.
+   --------------------------------------------------------------------------- */
+
+.field-input {
+  background-color: var(--input-bg);
+  border: 1px solid var(--input-border);
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.25);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.field-input::placeholder {
+  color: var(--fg-muted);
+}
+
+.field-input:hover {
+  border-color: color-mix(in oklab, var(--input-border) 50%, var(--fg-muted));
+}
+
+.field-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--ring-accent);
+}
+
+:root[data-theme="light"] .field-input {
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.05);
+}
+
+/* Headline type. Default tracking on a 60px heading looks loose, and loose
+   tracking is the first thing that makes a page read as untouched defaults. */
+.display {
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}

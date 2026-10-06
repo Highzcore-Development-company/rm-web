@@ -35,6 +35,14 @@ export function GoogleButton({ next }: { next?: string }) {
 
   return (
     <div>
+      <div className="my-6 flex items-center gap-3">
+        <span className="h-px flex-1 bg-border" />
+        <span className="text-xs uppercase tracking-wide text-fg-muted">
+          {t("or")}
+        </span>
+        <span className="h-px flex-1 bg-border" />
+      </div>
+
       <button
         type="button"
         onClick={signIn}
@@ -58,13 +66,6 @@ export function GoogleButton({ next }: { next?: string }) {
         </p>
       ) : null}
 
-      <div className="my-5 flex items-center gap-3">
-        <span className="h-px flex-1 bg-border" />
-        <span className="text-xs uppercase tracking-wide text-fg-muted">
-          {t("or")}
-        </span>
-        <span className="h-px flex-1 bg-border" />
-      </div>
     </div>
   );
 }

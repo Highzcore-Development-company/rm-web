@@ -27,8 +27,8 @@ export default function SignupPage() {
         </>
       }
     >
-      <GoogleButton />
       <SignupForm />
+      <GoogleButton />
     </AuthCard>
   );
 }
