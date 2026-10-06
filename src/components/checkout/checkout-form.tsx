@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { Check, Copy } from "lucide-react";
 import {
+  abandonOutstanding,
   startBankTransfer,
   startCryptoInvoice,
   type CheckoutResult,
@@ -76,6 +77,23 @@ export function CheckoutForm({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  /**
+   * Back to the options. Without this, whichever method was picked first
+   * holds the page until the invoice expires — so "Renew" showed an old
+   * pending payment rather than letting anyone choose.
+   */
+  function changeMethod() {
+    setError(null);
+    startTransition(async () => {
+      const res = await abandonOutstanding();
+      if (res.ok) setResult(null);
+      else
+        setError(
+          res.error === "already_sent" ? t("alreadySent") : t("changeFailed"),
+        );
+    });
+  }
+
   function start() {
     setError(null);
     startTransition(async () => {
@@ -112,6 +130,19 @@ export function CheckoutForm({
           {t("transfer.note")}
         </p>
         <PaymentWatcher subscriptionId={result.subscriptionId} />
+        <button
+          type="button"
+          onClick={changeMethod}
+          disabled={pending}
+          className="mt-5 text-sm text-accent underline underline-offset-2 disabled:opacity-60"
+        >
+          {t("changeMethod")}
+        </button>
+        {error ? (
+          <p role="alert" className="mt-2 text-sm text-chart-down">
+            {error}
+          </p>
+        ) : null}
       </Card>
     );
   }
@@ -141,6 +172,19 @@ export function CheckoutForm({
           {t("crypto.expires")}
         </p>
         <PaymentWatcher subscriptionId={result.subscriptionId} />
+        <button
+          type="button"
+          onClick={changeMethod}
+          disabled={pending}
+          className="mt-5 text-sm text-accent underline underline-offset-2 disabled:opacity-60"
+        >
+          {t("changeMethod")}
+        </button>
+        {error ? (
+          <p role="alert" className="mt-2 text-sm text-chart-down">
+            {error}
+          </p>
+        ) : null}
       </Card>
     );
   }

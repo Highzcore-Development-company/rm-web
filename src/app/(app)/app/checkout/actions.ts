@@ -215,3 +215,59 @@ export async function startCryptoInvoice(
     expiresAt: invoice.expires_at,
   };
 }
+
+/**
+ * Abandon the open invoice and go back to choosing.
+ *
+ * Restoring an outstanding payment on refresh stopped people paying twice, but
+ * it also pinned them to whatever they picked first: an invoice they changed
+ * their mind about blocked every other method until it expired.
+ *
+ * REFUSED once anything has been seen on chain. Marking it expired stops the
+ * watcher looking at that address, so doing it after a transfer has landed
+ * would orphan real money.
+ */
+export async function abandonOutstanding(): Promise<
+  { ok: true } | { ok: false; error: string }
+> {
+  const supabase = await createClient();
+  const investor = await getInvestor(supabase);
+  if (!investor) return { ok: false, error: "not_signed_in" };
+
+  const service = createServiceClient();
+
+  const { data: subscription } = await service
+    .from("subscriptions")
+    .select("id, method")
+    .eq("investor_id", investor.id)
+    .eq("status", "awaiting")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!subscription) return { ok: true };
+
+  if (subscription.method === "usdt_trc20") {
+    const { data: invoice } = await service
+      .from("crypto_invoices")
+      .select("id, seen_tx_hash")
+      .eq("subscription_id", subscription.id)
+      .maybeSingle();
+
+    if (invoice?.seen_tx_hash) return { ok: false, error: "already_sent" };
+
+    if (invoice) {
+      await service
+        .from("crypto_invoices")
+        .update({ status: "expired" })
+        .eq("id", invoice.id);
+    }
+  }
+
+  await service
+    .from("subscriptions")
+    .update({ status: "expired" })
+    .eq("id", subscription.id);
+
+  return { ok: true };
+}

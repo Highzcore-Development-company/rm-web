@@ -484,7 +484,11 @@
       "wrong_contract": "A token arrived that is not USDT on TRON. We cannot credit it automatically. Contact us and we will look at it.",
       "provider_failed": "Your bank or card provider declined this payment. Nothing has been taken. You can start again with another method.",
       "contact": "Contact support"
-    }
+    },
+    "changeMethod": "Pay a different way",
+    "changeMethodHint": "This cancels the payment above and takes you back to the options.",
+    "alreadySent": "This payment has already been received on chain, so it cannot be cancelled. It will confirm shortly.",
+    "changeFailed": "Could not cancel that. Try again."
   },
   "legal": {
     "terms": {
