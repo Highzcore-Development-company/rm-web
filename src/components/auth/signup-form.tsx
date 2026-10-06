@@ -80,7 +80,7 @@ export function SignupForm() {
     setSubmitting(true);
 
     const supabase = createClient();
-    const { error: signUpError } = await supabase.auth.signUp({
+    const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -96,9 +96,22 @@ export function SignupForm() {
       return;
     }
 
-    // No investors row yet, and no session. "Email verification required
-    // before anything else" (P2-106) means exactly that — the row is created
-    // by the callback, after the address is confirmed.
+    // Whether a session comes back depends on a Supabase setting we do not
+    // control from here: with email confirmation ON there is no session and a
+    // link is sent; with it OFF the account is live immediately.
+    //
+    // Branch on what actually happened rather than on what we assume is
+    // configured. Sending someone to "check your email" when no email is
+    // coming is a dead end they cannot get out of.
+    if (data.session) {
+      router.push("/app/onboarding");
+      router.refresh();
+      return;
+    }
+
+    // No session: verification is required, and "before anything else"
+    // (P2-106) means exactly that — the investors row is created by the auth
+    // callback once the address is confirmed, not here.
     router.push(`/app/verify-email?email=${encodeURIComponent(email)}`);
   }
 

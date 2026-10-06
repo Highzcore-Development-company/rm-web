@@ -33,6 +33,23 @@ seen. A PDF, a Postman collection or a link to their docs all work.
 | `TRON_API_KEY` | TronGrid or equivalent, for the confirmation watcher |
 | Confirmation count | defaulted to 20, matching MYPOKER |
 
+**If this is MYPOKER's wallet, it must be a different account branch.**
+
+Both products derive addresses from the xpub by index. Share one xpub and
+MYPOKER's index 47 and ours are the *same address* — two unrelated invoices
+against one address, which is precisely what `crypto_invoices` has a unique
+constraint to prevent and what makes a payment impossible to attribute.
+
+Same seed, same wallet, same recovery; different branch:
+
+```
+m/44'/195'/0'   MYPOKER     (whatever it already uses)
+m/44'/195'/1'   Highzcore   (export the xpub for THIS account)
+```
+
+Nothing about MYPOKER changes. We need the account-level xpub for a branch it
+does not use. Confirm which index MYPOKER is on before picking ours.
+
 **Never send the seed phrase or a private key.** Receive addresses derive from
 the public xpub alone. Sweeping funds needs the private key and is a separate
 process with its own custody — not this app, and not this app's environment.
