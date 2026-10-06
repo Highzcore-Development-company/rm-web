@@ -1,0 +1,42 @@
+import { NextResponse, type NextRequest } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { ensureInvestor } from "@/lib/investors";
+
+/**
+ * Where Supabase sends the user after they click the link in a verification or
+ * password-reset email. Exchanges the one-time code for a session, then makes
+ * sure the investors row exists (P2-106).
+ */
+export async function GET(request: NextRequest) {
+  const { searchParams, origin } = request.nextUrl;
+  const code = searchParams.get("code");
+  const next = searchParams.get("next") ?? "/app/onboarding";
+
+  // Open redirect guard: `next` comes from a URL anyone can craft, and this
+  // route is reached from an email. Relative paths only.
+  const safeNext = next.startsWith("/") && !next.startsWith("//")
+    ? next
+    : "/app/onboarding";
+
+  if (!code) {
+    return NextResponse.redirect(`${origin}/app/login?error=missing_code`);
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+  if (error) {
+    // Expired or already-used link. Say so rather than dumping them on a
+    // login page with no explanation of what went wrong.
+    return NextResponse.redirect(`${origin}/app/login?error=link_expired`);
+  }
+
+  const { data } = await supabase.auth.getUser();
+  if (data.user) {
+    // Not fatal if this fails — the onboarding page retries. Better to land
+    // them somewhere useful than to block a verified signup on one insert.
+    await ensureInvestor(supabase, data.user.id);
+  }
+
+  return NextResponse.redirect(`${origin}${safeNext}`);
+}

@@ -151,6 +151,154 @@
       "body": "We are granted permission to place trades on your account. We cannot withdraw from it or transfer money out of it. Your funds are held by Vantage in your own name throughout."
     }
   },
+  "auth": {
+    "signup": {
+      "title": "Create your account",
+      "intro": "This creates your Highzcore account. Your Vantage account is separate, and you open that in your own name.",
+      "email": "Email address",
+      "password": "Password",
+      "passwordHint": "At least 8 characters.",
+      "acknowledge": "I have read the risk disclosure and understand that trading carries risk of loss, that past performance does not predict future results, and that the bot can make mistakes.",
+      "acknowledgeLink": "Read the risk disclosure",
+      "submit": "Create account",
+      "submitting": "Creating your account…",
+      "haveAccount": "Already have an account?",
+      "signIn": "Sign in",
+      "errors": {
+        "acknowledge": "Please confirm you have read the risk disclosure.",
+        "password": "Password must be at least 8 characters.",
+        "generic": "We could not create your account. Please try again."
+      }
+    },
+    "verifyEmail": {
+      "title": "Check your email",
+      "body": "We have sent a confirmation link to {email}. Click it to verify your address — nothing else happens on your account until you do.",
+      "noEmail": "No email? Check your spam folder, or",
+      "resend": "send it again",
+      "resent": "Sent. It can take a minute to arrive.",
+      "backToSignIn": "Back to sign in"
+    },
+    "login": {
+      "title": "Sign in",
+      "email": "Email address",
+      "password": "Password",
+      "submit": "Sign in",
+      "submitting": "Signing in…",
+      "forgot": "Forgot your password?",
+      "noAccount": "Don't have an account?",
+      "signUp": "Create one",
+      "errors": {
+        "invalid": "That email and password do not match an account.",
+        "unverified": "Please verify your email address first. Check your inbox for the link.",
+        "linkExpired": "That link has expired or has already been used. Sign in, or request a new one.",
+        "missingCode": "That link was incomplete. Please use the full link from your email.",
+        "generic": "We could not sign you in. Please try again."
+      }
+    },
+    "forgotPassword": {
+      "title": "Reset your password",
+      "intro": "Enter your email address and we will send you a link to set a new password.",
+      "email": "Email address",
+      "submit": "Send reset link",
+      "submitting": "Sending…",
+      "sent": "If that address has an account, a reset link is on its way.",
+      "back": "Back to sign in"
+    },
+    "resetPassword": {
+      "title": "Set a new password",
+      "password": "New password",
+      "confirm": "Confirm new password",
+      "submit": "Save password",
+      "submitting": "Saving…",
+      "errors": {
+        "mismatch": "The two passwords do not match.",
+        "password": "Password must be at least 8 characters.",
+        "generic": "We could not update your password. The link may have expired."
+      }
+    },
+    "signOut": "Sign out"
+  },
+  "onboarding": {
+    "title": "Getting set up",
+    "intro": "Four steps. You can stop and come back — this page remembers where you are.",
+    "done": "Done",
+    "todo": "Not done yet",
+    "steps": {
+      "account": {
+        "title": "Open your Vantage account",
+        "body": "Open it in your own name through our partner link. You complete Vantage's verification directly with them.",
+        "cta": "Open an account"
+      },
+      "fund": {
+        "title": "Fund it",
+        "body": "Deposit with Vantage. The money stays in your account, in your name, the whole time. We never hold it.",
+        "cta": "How funding works"
+      },
+      "link": {
+        "title": "Link to our manager ID",
+        "body": "Sign Vantage's limited power of attorney and give us your MT5 login so we can confirm the link. Trade permission only — never withdrawal.",
+        "cta": "Link my account"
+      },
+      "subscribe": {
+        "title": "Subscribe",
+        "body": "$20 a month for the software. The bot does not trade your account until this is active.",
+        "cta": "Choose a plan"
+      }
+    },
+    "status": {
+      "pending": "You have not linked a Vantage account yet.",
+      "linked": "Your Vantage account is linked. Subscribe to start trading.",
+      "active": "Your account is linked and your subscription is active.",
+      "suspended": "Your account is not currently being traded. Contact us if this is unexpected."
+    },
+    "notReady": "We could not load your account just now. Reload the page, and contact us if it keeps happening."
+  },
+  "legal": {
+    "terms": {
+      "title": "Terms of service",
+      "draft": "Draft — under legal review. Not binding until published.",
+      "permission": {
+        "title": "What you grant us",
+        "body": "You grant permission to place trades on your Vantage account, and nothing else. We cannot withdraw funds, transfer funds, or move money out of your account. That limit is enforced by Vantage under the limited power of attorney you sign with them, not by our undertaking alone."
+      },
+      "subscription": {
+        "title": "The subscription",
+        "body": "The $20 monthly fee is for access to the software. It is not a payment into your trading account and it is not an investment. A performance fee is configured inside Vantage's management panel and is calculated and paid out by Vantage; it does not pass through us."
+      },
+      "noGuarantee": {
+        "title": "No guarantee of results",
+        "body": "We do not guarantee any level of return, and nothing on this site should be read as a promise of one. You may lose money. See the risk disclosure."
+      },
+      "termination": {
+        "title": "Ending the arrangement",
+        "body": "You may cancel your subscription and detach the bot from your Vantage account at any time. Detaching is done in Vantage; cancelling is done here. Both are needed to stop trading entirely."
+      },
+      "attribution": {
+        "title": "Attribution",
+        "body": "Charts on this site are powered by TradingView."
+      }
+    },
+    "privacy": {
+      "title": "Privacy policy",
+      "draft": "Draft — under legal review. Not binding until published.",
+      "collect": {
+        "title": "What we collect",
+        "body": "Your email address, your subscription and payment records, and your Vantage MT5 login number. We do not collect or store your Vantage password, and we never ask for it."
+      },
+      "use": {
+        "title": "What we use it for",
+        "body": "To run your account: confirming your account link, managing your subscription, and sending you notifications you have not opted out of."
+      },
+      "share": {
+        "title": "Who we share it with",
+        "body": "Our payment providers, to take payment, and Vantage, to confirm the link between your account and our manager ID. We do not sell your data."
+      },
+      "rights": {
+        "title": "Your data",
+        "body": "You can ask us for a copy of what we hold about you, or ask us to delete it. Deleting your account here does not close your Vantage account — that is held by you, with them."
+      }
+    }
+  },
   "footer": {
     "tagline": "Automated trading on your own Vantage account.",
     "product": "Product",

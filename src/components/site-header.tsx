@@ -32,7 +32,13 @@ export function SiteHeader() {
 
         <div className="flex items-center gap-3">
           <ThemeToggle />
-          <ButtonLink href="/signup" className="px-4 py-2">
+          <Link
+            href="/app/login"
+            className="hidden text-sm text-fg-muted hover:text-fg sm:block"
+          >
+            {t("signIn")}
+          </Link>
+          <ButtonLink href="/app/signup" className="px-4 py-2">
             {t("getStarted")}
           </ButtonLink>
         </div>
