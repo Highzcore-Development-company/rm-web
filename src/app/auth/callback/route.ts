@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { ensureInvestor } from "@/lib/investors";
+import { createServiceClient } from "@/lib/supabase/service";
 
 /**
  * Where Supabase sends the user after they click the link in a verification or
@@ -33,9 +34,21 @@ export async function GET(request: NextRequest) {
 
   const { data } = await supabase.auth.getUser();
   if (data.user) {
-    // Not fatal if this fails — the onboarding page retries. Better to land
-    // them somewhere useful than to block a verified signup on one insert.
+    // Not fatal if this fails — the app layout retries. Better to land them
+    // somewhere useful than to block a verified signup on one insert.
     await ensureInvestor(supabase, data.user.id);
+
+    // An OAuth provider has already proven the address belongs to them.
+    // Emailing a code to an address Google just vouched for would be friction
+    // with no security gained.
+    const provider = data.user.app_metadata?.provider;
+    if (provider && provider !== "email") {
+      await createServiceClient()
+        .from("investors")
+        .update({ email_verified_at: new Date().toISOString() })
+        .eq("user_id", data.user.id)
+        .is("email_verified_at", null);
+    }
   }
 
   return NextResponse.redirect(`${origin}${safeNext}`);

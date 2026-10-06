@@ -1,10 +1,60 @@
 import type { ReactNode } from "react";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { ensureInvestor, getInvestor } from "@/lib/investors";
 
 /**
  * The application surface: signup, dashboard, billing, charts — everything
- * under /app. Separate from (marketing) because it gets its own chrome and,
- * once P2-008 lands, its own auth boundary.
+ * under /app.
+ *
+ * It also holds the verification gate. P2-106 says email verification is
+ * required "before anything else", and the only way to mean that is to check
+ * it on every route beneath here rather than on the pages someone remembered
+ * to add it to.
+ *
+ * The check is OUR flag, not Supabase's. Supabase is set to auto-confirm —
+ * otherwise it would try to send its own mail — so its email_confirmed_at is
+ * true the moment an account exists and means nothing.
  */
-export default function AppLayout({ children }: { children: ReactNode }) {
+
+/** Reachable while unverified: the gate itself, and the way back out. */
+const UNGATED = [
+  "/app/verify-email",
+  "/app/login",
+  "/app/signup",
+  "/app/forgot-password",
+  "/app/reset-password",
+];
+
+export default async function AppLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  // Stamped by the proxy on every request. Without it this layout would send
+  // the verify page to itself and loop.
+  const pathname = (await headers()).get("x-pathname") ?? "";
+  const ungated = UNGATED.some((p) => pathname.startsWith(p));
+
+  if (!ungated) {
+    const supabase = await createClient();
+    const { data: auth } = await supabase.auth.getUser();
+
+    if (auth.user) {
+      // Google and password signups both land here with a session and no row
+      // yet; creating it at the gate means no page below has to wonder.
+      const investor =
+        (await getInvestor(supabase)) ??
+        (await ensureInvestor(supabase, auth.user.id));
+
+      if (investor && !investor.email_verified_at) {
+        redirect(
+          `/app/verify-email?email=${encodeURIComponent(auth.user.email ?? "")}`,
+        );
+      }
+    }
+  }
+
   return <div className="flex min-h-full flex-1 flex-col">{children}</div>;
 }

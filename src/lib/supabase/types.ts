@@ -12,6 +12,8 @@ export type InvestorStatus = "pending" | "linked" | "active" | "suspended";
 export type Investor = {
   id: string;
   user_id: string;
+  /** Set when OUR code was accepted. Supabase auto-confirms, so its flag is not meaningful. */
+  email_verified_at: string | null;
   status: InvestorStatus;
   vantage_account_id: string | null;
   linked_at: string | null;
@@ -103,6 +105,25 @@ export type ServiceDatabase = {
           | "created_at" | "expires_at" | "updated_at"
         > & Partial<CryptoInvoice>;
         Update: Partial<CryptoInvoice>;
+        Relationships: [];
+      };
+      email_verifications: {
+        Row: {
+          user_id: string;
+          code_hash: string;
+          expires_at: string;
+          attempts: number;
+          last_sent_at: string;
+          created_at: string;
+        };
+        Insert: {
+          user_id: string;
+          code_hash: string;
+          expires_at: string;
+          attempts?: number;
+          last_sent_at?: string;
+        };
+        Update: Partial<{ attempts: number; last_sent_at: string }>;
         Relationships: [];
       };
       sent_reminders: {

@@ -188,3 +188,33 @@ Dashboard: ${input.dashboardUrl}
     ),
   };
 }
+
+/**
+ * The verification code. Sent by us, over our SMTP — Supabase sends nothing.
+ *
+ * The code is large and monospaced because it is read off one device and typed
+ * into another, and the expiry is stated so nobody wonders why an old email
+ * stopped working.
+ */
+export function verificationCodeEmail(input: {
+  code: string;
+  minutes: number;
+}) {
+  const lead = "Here is your Highzcore verification code.";
+  const note = `It expires in ${input.minutes} minutes. If you did not ask for this, you can ignore this email — nothing has been created in your name.`;
+
+  return {
+    subject: `${input.code} is your Highzcore code`,
+    text: `${lead}
+
+${input.code}
+
+${note}
+`,
+    html: layout(
+      `<p style="margin:0 0 20px;font-size:16px;line-height:1.5">${lead}</p>
+<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:34px;font-weight:700;letter-spacing:10px;background:#f6f6f6;border-radius:10px;padding:18px 20px;text-align:center">${input.code}</div>
+<p style="margin:20px 0 0;font-size:13px;line-height:1.6;color:#666">${note}</p>`,
+    ),
+  };
+}

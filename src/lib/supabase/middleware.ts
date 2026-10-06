@@ -89,6 +89,10 @@ export async function updateSession(request: NextRequest) {
     return clear(NextResponse.next({ request }));
   }
 
+  // The app layout gates unverified accounts and must know where the request
+  // is headed, or it would redirect the verify page to itself.
+  supabaseResponse.headers.set("x-pathname", path);
+
   if (matches(path, ALWAYS_ALLOWED)) return supabaseResponse;
 
   // Anonymous visitor on a protected route.

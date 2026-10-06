@@ -248,7 +248,7 @@
       "resent": "Sent. Check your inbox.",
       "backToSignIn": "Back to sign in",
       "codeTitle": "Enter your code",
-      "codeIntro": "We sent a 6-digit code to {email}. It expires in an hour.",
+      "codeIntro": "We sent a 6-digit code to {email}. It expires in 15 minutes.",
       "code": "6-digit code",
       "verify": "Verify",
       "verifying": "Verifying…",
@@ -256,7 +256,11 @@
       "errors": {
         "invalid": "That code is not right. Check it and try again.",
         "expired": "That code has expired. Request a new one.",
-        "generic": "We could not verify that code. Please try again."
+        "generic": "We could not verify that code. Please try again.",
+        "too_many": "Too many attempts. Request a new code.",
+        "too_soon": "Please wait a moment before asking for another code.",
+        "send_failed": "We could not send the email. Please try again shortly.",
+        "not_signed_in": "Your session expired. Sign in and try again."
       }
     },
     "login": {

@@ -3,7 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
-import { createClient } from "@/lib/supabase/client";
+import {
+  sendVerificationCode,
+  verifyCode,
+} from "@/app/(app)/app/verify-email/actions";
 import { FormError, inputClass, submitClass } from "@/components/auth/auth-card";
 
 const CODE_LENGTH = 6;
@@ -18,11 +21,13 @@ const CODE_LENGTH = 6;
  * come back to the original tab still logged out. A code is typed into the tab
  * they are already in.
  *
- * Supabase issues and checks the code; we never generate or store one. Rolling
- * our own would mean hand-writing expiry, rate limiting and constant-time
- * comparison for no gain.
+ * WE issue and check the code, and nodemailer delivers it over our own SMTP.
+ * Supabase sends no mail in this product. That means expiry, attempt limits,
+ * resend cooldown and constant-time comparison are ours to get right — see
+ * lib/verification.ts and the verify-email actions.
  */
 export function OtpForm({ email }: { email: string }) {
+  void email; // shown by the page; the action reads the session instead
   const t = useTranslations("auth.verifyEmail");
   const router = useRouter();
 
@@ -37,27 +42,13 @@ export function OtpForm({ email }: { email: string }) {
     setError(null);
 
     startVerify(async () => {
-      const supabase = createClient();
-      const { error: verifyError } = await supabase.auth.verifyOtp({
-        email,
-        token: code.trim(),
-        // "email" covers both signup confirmation and a later re-verification,
-        // so one screen serves both rather than branching on how they arrived.
-        type: "email",
-      });
+      const res = await verifyCode(code);
 
-      if (verifyError) {
-        setError(
-          verifyError.code === "otp_expired"
-            ? t("errors.expired")
-            : t("errors.invalid"),
-        );
+      if (!res.ok) {
+        setError(t(`errors.${res.error}`));
         return;
       }
 
-      // Verified means a session now exists, so the callback's job — creating
-      // the investors row — has not happened. The onboarding page creates it
-      // if missing, which is exactly this case.
       router.push("/app/onboarding");
       router.refresh();
     });
@@ -67,11 +58,9 @@ export function OtpForm({ email }: { email: string }) {
     setResent(false);
     setError(null);
     startResend(async () => {
-      const supabase = createClient();
-      await supabase.auth.resend({ type: "signup", email });
-      // Reported as sent regardless: whether an address has a pending signup
-      // is not something this form should confirm to whoever is typing.
-      setResent(true);
+      const res = await sendVerificationCode();
+      if (res.ok) setResent(true);
+      else setError(t(`errors.${res.error}`));
     });
   }
 

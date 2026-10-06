@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
+import { sendVerificationCode } from "@/app/(app)/app/verify-email/actions";
 import {
   Field,
   FormError,
@@ -103,15 +104,14 @@ export function SignupForm() {
     // Branch on what actually happened rather than on what we assume is
     // configured. Sending someone to "check your email" when no email is
     // coming is a dead end they cannot get out of.
+    // Supabase is set to auto-confirm, because otherwise it would try to send
+    // its own mail. So a session exists immediately — but the address is NOT
+    // verified until our own code is accepted, and the app layout holds them
+    // on the verify page until it is.
     if (data.session) {
-      router.push("/app/onboarding");
-      router.refresh();
-      return;
+      await sendVerificationCode();
     }
 
-    // No session: verification is required, and "before anything else"
-    // (P2-106) means exactly that — the investors row is created by the auth
-    // callback once the address is confirmed, not here.
     router.push(`/app/verify-email?email=${encodeURIComponent(email)}`);
   }
 
