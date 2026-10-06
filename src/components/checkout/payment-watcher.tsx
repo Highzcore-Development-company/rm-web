@@ -85,7 +85,13 @@ export function PaymentWatcher({ subscriptionId }: { subscriptionId: string }) {
 
         <button
           type="button"
-          onClick={() => setWatching(true)}
+          onClick={() => {
+            setWatching(true);
+            // Pressing it changed a spinner into a slightly different
+            // spinner. Confirming out loud is what makes it feel like the
+            // press did something.
+            toast.success(t("watchingToast"));
+          }}
           className="mt-3 inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-[#0A0A0A] shadow-[var(--glow-accent)] transition-all hover:bg-accent-hot"
         >
           <Send className="size-3.5" aria-hidden="true" />
@@ -178,6 +184,10 @@ export function PaymentWatcher({ subscriptionId }: { subscriptionId: string }) {
                   : t("awaitingHint")}
           </p>
 
+          {/* Offered while waiting too, not only once confirmed. A transfer
+              can take minutes and they are told we will email them — so the
+              page has to let them leave rather than implying they must sit
+              here watching it. */}
           {status.state === "confirmed" ? (
             <a
               href="/app/dashboard"
@@ -185,7 +195,17 @@ export function PaymentWatcher({ subscriptionId }: { subscriptionId: string }) {
             >
               {t("toDashboard")}
             </a>
-          ) : null}
+          ) : (
+            <div className="mt-3">
+              <a
+                href="/app/dashboard"
+                className="text-sm text-accent underline underline-offset-2"
+              >
+                {t("toDashboard")}
+              </a>
+              <p className="mt-1 text-xs text-fg-muted">{t("leaveHint")}</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

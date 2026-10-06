@@ -485,7 +485,9 @@
       "underpaid": "We received less than the amount due, so the subscription has not started. Nothing is lost — contact us and we will sort it out.",
       "wrong_contract": "A token arrived that is not USDT on TRON. We cannot credit it automatically. Contact us and we will look at it.",
       "provider_failed": "Your bank or card provider declined this payment. Nothing has been taken. You can start again with another method.",
-      "contact": "Contact support"
+      "contact": "Contact support",
+      "watchingToast": "Thanks — we are watching for it. We will email you the moment it arrives.",
+      "leaveHint": "You do not have to stay on this page."
     },
     "changeMethod": "Pay a different way",
     "changeMethodHint": "This cancels the payment above and takes you back to the options.",
