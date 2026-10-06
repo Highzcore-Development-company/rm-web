@@ -114,3 +114,43 @@ export function renewalReminder(input: {
     ),
   };
 }
+
+/**
+ * Sent when an admin confirms an investor's Vantage link.
+ *
+ * Not in P2-506's list of four, but the link-account page tells people we will
+ * email them once it is active — and a promise made in the UI has to be kept
+ * by the code. Without it, someone submits a claim and waits indefinitely with
+ * no idea whether anything happened.
+ */
+export function accountLinkedEmail(input: {
+  vantageAccountId: string;
+  dashboardUrl: string;
+  subscribed: boolean;
+  subscribeUrl: string;
+}) {
+  // What happens next genuinely differs, so the email says which one applies
+  // rather than a vague "you are all set".
+  const next = input.subscribed
+    ? "Nothing else is needed. The bot trades your account from here, and you can follow it in your dashboard."
+    : "One step left: start your subscription. The bot does not trade your account until it is active.";
+
+  const cta = input.subscribed
+    ? { href: input.dashboardUrl, label: "Open my dashboard" }
+    : { href: input.subscribeUrl, label: "Start my subscription" };
+
+  return {
+    subject: "Your Vantage account is linked",
+    text: `Your Vantage account ${input.vantageAccountId} is now linked to Highzcore.
+
+${next}
+
+${cta.label}: ${cta.href}
+`,
+    html: layout(
+      `<p style="margin:0 0 16px;font-size:16px;line-height:1.5">Your Vantage account <strong>${input.vantageAccountId}</strong> is now linked.</p>
+<p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:#444">${next}</p>
+<a href="${cta.href}" style="display:inline-block;margin-top:8px;background:#FFB020;color:#0A0A0A;text-decoration:none;font-weight:600;font-size:14px;padding:12px 20px;border-radius:8px">${cta.label}</a>`,
+    ),
+  };
+}

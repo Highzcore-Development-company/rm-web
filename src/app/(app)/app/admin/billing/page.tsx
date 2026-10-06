@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { Card, Container } from "@/components/ui";
+import { AppShell } from "@/components/app-shell";
+import { Card } from "@/components/ui";
 import { isAdmin } from "@/lib/admin";
 import { createServiceClient } from "@/lib/supabase/service";
 import { summarise } from "@/lib/billing-summary";
@@ -55,7 +56,7 @@ export default async function AdminBillingPage() {
   const summary = summarise(data ?? []);
 
   return (
-    <Container className="py-12 sm:py-16">
+    <AppShell active="adminBilling">
       <h1 className="text-3xl font-semibold tracking-tight">{t("title")}</h1>
       <p className="mt-3 max-w-2xl text-sm leading-relaxed text-fg-muted">
         {t("intro")}
@@ -102,6 +103,6 @@ export default async function AdminBillingPage() {
       <p className="mt-8 max-w-2xl text-xs leading-relaxed text-fg-muted">
         {t("detachNote")}
       </p>
-    </Container>
+    </AppShell>
   );
 }

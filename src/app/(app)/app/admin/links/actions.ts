@@ -3,6 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/service";
 import { isAdmin } from "@/lib/admin";
+import { accountLinkedEmail, sendEmail } from "@/lib/email";
+import { entitlementFrom } from "@/lib/entitlement";
+import type { Subscription } from "@/lib/supabase/types";
 
 export type AdminResult = { ok: true } | { ok: false; error: string };
 
@@ -43,8 +46,60 @@ export async function confirmLink(investorId: string): Promise<AdminResult> {
     return { ok: false, error: "generic" };
   }
 
+  // The link-account page promises "we will confirm the link and email you".
+  // A promise made in the UI has to be kept by the code, or someone submits a
+  // claim and waits indefinitely with no idea anything happened.
+  //
+  // Deliberately after the status change and never allowed to undo it: a mail
+  // server being down must not leave an investor unlinked.
+  await notifyLinked(investorId, investor.vantage_account_id);
+
   revalidatePath("/app/admin/links");
   return { ok: true };
+}
+
+/** Best-effort. Failures are logged, never surfaced as a failed confirmation. */
+async function notifyLinked(investorId: string, vantageAccountId: string) {
+  try {
+    const service = createServiceClient();
+
+    const { data: investor } = await service
+      .from("investors")
+      .select("user_id")
+      .eq("id", investorId)
+      .maybeSingle();
+    if (!investor) return;
+
+    const { data: account } = await service.auth.admin.getUserById(
+      investor.user_id,
+    );
+    const email = account?.user?.email;
+    if (!email) return;
+
+    // Whether they still owe us a subscription changes what the email asks
+    // them to do, so it is read rather than assumed.
+    const { data: subs } = await service
+      .from("subscriptions")
+      .select("*")
+      .eq("investor_id", investorId);
+
+    const entitlement = entitlementFrom((subs ?? []) as Subscription[]);
+    const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://highzcore.com";
+
+    const message = accountLinkedEmail({
+      vantageAccountId,
+      dashboardUrl: `${site}/app/dashboard`,
+      subscribed: entitlement.active || entitlement.inGrace,
+      subscribeUrl: `${site}/app/checkout`,
+    });
+
+    const sent = await sendEmail({ to: email, ...message });
+    if (!sent.ok) {
+      console.error("[admin/links] linked email not sent:", sent.error);
+    }
+  } catch (err) {
+    console.error("[admin/links] linked email threw:", err);
+  }
 }
 
 /**

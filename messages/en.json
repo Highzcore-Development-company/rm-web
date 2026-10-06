@@ -330,7 +330,9 @@
       "link": "My Vantage account",
       "billing": "Subscription",
       "developer": "Developer",
-      "onboarding": "Setup"
+      "onboarding": "Setup",
+      "adminLinks": "Verify links",
+      "adminBilling": "Billing admin"
     },
     "account": {
       "title": "My account",
@@ -556,7 +558,17 @@
       "alatpay_card": "Card",
       "usdt_trc20": "USDT (TRC-20)"
     },
-    "detachNote": "Lapsed investors are past the grace period and should be detached from the MAM. This is a manual step — nothing here does it for you."
+    "detachNote": "Marking detached only records it here. You must also detach the account inside Vantage — we cannot do that for you.",
+    "detachTitle": "To detach from the MAM",
+    "detachIntro": "Past the grace period and still attached. Detach each in Vantage, then mark it here.",
+    "detachNone": "Nobody is awaiting detachment.",
+    "table": {
+      "login": "MT5 login",
+      "expired": "Expired",
+      "status": "Status",
+      "action": ""
+    },
+    "markDetached": "Mark detached"
   },
   "checkout": {
     "title": "Subscribe",
