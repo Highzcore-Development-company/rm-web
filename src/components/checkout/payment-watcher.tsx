@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { CheckCircle2, Clock3, Loader2, XCircle } from "lucide-react";
+import { CheckCircle2, Clock3, Loader2, Send, XCircle } from "lucide-react";
 import {
   getPaymentStatus,
   type PaymentStatus,
@@ -28,7 +28,15 @@ export function PaymentWatcher({ subscriptionId }: { subscriptionId: string }) {
 
   const [status, setStatus] = useState<PaymentStatus>({ state: "awaiting" });
 
+  // Nothing is watched until they say they have sent it. Polling the chain
+  // before someone has opened their wallet is noise, and more importantly it
+  // leaves them no way to say "I have done my part" — so a page that is simply
+  // waiting looks identical to a page that has not noticed.
+  const [watching, setWatching] = useState(false);
+
   useEffect(() => {
+    if (!watching) return;
+
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout>;
 
@@ -58,7 +66,31 @@ export function PaymentWatcher({ subscriptionId }: { subscriptionId: string }) {
     // subscriptionId is the only input; re-running on t/toast/router identity
     // would restart the poll loop on every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [subscriptionId]);
+  }, [subscriptionId, watching]);
+
+  if (!watching) {
+    return (
+      <div className="mt-5 rounded-xl border border-border p-4">
+        <p className="text-sm font-medium">{t("idle")}</p>
+        <p className="mt-1 text-xs leading-relaxed text-fg-muted">
+          {t("idleHint")}
+        </p>
+
+        <button
+          type="button"
+          onClick={() => setWatching(true)}
+          className="mt-3 inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-[#0A0A0A] shadow-[var(--glow-accent)] transition-all hover:bg-accent-hot"
+        >
+          <Send className="size-3.5" aria-hidden="true" />
+          {t("sentIt")}
+        </button>
+
+        {/* Pressing it early costs nothing — it starts a watcher, it does not
+            claim anything — so the copy removes the pressure to be precise. */}
+        <p className="mt-3 text-xs text-fg-muted">{t("notYet")}</p>
+      </div>
+    );
+  }
 
   const tone =
     status.state === "confirmed"

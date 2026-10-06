@@ -474,7 +474,11 @@
       "expiredHint": "Start a new one and you will get a fresh address. If you already sent funds, contact us — nothing is lost.",
       "toDashboard": "Go to my dashboard",
       "startAgain": "Start again",
-      "checking": "Checking…"
+      "checking": "Checking…",
+      "idle": "Sent it?",
+      "idleHint": "Press below once the transfer has left your wallet and we will start watching for it.",
+      "sentIt": "I have sent it",
+      "notYet": "No rush — this address is yours for 2 hours."
     }
   },
   "legal": {
