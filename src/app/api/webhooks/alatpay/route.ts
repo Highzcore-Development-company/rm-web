@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { verifyTransaction } from "@/lib/alatpay";
+import { sendReceiptFor } from "@/lib/send-receipt";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -77,6 +78,10 @@ export async function POST(request: Request) {
     console.error("[alatpay webhook] activation failed:", error);
     return NextResponse.json({ error: "activation_failed" }, { status: 500 });
   }
+
+  // After activation, and never able to fail it: a receipt that did not send
+  // must not turn a banked payment into a 500 that ALATPay then retries.
+  await sendReceiptFor(subscription.id);
 
   return NextResponse.json({ status: "confirmed", expires_at: expiresAt });
 }

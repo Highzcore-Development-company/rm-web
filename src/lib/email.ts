@@ -39,6 +39,7 @@ export async function sendEmail(input: {
   subject: string;
   text: string;
   html: string;
+  attachments?: { filename: string; content: Buffer; contentType: string }[];
 }): Promise<SendResult> {
   const mailer = transport();
   if (!mailer) return { ok: false, error: "not_configured" };
@@ -53,6 +54,7 @@ export async function sendEmail(input: {
       // transactional mail scoring as spam, and some clients show it.
       text: input.text,
       html: input.html,
+      attachments: input.attachments,
     });
     return { ok: true };
   } catch (err) {
@@ -151,6 +153,38 @@ ${cta.label}: ${cta.href}
       `<p style="margin:0 0 16px;font-size:16px;line-height:1.5">Your Vantage account <strong>${input.vantageAccountId}</strong> is now linked.</p>
 <p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:#444">${next}</p>
 <a href="${cta.href}" style="display:inline-block;margin-top:8px;background:#FFB020;color:#0A0A0A;text-decoration:none;font-weight:600;font-size:14px;padding:12px 20px;border-radius:8px">${cta.label}</a>`,
+    ),
+  };
+}
+
+/**
+ * Sent when a payment is banked. P2-312 says receipts are "emailed and
+ * downloadable" — the PDF rides along as an attachment so it is both, rather
+ * than a link someone has to be signed in to follow months later when their
+ * accountant asks for it.
+ */
+export function receiptEmail(input: {
+  months: number;
+  amount: string;
+  expiresAt: string;
+  dashboardUrl: string;
+}) {
+  const term = input.months === 1 ? "1 month" : `${input.months} months`;
+  const lead = `Thank you — your payment of ${input.amount} has been received.`;
+  const detail = `That covers ${term}, running until ${input.expiresAt}. Your receipt is attached.`;
+
+  return {
+    subject: "Your Highzcore receipt",
+    text: `${lead}
+
+${detail}
+
+Dashboard: ${input.dashboardUrl}
+`,
+    html: layout(
+      `<p style="margin:0 0 16px;font-size:16px;line-height:1.5">${lead}</p>
+<p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:#444">${detail}</p>
+<a href="${input.dashboardUrl}" style="display:inline-block;margin-top:8px;background:#FFB020;color:#0A0A0A;text-decoration:none;font-weight:600;font-size:14px;padding:12px 20px;border-radius:8px">Open my dashboard</a>`,
     ),
   };
 }

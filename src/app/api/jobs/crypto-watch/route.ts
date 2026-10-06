@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { isAuthorisedJob } from "@/lib/job-auth";
+import { sendReceiptFor } from "@/lib/send-receipt";
 import {
   getIncomingTransfers,
   isAcceptedContract,
@@ -113,6 +114,8 @@ export async function POST(request: Request) {
           seen_at: new Date().toISOString(),
         })
         .eq("id", invoice.id);
+
+      await sendReceiptFor(invoice.subscription_id);
 
       credited += 1;
       break;
