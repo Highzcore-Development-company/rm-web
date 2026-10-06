@@ -40,3 +40,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 !.env.example
+
+# Supabase CLI local state (contains the linked project + pooler URL)
+supabase/.temp
+supabase/.branches

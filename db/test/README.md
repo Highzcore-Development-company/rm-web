@@ -11,7 +11,7 @@ docker run -d --rm --name p2pg -e POSTGRES_PASSWORD=pw postgres:16-alpine
 until docker exec p2pg pg_isready -U postgres; do sleep 1; done
 
 docker cp db/test/stubs.sql p2pg:/stubs.sql
-docker cp db/migrations/p2_001_investors.sql p2pg:/mig.sql
+docker cp supabase/migrations/20261006120100_investors.sql p2pg:/mig.sql
 docker cp db/test/p2_001_investors.test.sql p2pg:/tests.sql
 
 docker exec p2pg psql -U postgres -v ON_ERROR_STOP=1 -q -f /stubs.sql
