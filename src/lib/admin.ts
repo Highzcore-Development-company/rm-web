@@ -3,24 +3,22 @@ import { createClient } from "@/lib/supabase/server";
 /**
  * Whether the signed-in user is an admin.
  *
- * Reads public.users.role — the same column the database's is_admin() reads.
- * Deliberately not a second source of truth: if this said yes and the policy
- * said no, every admin screen would render and every query behind it would
- * come back empty, which looks like a bug rather than a permission.
- *
- * As noted in db/migrations/README.md, this means a highzcore.tech admin is an
- * admin here too. One company, one admin group.
+ * Asks the database's own is_admin() rather than reading app_admins directly,
+ * so this and every RLS policy answer from one implementation. If these could
+ * disagree, an admin screen would render and every query behind it would come
+ * back empty — which looks like a bug rather than a permission.
  */
 export async function isAdmin(): Promise<boolean> {
   const supabase = await createClient();
+
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return false;
 
-  const { data } = await supabase
-    .from("users")
-    .select("role")
-    .eq("id", auth.user.id)
-    .maybeSingle();
+  const { data, error } = await supabase.rpc("is_admin");
+  if (error) {
+    console.error("[admin] is_admin() failed:", error);
+    return false;
+  }
 
-  return data?.role === "admin";
+  return data === true;
 }

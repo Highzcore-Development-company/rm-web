@@ -3,52 +3,56 @@
 Run them in the Supabase SQL editor, lowest number first. Every one is additive
 and safe to re-run.
 
-## This database is shared. Read this before adding a file.
+## Numbering
 
-One Supabase project serves three codebases:
+Our files are prefixed `p2_` and numbered separately from the bot's.
 
-| Codebase | Owns | Prefix |
+The bot's own `db/migrations/README.md` records what happens otherwise: `004`,
+`005`, `006` and `007` each exist twice there, from two people numbering in
+parallel, and "did you run 007?" stopped having one answer. A `p2_` number
+cannot collide with a bot number because it is not the same namespace — and now
+not even the same database.
+
+Before adding a file: `ls db/migrations`, take the highest `p2_` number, add
+one. Never reuse a number, even if the other one is on a branch that may not
+ship.
+
+## Two projects, and which is which
+
+| Project | Owns | We |
 |---|---|---|
-| `trading_bot` | the desk tables | `bot_*`, numbered `001`–`017` |
-| `highscore-tech-web` | the company site: users, staff, courses | bare names, in `schema.sql` |
-| `rm-web` (this one) | highzcore.com investor platform | `p2_*` files |
+| **rm-web** | this app: auth, investors, subscriptions, invoices | own it, write it |
+| **rm-server** | the bot: equity snapshots, trades, live positions | **read only** |
 
-The bot's `db/migrations/README.md` records what happens when two people number
-in parallel: `004`, `005`, `006` and `007` each exist twice, and "did you run
-007?" stopped having one answer. That was two people in **one** repo. We now
-have three repos writing to one database.
+Everything in this folder runs against **rm-web**. Nothing here is ever applied
+to rm-server — the bot owns that schema and changes it on its own schedule.
 
-So our files are prefixed `p2_` and numbered separately. A `p2_` number can
-never collide with a bot number, because it is not the same namespace.
+We read rm-server through `src/lib/supabase/rm-server.ts` with its anon key, and
+write to it never. If a read needs more than the anon key can see, the fix is a
+policy or a view on rm-server, not a stronger key over here.
 
-**Rule: additive only.** We create new tables. We do not alter, drop or
-re-policy anything owned by the other two. If something existing is genuinely in
-the way, that is a conversation with Victor, not a migration.
+### Run p2_000 first
 
-## Auth is shared, and that is not a choice we get to make
+`p2_000_bootstrap.sql` creates `set_updated_at()` and `is_admin()`. The later
+migrations were first written against the company site's shared project, which
+already had both; a fresh rm-web does not, and p2_001 fails without them.
 
-`auth.users` is one namespace across the whole project. `highscore-tech-web`
-puts an `AFTER INSERT` trigger on it (`on_auth_user_created`) which mirrors every
-new signup into `public.users` with `role = 'student'`.
+### What the split fixed
 
-That trigger fires for **our** signups too. An investor who registers at
-highzcore.com gets a `public.users` row and shows up in the academy's user list
-as a student. We cannot fix this from here without altering a table we do not
-own.
+The company site puts an `AFTER INSERT` trigger on `auth.users` that mirrors
+every signup into its own `users` table as a `student`. On a shared project,
+every investor signing up at highzcore.com would have landed in the academy's
+user list. Separate projects remove that rather than work around it.
 
-What this means in practice:
-
-- `investors.user_id` references `auth.users(id)`, not `public.users(id)`. Our
-  table does not depend on a row the other site's trigger happens to create.
-- Being an investor is defined by having a row in `investors` — never by
-  anything in `public.users`.
-- Tell Victor. The options are to live with it, filter it on the company site,
-  or move Product 2 to its own Supabase project. All three are his call.
+Admins are now an explicit `app_admins` table rather than a role on somebody
+else's users table. Rows are added by hand in the dashboard — there is no
+in-app grant path, deliberately.
 
 ## Files
 
 | # | File | Adds |
 |---|---|---|
+| p2_000 | `p2_000_bootstrap.sql` | set_updated_at(), app_admins, is_admin() — **run first** |
 | p2_001 | `p2_001_investors.sql` | the `investors` table and its RLS (P2-107) |
 | p2_002 | `p2_002_subscriptions.sql` | subscriptions, entitlement, idempotent activation (P2-302, P2-308, P2-309) |
 | p2_003 | `p2_003_crypto_invoices.sql` | USDT TRC-20 invoices, one address per invoice (P2-306, P2-307) |

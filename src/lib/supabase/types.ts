@@ -64,12 +64,12 @@ export type Database = {
         Relationships: [];
       };
       /**
-       * The company site's table, READ ONLY from here. We need `role` to
-       * decide who is an admin, because is_admin() in the database reads it
-       * and the two must not disagree. We never write to it.
+       * Admins of highzcore.com. Managed by hand in the Supabase dashboard —
+       * there is no in-app grant path on purpose. RLS denies all access to
+       * anon and authenticated; only the service role and is_admin() see it.
        */
-      users: {
-        Row: { id: string; email: string | null; role: string };
+      app_admins: {
+        Row: { user_id: string; note: string | null; created_at: string };
         Insert: never;
         Update: never;
         Relationships: [];
@@ -82,7 +82,12 @@ export type Database = {
       };
     };
     Views: Record<never, never>;
-    Functions: Record<never, never>;
+    Functions: {
+      is_admin: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
+    };
     Enums: {
       investor_status: InvestorStatus;
     };
