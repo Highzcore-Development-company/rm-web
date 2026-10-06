@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { useTranslations } from "next-intl";
+import { Reveal, Stagger, StaggerItem } from "@/components/motion";
 import { ButtonLink, Card, Container } from "@/components/ui";
 
 export const metadata: Metadata = {
@@ -21,9 +22,9 @@ export default function HowItWorksPage() {
         <p className="mt-6 text-lg text-fg-muted">{t("intro")}</p>
       </div>
 
-      <ol className="mt-12 max-w-3xl space-y-6">
+      <Stagger as="ol" className="mt-12 max-w-3xl space-y-6">
         {steps.map((key, index) => (
-          <li key={key} className="flex gap-5">
+          <StaggerItem as="li" key={key} className="flex gap-5">
             <span
               aria-hidden="true"
               className="mt-1 shrink-0 text-sm font-semibold tabular-nums text-accent"
@@ -36,17 +37,19 @@ export default function HowItWorksPage() {
                 {t(`steps.${key}.body`)}
               </p>
             </div>
-          </li>
+          </StaggerItem>
         ))}
-      </ol>
+      </Stagger>
 
       {/* P2-102 — states plainly that we never hold funds. Not a footnote. */}
-      <Card className="mt-12 max-w-3xl border-accent/40">
-        <h2 className="text-lg font-semibold">{t("custody.title")}</h2>
-        <p className="mt-2 text-sm leading-relaxed text-fg-muted">
-          {t("custody.body")}
-        </p>
-      </Card>
+      <Reveal>
+        <Card className="mt-12 max-w-3xl border-accent/40">
+          <h2 className="text-lg font-semibold">{t("custody.title")}</h2>
+          <p className="mt-2 text-sm leading-relaxed text-fg-muted">
+            {t("custody.body")}
+          </p>
+        </Card>
+      </Reveal>
 
       <div className="mt-12">
         <ButtonLink href="/app/signup">{t("cta")}</ButtonLink>

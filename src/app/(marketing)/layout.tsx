@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import { PageTransition } from "@/components/motion";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 
@@ -16,8 +17,8 @@ export default async function MarketingLayout({
         {t("skipToContent")}
       </a>
       <SiteHeader />
-      <main id="main" className="flex-1">
-        {children}
+      <main id="main" className="flex flex-1 flex-col">
+        <PageTransition>{children}</PageTransition>
       </main>
       <SiteFooter />
     </>

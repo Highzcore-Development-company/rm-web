@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { useTranslations } from "next-intl";
+import { Stagger, StaggerItem } from "@/components/motion";
 import { ButtonLink, Card, Container } from "@/components/ui";
 import { formatUsd, PLANS } from "@/lib/pricing";
 
@@ -74,22 +75,28 @@ export default function PricingPage() {
         <ButtonLink href="/app/signup">{t("cta")}</ButtonLink>
       </div>
 
-      <div className="mt-16 grid max-w-4xl gap-6 md:grid-cols-2">
+      <Stagger className="mt-16 grid max-w-4xl gap-6 md:grid-cols-2">
         {/* The performance fee is disclosed on the pricing page, not buried.
             It is charged by Vantage, but it is still money the investor pays. */}
-        <Card>
-          <h2 className="text-lg font-semibold">{t("performanceFee.title")}</h2>
-          <p className="mt-2 text-sm leading-relaxed text-fg-muted">
-            {t("performanceFee.body")}
-          </p>
-        </Card>
-        <Card>
-          <h2 className="text-lg font-semibold">{t("noRefund.title")}</h2>
-          <p className="mt-2 text-sm leading-relaxed text-fg-muted">
-            {t("noRefund.body")}
-          </p>
-        </Card>
-      </div>
+        <StaggerItem>
+          <Card>
+            <h2 className="text-lg font-semibold">
+              {t("performanceFee.title")}
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-fg-muted">
+              {t("performanceFee.body")}
+            </p>
+          </Card>
+        </StaggerItem>
+        <StaggerItem>
+          <Card>
+            <h2 className="text-lg font-semibold">{t("noRefund.title")}</h2>
+            <p className="mt-2 text-sm leading-relaxed text-fg-muted">
+              {t("noRefund.body")}
+            </p>
+          </Card>
+        </StaggerItem>
+      </Stagger>
     </Container>
   );
 }
