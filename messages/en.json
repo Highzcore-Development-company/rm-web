@@ -326,6 +326,22 @@
     "empty": "No claims waiting.",
     "forbidden": "You do not have access to this page."
   },
+  "adminBilling": {
+    "title": "Billing",
+    "intro": "Confirmed payments only. An invoice that was raised and never paid is not revenue.",
+    "paidUp": "Paid up",
+    "expiringSoon": "Expiring in 7 days",
+    "lapsed": "Lapsed",
+    "awaiting": "Awaiting payment",
+    "revenue": "Revenue this month",
+    "byMethod": "By method",
+    "method": {
+      "alatpay_transfer": "Bank transfer",
+      "alatpay_card": "Card",
+      "usdt_trc20": "USDT (TRC-20)"
+    },
+    "detachNote": "Lapsed investors are past the grace period and should be detached from the MAM. This is a manual step — nothing here does it for you."
+  },
   "checkout": {
     "title": "Subscribe",
     "intro": "Pick how long you want to pay for, then how you want to pay. The total is always shown before you pay anything.",
