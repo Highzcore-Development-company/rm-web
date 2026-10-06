@@ -200,6 +200,15 @@ export type Database = {
         Args: { p_key_hash: string; p_limit: number };
         Returns: { allowed: boolean; calls: number; key_id: string | null }[];
       };
+      /**
+       * Service role only. Banks a payment exactly once and returns the new
+       * expiry. Calling it twice with the same reference is safe — that is
+       * the point of it.
+       */
+      activate_subscription: {
+        Args: { p_subscription_id: string; p_provider_ref: string };
+        Returns: string;
+      };
     };
     Enums: {
       investor_status: InvestorStatus;
