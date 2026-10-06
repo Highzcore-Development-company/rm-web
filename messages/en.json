@@ -584,7 +584,35 @@
     },
     "submit": "Continue to payment",
     "unavailable": "Payments are not switched on yet. The provider accounts still need to be connected.",
-    "notLinked": "You can subscribe before linking your Vantage account, but the bot cannot trade until both are done."
+    "notLinked": "You can subscribe before linking your Vantage account, but the bot cannot trade until both are done.",
+    "submitting": "Preparing your payment…",
+    "transfer": {
+      "title": "Transfer to this account",
+      "account": "Account number",
+      "bank": "Bank",
+      "amount": "Amount",
+      "note": "Transfer the exact amount. The account is for this payment only and your subscription starts once the transfer clears.",
+      "reference": "Reference"
+    },
+    "crypto": {
+      "title": "Send USDT to this address",
+      "address": "Address",
+      "amount": "Amount",
+      "network": "Network",
+      "networkValue": "TRON (TRC-20)",
+      "note": "Send only USDT on the TRON network to this address. Anything else is lost. This address is for this payment only and is never reused.",
+      "confirmations": "Credited after {count} confirmations.",
+      "expires": "This address expires in 2 hours."
+    },
+    "copy": "Copy",
+    "copied": "Copied",
+    "errors": {
+      "bad_term": "Choose a subscription length.",
+      "bad_method": "Choose a payment method.",
+      "not_configured": "That payment method is not switched on yet.",
+      "not_signed_in": "Your session expired. Sign in and try again.",
+      "generic": "We could not start that payment. Please try again."
+    }
   },
   "legal": {
     "terms": {

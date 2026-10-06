@@ -4,7 +4,12 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getInvestor } from "@/lib/investors";
 import { isPlanMonths, priceFor } from "@/lib/pricing";
-import { QUOTED_USD_NGN_E6, usdCentsToNgnKobo } from "@/lib/money";
+import {
+  QUOTED_USD_NGN_E6,
+  usdCentsToMicroUsdt,
+  usdCentsToNgnKobo,
+} from "@/lib/money";
+import { getWatchXpub, tronAddressFromXpub } from "@/lib/tron";
 import { createVirtualAccount, isAlatPayConfigured } from "@/lib/alatpay";
 import type { PaymentMethod } from "@/lib/supabase/types";
 
@@ -16,6 +21,14 @@ export type CheckoutResult =
       bankName: string | null;
       amountNgn: number;
       reference: string;
+    }
+  | {
+      ok: true;
+      kind: "crypto";
+      address: string;
+      microUsdt: number;
+      confirmations: number;
+      expiresAt: string;
     }
   | { ok: false; error: string };
 
@@ -104,5 +117,90 @@ export async function startBankTransfer(
     bankName: result.data.bankName,
     amountNgn: amountNgnKobo,
     reference: result.data.reference,
+  };
+}
+
+/**
+ * P2-306 — raise a USDT invoice: one freshly derived address, used once.
+ *
+ * The derivation index comes from a database sequence, not a count of existing
+ * rows. Counting races: two checkouts a millisecond apart would both read N
+ * and both derive the same address, which is the exact collision the unique
+ * constraint exists to catch — and catching it there means someone's checkout
+ * fails rather than their payment going astray, but better not to race at all.
+ */
+export async function startCryptoInvoice(
+  months: number,
+): Promise<CheckoutResult> {
+  if (!isPlanMonths(months)) return { ok: false, error: "bad_term" };
+
+  const xpub = getWatchXpub();
+  const contract = process.env.USDT_TRC20_CONTRACT;
+  if (!xpub || !contract) return { ok: false, error: "not_configured" };
+
+  const supabase = await createClient();
+  const investor = await getInvestor(supabase);
+  if (!investor) return { ok: false, error: "not_signed_in" };
+
+  const price = priceFor(months);
+  const micro = usdCentsToMicroUsdt(price.totalCents);
+  const confirmations = Number(process.env.DEPOSIT_CONFIRMATIONS ?? 20);
+
+  const service = createServiceClient();
+
+  const { data: subscription, error: insertError } = await service
+    .from("subscriptions")
+    .insert({
+      investor_id: investor.id,
+      months,
+      amount_usd: price.totalCents,
+      method: "usdt_trc20",
+    })
+    .select()
+    .maybeSingle();
+
+  if (insertError || !subscription) {
+    console.error("[checkout] crypto invoice insert failed:", insertError);
+    return { ok: false, error: "generic" };
+  }
+
+  // Claim an index first; the address is derived from whatever we are given.
+  const { data: seq, error: seqError } = await service.rpc(
+    "next_crypto_derivation_index",
+  );
+  if (seqError || typeof seq !== "number") {
+    console.error("[checkout] could not claim a derivation index:", seqError);
+    return { ok: false, error: "generic" };
+  }
+
+  const address = tronAddressFromXpub(xpub, seq);
+
+  const { data: invoice, error: invoiceError } = await service
+    .from("crypto_invoices")
+    .insert({
+      subscription_id: subscription.id,
+      derivation_index: seq,
+      address,
+      expected_micro_usdt: micro,
+      // Recorded per invoice, not read from config when crediting. Config
+      // changes; what this invoice promised the payer must not.
+      contract,
+      confirmations_required: confirmations,
+    })
+    .select()
+    .maybeSingle();
+
+  if (invoiceError || !invoice) {
+    console.error("[checkout] crypto invoice failed:", invoiceError);
+    return { ok: false, error: "generic" };
+  }
+
+  return {
+    ok: true,
+    kind: "crypto",
+    address,
+    microUsdt: micro,
+    confirmations,
+    expiresAt: invoice.expires_at,
   };
 }

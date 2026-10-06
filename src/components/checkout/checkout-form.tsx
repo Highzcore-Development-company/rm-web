@@ -1,7 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
+import { Check, Copy } from "lucide-react";
+import {
+  startBankTransfer,
+  startCryptoInvoice,
+  type CheckoutResult,
+} from "@/app/(app)/app/checkout/actions";
 import { formatUsd, PLANS } from "@/lib/pricing";
 import {
   formatNgn,
@@ -16,17 +22,119 @@ type Method = "alatpay_transfer" | "alatpay_card" | "usdt_trc20";
 
 const METHODS: Method[] = ["alatpay_transfer", "alatpay_card", "usdt_trc20"];
 
+
+/**
+ * A value the payer has to reproduce exactly. Monospace so digits cannot be
+ * misread, and a copy button because hand-typing a 34-character TRON address
+ * is how money goes somewhere it cannot be recovered from.
+ */
+function CopyRow({ label, value }: { label: string; value: string }) {
+  const t = useTranslations("checkout");
+  const [copied, setCopied] = useState(false);
+
+  return (
+    <div className="mt-3">
+      <p className="text-xs uppercase tracking-wide text-fg-muted">{label}</p>
+      <div className="mt-1.5 flex items-start gap-2">
+        <code className="min-w-0 flex-1 break-all rounded-md border border-border bg-bg px-3 py-2 font-mono text-sm">
+          {value}
+        </code>
+        <button
+          type="button"
+          onClick={() => {
+            void navigator.clipboard.writeText(value);
+            setCopied(true);
+          }}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border px-3 py-2 text-xs hover:border-fg-muted"
+        >
+          {copied ? (
+            <Check className="size-3.5 text-chart-up" aria-hidden="true" />
+          ) : (
+            <Copy className="size-3.5" aria-hidden="true" />
+          )}
+          {copied ? t("copied") : t("copy")}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /** P2-303 — pick duration, see the discount, pick a method, see the total. */
 export function CheckoutForm() {
   const t = useTranslations("checkout");
 
   const [months, setMonths] = useState<number>(1);
   const [method, setMethod] = useState<Method>("alatpay_transfer");
+  const [result, setResult] = useState<CheckoutResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  function start() {
+    setError(null);
+    startTransition(async () => {
+      // The server recalculates the price from `months` alone. Nothing here
+      // sends an amount, so nothing here can choose one.
+      const res =
+        method === "usdt_trc20"
+          ? await startCryptoInvoice(months)
+          : await startBankTransfer(months, method);
+
+      if (res.ok) setResult(res);
+      else setError(t(`errors.${res.error}`, { fallback: t("errors.generic") }));
+    });
+  }
 
   // Never computed here. The pricing engine is the one source of truth, so
   // this page cannot disagree with what the backend charges.
   const plan = PLANS.find((p) => p.months === months) ?? PLANS[0];
   const paysNaira = method !== "usdt_trc20";
+
+  if (result?.ok && result.kind === "bank_transfer") {
+    return (
+      <Card className="max-w-lg">
+        <h2 className="text-lg font-semibold">{t("transfer.title")}</h2>
+        <CopyRow label={t("transfer.account")} value={result.accountNumber} />
+        {result.bankName ? (
+          <CopyRow label={t("transfer.bank")} value={result.bankName} />
+        ) : null}
+        <CopyRow
+          label={t("transfer.amount")}
+          value={formatNgn(result.amountNgn)}
+        />
+        <p className="mt-5 text-xs leading-relaxed text-fg-muted">
+          {t("transfer.note")}
+        </p>
+      </Card>
+    );
+  }
+
+  if (result?.ok && result.kind === "crypto") {
+    return (
+      <Card className="max-w-lg">
+        <h2 className="text-lg font-semibold">{t("crypto.title")}</h2>
+        <CopyRow label={t("crypto.address")} value={result.address} />
+        <CopyRow
+          label={t("crypto.amount")}
+          value={formatUsdt(result.microUsdt)}
+        />
+        <div className="mt-3">
+          <p className="text-xs uppercase tracking-wide text-fg-muted">
+            {t("crypto.network")}
+          </p>
+          <p className="mt-1.5 text-sm font-medium">{t("crypto.networkValue")}</p>
+        </div>
+        {/* Said loudly: the wrong network or the wrong token means the money
+            is gone and we cannot get it back. */}
+        <p className="mt-5 rounded-lg border border-chart-down/40 bg-chart-down/10 px-3.5 py-3 text-xs leading-relaxed">
+          {t("crypto.note")}
+        </p>
+        <p className="mt-3 text-xs text-fg-muted">
+          {t("crypto.confirmations", { count: result.confirmations })}{" "}
+          {t("crypto.expires")}
+        </p>
+      </Card>
+    );
+  }
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_22rem]">
@@ -163,19 +271,20 @@ export function CheckoutForm() {
           )}
         </p>
 
-        {/* Honest disabled state. The pricing, the terms and the totals are
-            real; the provider accounts are not connected yet (P2-304/305/306),
-            so there is nothing to hand the money to. */}
         <button
           type="button"
-          disabled
-          className="mt-6 inline-flex w-full items-center justify-center rounded-md bg-accent px-5 py-3 text-sm font-semibold text-[#0A0A0A] disabled:opacity-50"
+          disabled={pending}
+          onClick={start}
+          className="mt-6 inline-flex w-full items-center justify-center rounded-lg bg-accent px-5 py-3 text-sm font-semibold text-[#0A0A0A] shadow-[var(--glow-accent)] transition-all hover:bg-accent-hot disabled:opacity-60 disabled:shadow-none"
         >
-          {t("submit")}
+          {pending ? t("submitting") : t("submit")}
         </button>
-        <p role="note" className="mt-3 text-xs leading-relaxed text-fg-muted">
-          {t("unavailable")}
-        </p>
+
+        {error ? (
+          <p role="alert" className="mt-3 text-sm text-chart-down">
+            {error}
+          </p>
+        ) : null}
       </Card>
     </div>
   );

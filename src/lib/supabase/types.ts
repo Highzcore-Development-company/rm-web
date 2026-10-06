@@ -65,7 +65,7 @@ export type ServiceDatabase = {
   public: Omit<Database["public"], "Tables"> & {
     Tables: Omit<
       Database["public"]["Tables"],
-      "investors" | "subscriptions" | "api_keys"
+      "investors" | "subscriptions" | "api_keys" | "crypto_invoices"
     > & {
       investors: {
         Row: Investor;
@@ -95,6 +95,22 @@ export type ServiceDatabase = {
         Update: Partial<Pick<ApiKey, "revoked_at" | "last_used_at" | "name">>;
         Relationships: [];
       };
+      crypto_invoices: {
+        Row: CryptoInvoice;
+        Insert: Omit<
+          CryptoInvoice,
+          "id" | "status" | "seen_tx_hash" | "seen_micro_usdt" | "seen_at"
+          | "created_at" | "expires_at" | "updated_at"
+        > & Partial<CryptoInvoice>;
+        Update: Partial<CryptoInvoice>;
+        Relationships: [];
+      };
+      sent_reminders: {
+        Row: { subscription_id: string; milestone: number; sent_at: string };
+        Insert: { subscription_id: string; milestone: number };
+        Update: never;
+        Relationships: [];
+      };
     };
   };
 };
@@ -116,6 +132,24 @@ export type NotificationPreferencesWrite = {
   trade_closed?: boolean;
   subscription_expiring?: boolean;
   bot_switched_off?: boolean;
+};
+
+/** Mirrors the crypto_invoices migration. Amounts in micro-USDT, integer. */
+export type CryptoInvoice = {
+  id: string;
+  subscription_id: string;
+  derivation_index: number;
+  address: string;
+  expected_micro_usdt: number;
+  contract: string;
+  confirmations_required: number;
+  status: "awaiting" | "seen" | "confirmed" | "expired";
+  seen_tx_hash: string | null;
+  seen_micro_usdt: number | null;
+  seen_at: string | null;
+  created_at: string;
+  expires_at: string;
+  updated_at: string;
 };
 
 /** Mirrors the api_keys migration. Never carries the plaintext key. */
@@ -188,6 +222,13 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      /** Read-only here; raised and credited by the service role only. */
+      crypto_invoices: {
+        Row: CryptoInvoice;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
     };
     Views: Record<never, never>;
     Functions: {
@@ -208,6 +249,11 @@ export type Database = {
       activate_subscription: {
         Args: { p_subscription_id: string; p_provider_ref: string };
         Returns: string;
+      };
+      /** Service role only. Atomically claims an HD derivation index. */
+      next_crypto_derivation_index: {
+        Args: Record<string, never>;
+        Returns: number;
       };
     };
     Enums: {
