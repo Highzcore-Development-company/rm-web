@@ -23,8 +23,7 @@ export async function AppShell({
     | "link"
     | "billing"
     | "developer"
-    | "adminLinks"
-    | "adminBilling";
+    | "admin";
 }) {
   const t = await getTranslations("dashboard.nav");
 
@@ -39,15 +38,11 @@ export async function AppShell({
     { key: "link", href: "/app/link-account", label: t("link") },
     { key: "billing", href: "/app/checkout", label: t("billing") },
     { key: "developer", href: "/app/developer", label: t("developer") },
+    // One door into the admin area, which has its own side nav once you are
+    // inside. Two entries here duplicated that navigation and made the
+    // investor nav look like an admin console.
     ...(admin
-      ? ([
-          { key: "adminLinks", href: "/app/admin/links", label: t("adminLinks") },
-          {
-            key: "adminBilling",
-            href: "/app/admin/billing",
-            label: t("adminBilling"),
-          },
-        ] as const)
+      ? ([{ key: "admin", href: "/app/admin", label: t("admin") }] as const)
       : []),
   ] as const;
 
