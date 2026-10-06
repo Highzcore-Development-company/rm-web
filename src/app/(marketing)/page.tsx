@@ -26,7 +26,6 @@ function Hero() {
     ];
 
   return (
-    <div className="ambient relative">
       <Container className="py-16 sm:py-24">
         <div className="grid items-center gap-12 lg:grid-cols-[1.1fr_1fr]">
           <Stagger>
@@ -70,7 +69,6 @@ function Hero() {
           </Reveal>
         </div>
       </Container>
-    </div>
   );
 }
 

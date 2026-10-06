@@ -34,7 +34,6 @@ export default function HowItWorksPage() {
   const t = useTranslations("howItWorks");
 
   return (
-    <div className="ambient relative">
       <Container className="py-16 sm:py-24">
         <div className="max-w-3xl">
           <h1 className="display text-4xl font-semibold sm:text-6xl">
@@ -107,6 +106,5 @@ export default function HowItWorksPage() {
           <ButtonLink href="/app/signup">{t("cta")}</ButtonLink>
         </div>
       </Container>
-    </div>
   );
 }

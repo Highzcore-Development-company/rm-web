@@ -34,7 +34,7 @@ export default async function CheckoutPage() {
       </div>
 
       <div className="mt-12 max-w-2xl">
-        <h1 className="text-3xl font-semibold tracking-tight">{t("title")}</h1>
+        <h1 className="display text-3xl font-semibold sm:text-4xl">{t("title")}</h1>
         <p className="mt-3 text-sm leading-relaxed text-fg-muted">
           {t("intro")}
         </p>

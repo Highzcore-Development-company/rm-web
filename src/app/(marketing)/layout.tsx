@@ -17,7 +17,7 @@ export default async function MarketingLayout({
         {t("skipToContent")}
       </a>
       <SiteHeader />
-      <main id="main" className="flex flex-1 flex-col">
+      <main id="main" className="ambient relative flex flex-1 flex-col">
         <PageTransition>{children}</PageTransition>
       </main>
       <SiteFooter />

@@ -176,7 +176,7 @@ export default async function PerformancePage() {
   if (!usable) {
     return (
       <Container className="py-16 sm:py-24">
-        <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
+        <h1 className="display text-4xl font-semibold sm:text-5xl">
           {t("title")}
         </h1>
         <p className="mt-6 max-w-2xl text-sm leading-relaxed text-fg-muted">
@@ -206,7 +206,7 @@ export default async function PerformancePage() {
         </p>
       ) : null}
 
-      <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
+      <h1 className="display text-4xl font-semibold sm:text-5xl">
         {t("title")}
       </h1>
       <p className="mt-6 max-w-2xl text-lg text-fg-muted">{t("intro")}</p>

@@ -22,7 +22,7 @@ export default function RiskDisclosurePage() {
   return (
     <Container className="py-16 sm:py-24">
       <div className="max-w-3xl">
-        <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
+        <h1 className="display text-4xl font-semibold sm:text-5xl">
           {t("title")}
         </h1>
         <p className="mt-6 text-lg text-fg-muted">{t("intro")}</p>
