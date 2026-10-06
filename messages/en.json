@@ -17,7 +17,13 @@
       "title": "You keep your money where it is. The bot does the trading.",
       "body": "Open a Vantage account in your own name, fund it, and give our bot permission to trade it. Permission to trade — never permission to withdraw. We never hold your funds.",
       "primaryCta": "Get started",
-      "secondaryCta": "See how it works"
+      "secondaryCta": "See how it works",
+      "trust": {
+        "custody": "Your money stays at Vantage, in your name",
+        "permission": "Trade permission only — never withdrawal",
+        "cancel": "Disconnect any time, no lock-in"
+      },
+      "price": "From {price}/month"
     },
     "steps": {
       "title": "Three steps",
@@ -68,6 +74,21 @@
           "q": "Why Vantage specifically?",
           "a": "Vantage supports the account structure this needs: you hold your own account, and a manager is granted trade-only permission on it. That is what keeps your funds in your name."
         }
+      }
+    },
+    "proof": {
+      "title": "Why anyone should trust this",
+      "custody": {
+        "title": "We cannot take your money",
+        "body": "Not “we would not” — we cannot. The account is yours at Vantage, and the permission you sign covers placing trades. Withdrawing is not something we are able to do, and that limit is enforced by the broker rather than promised by us."
+      },
+      "record": {
+        "title": "The record is published in full",
+        "body": "Every trade, including the losing ones, with the worst drawdown shown beside the return. If a month was bad, you will see the month."
+      },
+      "control": {
+        "title": "You are never locked in",
+        "body": "Revoke the permission inside Vantage whenever you want. You do not need our agreement, and you do not have to ask us first."
       }
     }
   },
@@ -214,7 +235,9 @@
         "generic": "We could not create your account. Please try again.",
         "rate_limited": "We could not send your confirmation email just now. Please wait a few minutes and try again.",
         "email_invalid": "That email address was not accepted. Check it, and use an address you can actually receive mail at.",
-        "already_registered": "There is already an account with that email. Try signing in, or reset your password."
+        "already_registered": "There is already an account with that email. Try signing in, or reset your password.",
+        "provider_disabled": "Account creation is temporarily switched off. Please try again shortly.",
+        "signup_disabled": "We are not accepting new accounts right now."
       }
     },
     "verifyEmail": {

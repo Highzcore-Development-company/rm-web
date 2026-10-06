@@ -39,6 +39,13 @@ function messageFor(
       return t("errors.already_registered");
     case "weak_password":
       return t("errors.password");
+    // Configuration, not the investor's fault — the email provider is off in
+    // Supabase, or signups are closed. Both produce a dead form with nothing
+    // on screen explaining it, which is the worst version of this bug.
+    case "email_provider_disabled":
+      return t("errors.provider_disabled");
+    case "signup_disabled":
+      return t("errors.signup_disabled");
     default:
       return t("errors.generic");
   }
