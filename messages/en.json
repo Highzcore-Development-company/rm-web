@@ -253,6 +253,79 @@
     },
     "notReady": "We could not load your account just now. Reload the page, and contact us if it keeps happening."
   },
+  "linkAccount": {
+    "title": "Link your Vantage account",
+    "intro": "Three things, in order. Your account stays in your name throughout and we never gain the ability to withdraw from it.",
+    "partner": {
+      "title": "1. Open your account through our link",
+      "body": "Your account must be opened under our partner link for us to be able to manage it. If you already have a Vantage account opened another way, contact us before going further — it usually cannot be moved across.",
+      "cta": "Open a Vantage account",
+      "steps": {
+        "one": "Click the link. It opens Vantage's own registration page.",
+        "two": "Complete their registration and identity verification. This is between you and Vantage; we never see your documents.",
+        "three": "Choose a Raw ECN account. The spreads on a Standard account are several times wider and the strategy is not built for them.",
+        "four": "Note down your MT5 login number. You will need it below."
+      },
+      "screenshotsPending": "Step-by-step screenshots to be added once the master account is open."
+    },
+    "lpoa": {
+      "title": "2. Sign the limited power of attorney",
+      "body": "Vantage's LPOA is what lets us place trades on your account. You sign it with Vantage, not with us.",
+      "grants": "What it grants",
+      "grantsBody": "Permission to open, modify and close trades on your account, and to see its balance and trading history.",
+      "denies": "What it does not grant",
+      "deniesBody": "No ability to withdraw money, transfer money, change your bank details, or move funds anywhere at all. That restriction is enforced by Vantage. It is not a promise we are asking you to take on trust.",
+      "managerId": "Our manager ID",
+      "revoke": "You can revoke the LPOA with Vantage at any time, without asking us."
+    },
+    "minimum": {
+      "title": "Before you fund it",
+      "brokerMinimum": "Vantage's minimum deposit is {amount}.",
+      "ourMinimum": "We suggest at least {amount}.",
+      "why": "The gap matters. An account can meet Vantage's minimum and still be too small for our position sizes to make sense — at the smallest size the bot trades, an ordinary losing run on a larger account becomes a margin call on a small one. Below our suggested figure you are not getting a smaller version of the same thing; you are getting a more fragile one.",
+      "notAdvice": "This is a sizing note, not advice on how much to invest. Only trade money you can afford to lose."
+    },
+    "claim": {
+      "title": "3. Give us your MT5 login",
+      "body": "The login number only. Never your password — we do not ask for it and you should never give it to anyone.",
+      "label": "MT5 login number",
+      "submit": "Submit for verification",
+      "submitting": "Submitting…",
+      "pending": "We have your login number and are confirming it against our Vantage panel. This is done by a person, so it is not instant.",
+      "confirmed": "Confirmed. Your account is linked to our manager ID.",
+      "errors": {
+        "invalid_login": "That does not look like an MT5 login. It should be digits only.",
+        "already_claimed": "That login number is already linked to another account. Check it, and contact us if you believe it is yours.",
+        "not_signed_in": "Your session expired. Sign in and try again.",
+        "generic": "We could not save that. Please try again."
+      }
+    },
+    "disconnect": {
+      "title": "Disconnecting",
+      "body": "You can stop at any time. Two things have to happen, and only you can do the second one.",
+      "stepUs": "We mark your account as not to be traded, immediately.",
+      "stepYou": "You revoke the LPOA in Vantage. Until you do that, the permission still exists on their side even though we have stopped using it.",
+      "cta": "Request disconnection",
+      "confirm": "This stops the bot trading your account. Are you sure?",
+      "done": "Done. Your account will not be traded. Now revoke the LPOA in Vantage.",
+      "error": "We could not do that. Please try again, and contact us if it keeps failing."
+    }
+  },
+  "adminLinks": {
+    "title": "Link verification",
+    "intro": "Claims waiting to be checked against the Vantage MAM panel. Confirm only what you can see there.",
+    "table": {
+      "investor": "Investor",
+      "login": "MT5 login",
+      "claimedAt": "Claimed",
+      "status": "Status",
+      "actions": ""
+    },
+    "confirm": "Confirm",
+    "reject": "Reject",
+    "empty": "No claims waiting.",
+    "forbidden": "You do not have access to this page."
+  },
   "checkout": {
     "title": "Subscribe",
     "intro": "Pick how long you want to pay for, then how you want to pay. The total is always shown before you pay anything.",

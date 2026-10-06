@@ -24,6 +24,34 @@ export type Investor = {
  * members. Without them the client cannot resolve the table generics and every
  * .insert() infers `never`.
  */
+export type PaymentMethod =
+  | "alatpay_transfer"
+  | "alatpay_card"
+  | "usdt_trc20";
+
+export type SubscriptionStatus =
+  | "awaiting"
+  | "confirmed"
+  | "failed"
+  | "expired";
+
+/** Mirrors db/migrations/p2_002_subscriptions.sql. Money in minor units. */
+export type Subscription = {
+  id: string;
+  investor_id: string;
+  months: number;
+  amount_usd: number;
+  amount_ngn: number | null;
+  fx_usd_ngn_e6: number | null;
+  method: PaymentMethod;
+  status: SubscriptionStatus;
+  provider_ref: string | null;
+  starts_at: string | null;
+  expires_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -33,6 +61,23 @@ export type Database = {
         // migration omit them, so they take their defaults whatever we send.
         Insert: { user_id: string };
         Update: { vantage_account_id?: string | null };
+        Relationships: [];
+      };
+      /**
+       * The company site's table, READ ONLY from here. We need `role` to
+       * decide who is an admin, because is_admin() in the database reads it
+       * and the two must not disagree. We never write to it.
+       */
+      users: {
+        Row: { id: string; email: string | null; role: string };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      subscriptions: {
+        Row: Subscription;
+        Insert: never;
+        Update: never;
         Relationships: [];
       };
     };
