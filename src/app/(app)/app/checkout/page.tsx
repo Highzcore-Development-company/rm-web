@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { LogoLink } from "@/components/logo";
 import { getTranslations } from "next-intl/server";
 import { CheckoutForm } from "@/components/checkout/checkout-form";
 import { SignOutButton } from "@/components/auth/sign-out-button";
@@ -24,9 +24,7 @@ export default async function CheckoutPage() {
   return (
     <Container className="py-12 sm:py-16">
       <div className="flex items-center justify-between gap-4">
-        <Link href="/" className="text-lg font-semibold tracking-tight">
-          Highzcore
-        </Link>
+        <LogoLink width={140} />
         <div className="flex items-center gap-4">
           <ThemeToggle />
           <SignOutButton />

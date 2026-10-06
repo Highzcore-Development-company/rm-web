@@ -160,3 +160,83 @@ body {
 :root[data-theme="light"] .theme-icon-dark {
   display: none;
 }
+
+/* P2-001 — logo variants. CSS picks one so the correct wordmark is painted on
+   the first frame; choosing in React would render the wrong one on the server
+   and swap after hydration, which flashes on every cold load.
+
+   These selectors mirror the theme blocks above exactly. Change one, change both. */
+.logo-light {
+  display: none;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .logo-dark {
+    display: none;
+  }
+  :root:not([data-theme="dark"]) .logo-light {
+    display: inline-block;
+  }
+}
+
+:root[data-theme="light"] .logo-dark {
+  display: none;
+}
+:root[data-theme="light"] .logo-light {
+  display: inline-block;
+}
+
+/* An explicit dark choice always wins, including on a light-preferring system. */
+:root[data-theme="dark"] .logo-dark {
+  display: inline-block;
+}
+:root[data-theme="dark"] .logo-light {
+  display: none;
+}
+
+/* ---- The depth utilities ------------------------------------------------
+   These three class names were already in use across the marketing pages, the
+   shared Card/Section primitives and the app shell, but nothing ever defined
+   them, so they were inert everywhere. The tokens they are built from were
+   already here; only the classes were missing. */
+
+/* A panel that sits above the page rather than being painted onto it: a
+   top-lit gradient instead of a flat fill, a 1px highlight along the top
+   edge, and a shadow underneath. */
+.surface-raised {
+  background-image: linear-gradient(
+    to bottom,
+    var(--surface-top),
+    var(--surface)
+  );
+  box-shadow: var(--raise), var(--elev-1);
+}
+
+/* One soft accent bloom behind a section. Large, very dilute and pinned to the
+   top: it should read as a light source off-screen, never as a coloured shape.
+   A pseudo-element so it costs no markup and never intercepts a click. */
+.ambient::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 32rem;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(
+    60% 60% at 50% 0%,
+    rgb(255 176 32 / 0.08) 0%,
+    transparent 70%
+  );
+}
+
+/* Headline typography. Size stays with the utilities so each heading can set
+   its own; this carries the things that should never vary — tighter tracking
+   at large sizes, and wrapping that avoids a one-word last line. */
+.display {
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+/* The ambient bloom is decoration. Reduced motion is not the same preference,
+   so this stays — but it must not animate, and nothing here does. */
