@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { LinkActions } from "@/components/admin/link-actions";
-import { AppShell } from "@/components/app-shell";
 import { isAdmin } from "@/lib/admin";
 import { createServiceClient } from "@/lib/supabase/service";
 
@@ -38,8 +37,8 @@ export default async function AdminLinksPage() {
   const claims = rows ?? [];
 
   return (
-    <AppShell active="adminLinks">
-      <h1 className="text-3xl font-semibold tracking-tight">{t("title")}</h1>
+    <div>
+      <h1 className="display text-3xl font-semibold">{t("title")}</h1>
       <p className="mt-3 max-w-2xl text-sm leading-relaxed text-fg-muted">
         {t("intro")}
       </p>
@@ -88,6 +87,6 @@ export default async function AdminLinksPage() {
           </table>
         </div>
       )}
-    </AppShell>
+    </div>
   );
 }

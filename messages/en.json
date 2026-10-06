@@ -332,7 +332,8 @@
       "developer": "Developer",
       "onboarding": "Setup",
       "adminLinks": "Verify links",
-      "adminBilling": "Billing admin"
+      "adminBilling": "Billing admin",
+      "adminOverview": "Overview"
     },
     "account": {
       "title": "My account",
@@ -684,5 +685,38 @@
     "privacy": "Privacy policy",
     "rights": "© {year} Highzcore. All rights reserved.",
     "disclaimer": "Trading carries risk of loss. Past performance does not predict future results. We never hold client funds — your account is held with Vantage in your own name, and we are granted permission to trade it only, never to withdraw."
+  },
+  "adminHome": {
+    "title": "Admin",
+    "intro": "Everything that needs a person, in one place.",
+    "needsYou": "Needs you now",
+    "claims": "Link claims waiting",
+    "claimsCta": "Verify links",
+    "detach": "Awaiting MAM detachment",
+    "detachCta": "See who",
+    "nothing": "Nothing waiting. ",
+    "money": "Money",
+    "paidUp": "Paid up",
+    "expiring": "Expiring in 7 days",
+    "lapsed": "Lapsed",
+    "awaiting": "Invoices awaiting payment",
+    "revenue": "Revenue this month",
+    "people": "People",
+    "investors": "Investors",
+    "linked": "Linked accounts",
+    "trading": "Being traded",
+    "recent": "Recent signups",
+    "recentNone": "No signups yet.",
+    "joined": "Joined",
+    "status": "Status",
+    "openBilling": "Open billing",
+    "health": "System",
+    "botFeed": "Bot data feed",
+    "botFeedDown": "Not connected — performance and live positions show their unavailable state.",
+    "botFeedUp": "Connected.",
+    "payments": "Payments",
+    "paymentsPartial": "Card and transfer configured. Crypto on TESTNET — not real money.",
+    "paymentsOff": "Not configured.",
+    "paymentsUp": "Card, transfer and crypto all live."
   }
 }
