@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
-import { LogoLink } from "@/components/logo";
 import { getTranslations } from "next-intl/server";
-import { CheckoutForm } from "@/components/checkout/checkout-form";
-import { SignOutButton } from "@/components/auth/sign-out-button";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { BackLink } from "@/components/back-link";
 import { Container } from "@/components/ui";
+import { CheckoutForm } from "@/components/checkout/checkout-form";
 import { createClient } from "@/lib/supabase/server";
 import { getInvestor } from "@/lib/investors";
 
@@ -22,14 +20,8 @@ export default async function CheckoutPage() {
   const investor = await getInvestor(supabase);
 
   return (
-    <Container className="py-12 sm:py-16">
-      <div className="flex items-center justify-between gap-4">
-        <LogoLink width={140} />
-        <div className="flex items-center gap-4">
-          <ThemeToggle />
-          <SignOutButton />
-        </div>
-      </div>
+    <Container className="py-10 sm:py-14">
+      <BackLink />
 
       <div className="mt-12 max-w-2xl">
         <h1 className="display text-3xl font-semibold sm:text-4xl">{t("title")}</h1>

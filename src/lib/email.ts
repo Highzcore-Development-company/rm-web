@@ -66,13 +66,26 @@ export async function sendEmail(input: {
   }
 }
 
-/** Plain, black-on-white, no images. A reminder is not a newsletter. */
+/**
+ * Black-on-white, one image, inline styles only.
+ *
+ * The logo is the LIGHT-background variant and an absolute URL, because an
+ * email is read on somebody else's client: a relative path has nothing to
+ * resolve against, and the dark-mode wordmark would be invisible on the white
+ * card. PNG rather than the SVG the site uses — Gmail and Outlook do not
+ * render SVG at all.
+ *
+ * The wordmark is also the alt text, so the email still identifies itself in
+ * the many clients that block images by default.
+ */
 function layout(body: string): string {
+  const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://highzcore.com";
+
   return `<!doctype html><html><body style="margin:0;padding:24px;background:#f6f6f6;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#111">
 <table role="presentation" style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;padding:32px">
 <tr><td>
-<div style="font-size:18px;font-weight:700;letter-spacing:-0.02em">Highzcore</div>
-<div style="height:3px;width:40px;background:#FFB020;margin:10px 0 24px"></div>
+<img src="${site}/logo-light.png" alt="Highzcore" width="150" style="display:block;width:150px;max-width:150px;height:auto;border:0" />
+<div style="height:3px;width:40px;background:#FFB020;margin:14px 0 24px"></div>
 ${body}
 <p style="margin-top:32px;font-size:12px;line-height:1.6;color:#666">
 Trading carries risk of loss. Past performance does not predict future results.

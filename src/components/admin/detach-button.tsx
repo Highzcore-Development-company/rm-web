@@ -1,28 +1,29 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { markDetached } from "@/app/(app)/app/admin/billing/actions";
+import { useToast } from "@/components/toast";
 
 export function DetachButton({ investorId }: { investorId: string }) {
   const t = useTranslations("adminBilling");
+  const toast = useToast();
   const [pending, start] = useTransition();
-  const [failed, setFailed] = useState(false);
 
   return (
     <button
       type="button"
       disabled={pending}
       onClick={() => {
-        setFailed(false);
         start(async () => {
           const res = await markDetached(investorId);
-          if (!res.ok) setFailed(true);
+          // The reminder rides in the confirmation because this only records
+          // our side — the Vantage step is still theirs to do.
+          if (res.ok) toast.success(t("detached"));
+          else toast.error(t("detachFailed"));
         });
       }}
-      className={`rounded-md border px-3 py-1.5 text-xs font-medium disabled:opacity-60 ${
-        failed ? "border-chart-down text-chart-down" : "border-border text-fg-muted hover:text-fg"
-      }`}
+      className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-fg-muted transition-colors hover:text-fg disabled:opacity-60"
     >
       {t("markDetached")}
     </button>

@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { BackLink } from "@/components/back-link";
 import { ClaimForm } from "@/components/link-account/claim-form";
 import { DisconnectButton } from "@/components/link-account/disconnect-button";
-import { SignOutButton } from "@/components/auth/sign-out-button";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { Card, Container } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { getInvestor } from "@/lib/investors";
@@ -36,16 +34,8 @@ export default async function LinkAccountPage() {
     investor?.status === "linked" || investor?.status === "active";
 
   return (
-    <Container className="py-12 sm:py-16">
-      <div className="flex items-center justify-between gap-4">
-        <Link href="/" className="text-lg font-semibold tracking-tight">
-          Highzcore
-        </Link>
-        <div className="flex items-center gap-4">
-          <ThemeToggle />
-          <SignOutButton />
-        </div>
-      </div>
+    <Container className="py-10 sm:py-14">
+      <BackLink />
 
       <div className="mt-12 max-w-2xl">
         <h1 className="display text-3xl font-semibold sm:text-4xl">{t("title")}</h1>

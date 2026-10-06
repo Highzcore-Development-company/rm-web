@@ -2,10 +2,12 @@
 
 import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
+import { useToast } from "@/components/toast";
 import { requestDisconnect } from "@/app/(app)/app/link-account/actions";
 
 export function DisconnectButton() {
   const t = useTranslations("linkAccount.disconnect");
+  const toast = useToast();
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<"done" | "error" | null>(null);
 
@@ -17,6 +19,8 @@ export function DisconnectButton() {
     startTransition(async () => {
       const res = await requestDisconnect();
       setResult(res.ok ? "done" : "error");
+      if (res.ok) toast.success(t("toast"));
+      else toast.error(t("error"));
     });
   }
 

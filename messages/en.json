@@ -12,7 +12,8 @@
     "skipToContent": "Skip to content",
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
-    "menuTitle": "Menu"
+    "menuTitle": "Menu",
+    "dashboard": "Dashboard"
   },
   "home": {
     "hero": {
@@ -759,7 +760,8 @@
         "generic": "We could not save that. Please try again."
       },
       "submitted": "Submitted for verification",
-      "change": "Use a different number"
+      "change": "Use a different number",
+      "saved": "Submitted. We will confirm it and email you."
     },
     "disconnect": {
       "title": "Disconnecting",
@@ -769,7 +771,8 @@
       "cta": "Request disconnection",
       "confirm": "This stops the bot trading your account. Are you sure?",
       "done": "Done. Your account will not be traded. Now revoke the LPOA in Vantage.",
-      "error": "We could not do that. Please try again, and contact us if it keeps failing."
+      "error": "We could not do that. Please try again, and contact us if it keeps failing.",
+      "toast": "Done. Now revoke the LPOA in Vantage."
     }
   },
   "adminLinks": {
@@ -785,7 +788,10 @@
     "confirm": "Confirm",
     "reject": "Reject",
     "empty": "No claims waiting.",
-    "forbidden": "You do not have access to this page."
+    "forbidden": "You do not have access to this page.",
+    "confirmed": "Link confirmed. The investor has been emailed.",
+    "rejected": "Claim cleared. They can enter a different number.",
+    "failed": "That did not work. Try again."
   },
   "adminBilling": {
     "title": "Billing",
@@ -811,7 +817,9 @@
       "status": "Status",
       "action": ""
     },
-    "markDetached": "Mark detached"
+    "markDetached": "Mark detached",
+    "detached": "Marked detached. Remember to detach them in Vantage too.",
+    "detachFailed": "Could not mark that. Try again."
   },
   "adminHome": {
     "title": "Admin",

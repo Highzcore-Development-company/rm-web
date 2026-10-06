@@ -8,6 +8,7 @@ import {
   verifyCode,
 } from "@/app/(app)/app/verify-email/actions";
 import { FormError, inputClass, submitClass } from "@/components/auth/auth-card";
+import { useToast } from "@/components/toast";
 
 const CODE_LENGTH = 6;
 
@@ -30,10 +31,10 @@ export function OtpForm({ email }: { email: string }) {
   void email; // shown by the page; the action reads the session instead
   const t = useTranslations("auth.verifyEmail");
   const router = useRouter();
+  const toast = useToast();
 
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [resent, setResent] = useState(false);
   const [verifying, startVerify] = useTransition();
   const [resending, startResend] = useTransition();
 
@@ -55,12 +56,14 @@ export function OtpForm({ email }: { email: string }) {
   }
 
   function resend() {
-    setResent(false);
     setError(null);
     startResend(async () => {
       const res = await sendVerificationCode();
-      if (res.ok) setResent(true);
-      else setError(t(`errors.${res.error}`));
+      // A toast rather than inline text: the confirmation used to replace the
+      // link that triggered it, so the control vanished and the message
+      // appeared where nobody was looking.
+      if (res.ok) toast.success(t("resent"));
+      else toast.error(t(`errors.${res.error}`));
     });
   }
 
@@ -96,18 +99,14 @@ export function OtpForm({ email }: { email: string }) {
       </button>
 
       <div className="text-center text-sm">
-        {resent ? (
-          <span className="text-fg-muted">{t("resent")}</span>
-        ) : (
-          <button
-            type="button"
-            onClick={resend}
-            disabled={resending}
-            className="text-accent underline underline-offset-2 disabled:opacity-60"
-          >
-            {resending ? t("resending") : t("resend")}
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={resend}
+          disabled={resending}
+          className="text-accent underline underline-offset-2 disabled:opacity-60"
+        >
+          {resending ? t("resending") : t("resend")}
+        </button>
       </div>
     </form>
   );

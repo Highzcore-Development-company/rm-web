@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import "./globals.css";
 import { MotionProvider } from "@/components/motion";
+import { ToastProvider } from "@/components/toast";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 
 // Placeholder typefaces until the brand kit lands (P2-001, blocked on D5).
@@ -59,7 +60,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="min-h-full flex flex-col font-sans">
         <NextIntlClientProvider>
-          <MotionProvider>{children}</MotionProvider>
+          <MotionProvider>
+            <ToastProvider>{children}</ToastProvider>
+          </MotionProvider>
         </NextIntlClientProvider>
       </body>
     </html>

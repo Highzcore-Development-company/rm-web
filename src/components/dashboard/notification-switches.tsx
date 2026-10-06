@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { useTranslations } from "next-intl";
+import { useToast } from "@/components/toast";
 import {
   saveNotificationPreferences,
   type SwitchKey,
@@ -20,15 +21,15 @@ export function NotificationSwitches({
   initial: Record<SwitchKey, boolean>;
 }) {
   const t = useTranslations("dashboard.notifications");
+  const toast = useToast();
   const [pending, startTransition] = useTransition();
-  const [result, setResult] = useState<"saved" | "error" | null>(null);
 
   function onChange(form: HTMLFormElement) {
-    setResult(null);
     const data = new FormData(form);
     startTransition(async () => {
       const res = await saveNotificationPreferences(data);
-      setResult(res.ok ? "saved" : "error");
+      if (res.ok) toast.success(t("saved"));
+      else toast.error(t("error"));
     });
   }
 
@@ -54,10 +55,6 @@ export function NotificationSwitches({
           {t(key)}
         </label>
       ))}
-
-      <p aria-live="polite" className="min-h-5 text-xs text-fg-muted">
-        {result === "saved" ? t("saved") : result === "error" ? t("error") : ""}
-      </p>
 
       <p className="text-xs leading-relaxed text-fg-muted">{t("always")}</p>
     </form>

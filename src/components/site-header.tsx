@@ -31,7 +31,7 @@ const LINKS = [
  *      you scroll. A hairline sitting under the fold on first paint cuts the
  *      hero off at the top.
  */
-export function SiteHeader() {
+export function SiteHeader({ signedIn = false }: { signedIn?: boolean }) {
   const t = useTranslations("nav");
   const pathname = usePathname();
   const reduced = useReducedMotion();
@@ -123,16 +123,27 @@ export function SiteHeader() {
         <div className="flex items-center gap-2 sm:gap-3">
           <ThemeToggle />
 
-          <Link
-            href="/app/login"
-            className="hidden text-sm text-fg-muted transition-colors hover:text-fg sm:block"
-          >
-            {t("signIn")}
-          </Link>
+          {/* Offering "Get started" to someone who already has an account
+              sends them to signup, where the proxy bounces them back out
+              again — it routes, just nowhere they wanted to go. */}
+          {signedIn ? (
+            <ButtonLink href="/app/dashboard" className="px-4 py-2">
+              {t("dashboard")}
+            </ButtonLink>
+          ) : (
+            <>
+              <Link
+                href="/app/login"
+                className="hidden text-sm text-fg-muted transition-colors hover:text-fg sm:block"
+              >
+                {t("signIn")}
+              </Link>
 
-          <ButtonLink href="/app/signup" className="px-4 py-2">
-            {t("getStarted")}
-          </ButtonLink>
+              <ButtonLink href="/app/signup" className="px-4 py-2">
+                {t("getStarted")}
+              </ButtonLink>
+            </>
+          )}
 
           <button
             type="button"
@@ -188,11 +199,11 @@ export function SiteHeader() {
                 {/* Sign in is hidden on narrow screens in the bar itself, so
                     without this line a phone cannot reach the login page. */}
                 <Link
-                  href="/app/login"
+                  href={signedIn ? "/app/dashboard" : "/app/login"}
                   onClick={close}
                   className="mt-2 border-t border-border py-3 pl-4 text-base text-fg-muted transition-colors hover:text-fg"
                 >
-                  {t("signIn")}
+                  {signedIn ? t("dashboard") : t("signIn")}
                 </Link>
               </nav>
             </Container>

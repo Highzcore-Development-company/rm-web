@@ -1,12 +1,18 @@
 import { getTranslations } from "next-intl/server";
 import { PageTransition } from "@/components/motion";
 import { SiteHeader } from "@/components/site-header";
+import { createClient } from "@/lib/supabase/server";
 import { SiteFooter } from "@/components/site-footer";
 
 export default async function MarketingLayout({
   children,
 }: LayoutProps<"/">) {
   const t = await getTranslations("nav");
+
+  // getUser rather than getSession: it verifies the token with Supabase
+  // instead of trusting whatever is in the cookie.
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
 
   return (
     <>
@@ -16,7 +22,7 @@ export default async function MarketingLayout({
       >
         {t("skipToContent")}
       </a>
-      <SiteHeader />
+      <SiteHeader signedIn={Boolean(auth.user)} />
       <main id="main" className="ambient relative flex flex-1 flex-col">
         <PageTransition>{children}</PageTransition>
       </main>

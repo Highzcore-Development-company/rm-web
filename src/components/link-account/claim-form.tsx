@@ -1,12 +1,13 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Clock3 } from "lucide-react";
 import {
   claimAccount,
   type ActionResult,
 } from "@/app/(app)/app/link-account/actions";
+import { useToast } from "@/components/toast";
 import {
   Field,
   FormError,
@@ -26,6 +27,21 @@ export function ClaimForm({ initialLogin }: { initialLogin: string | null }) {
   // is already on file: leaving a live submit button under a submitted claim
   // invites double-submits and makes it look like nothing happened.
   const [editing, setEditing] = useState(false);
+
+  // useActionState gives the result as state rather than a callback, so the
+  // toast fires on the transition into a successful state. The ref stops a
+  // re-render raising the same one twice.
+  const toast = useToast();
+  const announced = useRef(false);
+
+  useEffect(() => {
+    if (state?.ok && !announced.current) {
+      announced.current = true;
+      setEditing(false);
+      toast.success(t("saved"));
+    }
+    if (state && !state.ok) announced.current = false;
+  }, [state, toast, t]);
 
   const errorKey = state && !state.ok ? state.error : null;
   const submitted = Boolean(initialLogin) && !editing;
