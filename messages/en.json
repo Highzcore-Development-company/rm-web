@@ -211,7 +211,10 @@
       "errors": {
         "acknowledge": "Please confirm you have read the risk disclosure.",
         "password": "Password must be at least 8 characters.",
-        "generic": "We could not create your account. Please try again."
+        "generic": "We could not create your account. Please try again.",
+        "rate_limited": "We could not send your confirmation email just now. Please wait a few minutes and try again.",
+        "email_invalid": "That email address was not accepted. Check it, and use an address you can actually receive mail at.",
+        "already_registered": "There is already an account with that email. Try signing in, or reset your password."
       }
     },
     "verifyEmail": {

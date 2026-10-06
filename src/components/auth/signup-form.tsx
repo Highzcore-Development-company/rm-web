@@ -14,6 +14,36 @@ import {
 
 const MIN_PASSWORD_LENGTH = 8;
 
+/**
+ * Supabase's own error strings are written for developers. "email rate limit
+ * exceeded" tells an investor nothing about what to do, and surfacing it
+ * verbatim makes our own infrastructure problem look like their mistake.
+ *
+ * Anything unrecognised falls through to the generic message rather than being
+ * shown raw — an unknown error is exactly the case where the wording is least
+ * likely to make sense to a person.
+ */
+function messageFor(
+  code: string | undefined,
+  t: (key: string) => string,
+): string {
+  switch (code) {
+    case "over_email_send_rate_limit":
+      // Ours, not theirs: the built-in sender is throttled until SMTP is
+      // configured. Says "wait and retry" because that is what actually works.
+      return t("errors.rate_limited");
+    case "email_address_invalid":
+      return t("errors.email_invalid");
+    case "user_already_exists":
+    case "email_exists":
+      return t("errors.already_registered");
+    case "weak_password":
+      return t("errors.password");
+    default:
+      return t("errors.generic");
+  }
+}
+
 export function SignupForm() {
   const t = useTranslations("auth.signup");
   const router = useRouter();
@@ -55,7 +85,7 @@ export function SignupForm() {
 
     if (signUpError) {
       setSubmitting(false);
-      setError(signUpError.message || t("errors.generic"));
+      setError(messageFor(signUpError.code, t));
       return;
     }
 
