@@ -57,6 +57,7 @@ export type Subscription = {
   provider_ref: string | null;
   provider_account_number: string | null;
   provider_bank_name: string | null;
+  provider_account_name: string | null;
   problem: PaymentProblem | null;
   problem_detail: string | null;
   starts_at: string | null;

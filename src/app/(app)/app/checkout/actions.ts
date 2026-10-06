@@ -21,6 +21,7 @@ export type CheckoutResult =
       subscriptionId: string;
       accountNumber: string;
       bankName: string | null;
+      accountName: string | null;
       amountNgn: number;
       reference: string;
     }
@@ -117,6 +118,7 @@ export async function startBankTransfer(
       provider_ref: result.data.reference,
       provider_account_number: result.data.accountNumber,
       provider_bank_name: result.data.bankName,
+      provider_account_name: result.data.accountName,
     })
     .eq("id", subscription.id);
 
@@ -126,6 +128,7 @@ export async function startBankTransfer(
     subscriptionId: subscription.id,
     accountNumber: result.data.accountNumber,
     bankName: result.data.bankName,
+    accountName: result.data.accountName,
     amountNgn: amountNgnKobo,
     reference: result.data.reference,
   };

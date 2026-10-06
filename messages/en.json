@@ -442,7 +442,9 @@
       "bank": "Bank",
       "amount": "Amount",
       "note": "Transfer the exact amount. The account is for this payment only and your subscription starts once the transfer clears.",
-      "reference": "Reference"
+      "reference": "Reference",
+      "accountName": "Account name",
+      "noBank": "If your banking app asks for a bank, contact us before sending — we will confirm it."
     },
     "crypto": {
       "title": "Send USDT to this address",
@@ -476,7 +478,7 @@
       "startAgain": "Start again",
       "checking": "Checking…",
       "idle": "Sent it?",
-      "idleHint": "Press below once the transfer has left your wallet and we will start watching for it.",
+      "idleHint": "Press below once the transfer has left your account and we will start watching for it.",
       "sentIt": "I have sent it",
       "notYet": "No rush — this address is yours for 2 hours.",
       "problem": "Something is wrong with this payment",

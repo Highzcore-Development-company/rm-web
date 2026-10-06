@@ -60,6 +60,7 @@ export async function getOutstandingPayment(): Promise<CheckoutResult | null> {
     subscriptionId: subscription.id,
     accountNumber: subscription.provider_account_number,
     bankName: subscription.provider_bank_name,
+    accountName: subscription.provider_account_name,
     amountNgn: subscription.amount_ngn ?? 0,
     reference: subscription.provider_ref ?? "",
   };

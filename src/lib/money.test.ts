@@ -77,6 +77,7 @@ function sub(expiresAt: string | null, status = "confirmed"): Subscription {
     provider_ref: "ref",
   provider_account_number: null,
   provider_bank_name: null,
+  provider_account_name: null,
   problem: null,
   problem_detail: null,
     starts_at: "2026-01-01T00:00:00Z",

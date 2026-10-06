@@ -35,11 +35,15 @@ const PATHS = {
   createVirtualAccount: "/bank-transfer/api/v1/bankTransfer/virtualAccount",
   /** Known-good: already in use by the company site's verifier. */
   transactions: "/bank-transfer/api/v1/transactions",
+  /** Hosted card page. Shape inferred, like createVirtualAccount. */
+  createCardPayment: "/card/api/v1/paymentLink",
 };
 
 export type VirtualAccount = {
   accountNumber: string;
   bankName: string | null;
+  /** Who the account is in the name of. Nigerian transfers show this. */
+  accountName: string | null;
   /** ALATPay's id for this payment. Becomes subscriptions.provider_ref. */
   reference: string;
   expiresAt: string | null;
@@ -130,6 +134,33 @@ export async function createVirtualAccount(input: {
   );
   const reference = pick(data, "transactionId", "orderId", "reference", "id");
 
+  // The account number came back on the first live call, so the endpoint is
+  // right — but the bank name did not, under any name I guessed. Without a
+  // bank the payer cannot complete the transfer at all, so when it is missing
+  // the field names are logged rather than left to guesswork.
+  const bankName = pick(
+    data,
+    "virtualBankName",
+    "bankName",
+    "bank",
+    "virtualBank",
+    "bankCode",
+  );
+  const accountName = pick(
+    data,
+    "virtualBankAccountName",
+    "accountName",
+    "virtualAccountName",
+    "beneficiaryName",
+  );
+
+  if (!bankName || !accountName) {
+    console.info(
+      "[alatpay] fields present in response:",
+      Object.keys(data).join(", "),
+    );
+  }
+
   // Refuse rather than return a half-filled object. An account number we
   // failed to read would be displayed as "null" to someone trying to pay.
   if (!accountNumber || !reference) {
@@ -140,7 +171,8 @@ export async function createVirtualAccount(input: {
     ok: true,
     data: {
       accountNumber,
-      bankName: pick(data, "virtualBankName", "bankName"),
+      bankName,
+      accountName,
       reference,
       expiresAt: pick(data, "expiredAt", "expiresAt", "expiryDate"),
     },
@@ -205,4 +237,92 @@ export async function verifyTransaction(
       raw: null,
     };
   }
+}
+
+export type CardPayment = {
+  /** Where to send the payer. ALATPay collects the card details, not us. */
+  redirectUrl: string;
+  /** Becomes subscriptions.provider_ref. */
+  reference: string;
+};
+
+/**
+ * P2-305 — card, through ALATPay's hosted page.
+ *
+ * Card details never touch this application and never reach our server. That
+ * is the entire reason for a hosted flow: handling a PAN ourselves would drag
+ * the whole product into PCI scope for no benefit.
+ *
+ * Card was previously routed through createVirtualAccount, so choosing "Card"
+ * produced a bank account number to transfer to — the wrong instrument, with
+ * no sign anything was wrong.
+ *
+ * Endpoint shape is inferred, as with virtual accounts. If the response does
+ * not contain a redirect URL this refuses rather than inventing one: sending
+ * somebody to an undefined URL is worse than telling them card is unavailable.
+ */
+export async function createCardPayment(input: {
+  amountNgn: number;
+  orderId: string;
+  description: string;
+  email: string;
+  returnUrl: string;
+}): Promise<AlatPayResult<CardPayment>> {
+  const creds = credentials();
+  if (!creds) return { ok: false, error: "not_configured", raw: null };
+
+  let body: unknown;
+  try {
+    const response = await fetch(`${API_BASE}${PATHS.createCardPayment}`, {
+      method: "POST",
+      headers: {
+        "Ocp-Apim-Subscription-Key": creds.apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        businessId: creds.businessId,
+        amount: input.amountNgn,
+        currency: "NGN",
+        orderId: input.orderId,
+        description: input.description,
+        customer: { email: input.email },
+        // Where ALATPay returns the payer once they are done. We verify
+        // server-side regardless — a redirect proves nothing about payment.
+        redirectUrl: input.returnUrl,
+        callbackUrl: input.returnUrl,
+      }),
+      cache: "no-store",
+    });
+
+    body = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      return { ok: false, error: `http_${response.status}`, raw: body };
+    }
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "network_error",
+      raw: null,
+    };
+  }
+
+  const envelope = body as Record<string, unknown>;
+  const data = (envelope.data ?? envelope) as Record<string, unknown>;
+
+  const redirectUrl = pick(
+    data,
+    "paymentUrl",
+    "checkoutUrl",
+    "authorizationUrl",
+    "link",
+    "url",
+  );
+  const reference = pick(data, "transactionId", "orderId", "reference", "id");
+
+  if (!redirectUrl || !reference) {
+    return { ok: false, error: "unexpected_response_shape", raw: body };
+  }
+
+  return { ok: true, data: { redirectUrl, reference } };
 }
