@@ -253,6 +253,36 @@
     },
     "notReady": "We could not load your account just now. Reload the page, and contact us if it keeps happening."
   },
+  "checkout": {
+    "title": "Subscribe",
+    "intro": "Pick how long you want to pay for, then how you want to pay. The total is always shown before you pay anything.",
+    "term": {
+      "legend": "How long",
+      "one": "1 month",
+      "other": "{months} months",
+      "save": "Save {amount}",
+      "perMonth": "{price}/mo"
+    },
+    "method": {
+      "legend": "How you want to pay",
+      "alatpay_transfer": "Bank transfer",
+      "alatpay_transferHint": "We show you an account number to transfer to.",
+      "alatpay_card": "Card",
+      "alatpay_cardHint": "Pay by debit or credit card.",
+      "usdt_trc20": "USDT (TRC-20)",
+      "usdt_trc20Hint": "We give you a one-time address. Credited after confirmations."
+    },
+    "total": {
+      "label": "Total",
+      "subtotal": "Subtotal",
+      "discount": "Discount",
+      "ngnNote": "Charged in naira at {rate} per US dollar.",
+      "usdtNote": "Sent as USDT on the TRON network."
+    },
+    "submit": "Continue to payment",
+    "unavailable": "Payments are not switched on yet. The provider accounts still need to be connected.",
+    "notLinked": "You can subscribe before linking your Vantage account, but the bot cannot trade until both are done."
+  },
   "legal": {
     "terms": {
       "title": "Terms of service",

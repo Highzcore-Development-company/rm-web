@@ -50,3 +50,5 @@ What this means in practice:
 | # | File | Adds |
 |---|---|---|
 | p2_001 | `p2_001_investors.sql` | the `investors` table and its RLS (P2-107) |
+| p2_002 | `p2_002_subscriptions.sql` | subscriptions, entitlement, idempotent activation (P2-302, P2-308, P2-309) |
+| p2_003 | `p2_003_crypto_invoices.sql` | USDT TRC-20 invoices, one address per invoice (P2-306, P2-307) |
