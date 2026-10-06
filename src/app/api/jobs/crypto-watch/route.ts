@@ -61,6 +61,17 @@ export async function POST(request: Request) {
       // Gate 1: anyone can mint a token called USDT and send a million of it
       // for free. Credit by symbol and a subscription costs nothing.
       if (!isAcceptedContract(transfer, invoice.contract)) {
+        // Recorded against the invoice, not just counted. Somebody sent a
+        // token to our address and is waiting; a tally on a job response does
+        // not help them or us.
+        await service
+          .from("crypto_invoices")
+          .update({
+            problem: "wrong_contract",
+            problem_detail: `Received ${transfer.microUsdt} of ${transfer.contract}, which is not the accepted token.`,
+            problem_at: new Date().toISOString(),
+          })
+          .eq("id", invoice.id);
         ignored += 1;
         continue;
       }
@@ -84,9 +95,20 @@ export async function POST(request: Request) {
       // Underpayment is not accepted: tolerating "close enough" makes every
       // amount below the price a negotiation.
       if (!settlesInvoice(transfer, invoice.expected_micro_usdt)) {
-        console.warn(
-          `[crypto-watch] underpaid ${invoice.id}: ${transfer.microUsdt} of ${invoice.expected_micro_usdt}`,
-        );
+        // Real money arrived and bought nothing. This was a console warning,
+        // which is to say it was invisible to the only two people who need to
+        // know: the payer, and whoever has to refund or top them up.
+        await service
+          .from("crypto_invoices")
+          .update({
+            problem: "underpaid",
+            problem_detail: `Received ${(transfer.microUsdt / 1e6).toFixed(2)} USDT, expected ${(invoice.expected_micro_usdt / 1e6).toFixed(2)}.`,
+            problem_at: new Date().toISOString(),
+            seen_tx_hash: transfer.txHash,
+            seen_micro_usdt: transfer.microUsdt,
+            seen_at: new Date().toISOString(),
+          })
+          .eq("id", invoice.id);
         continue;
       }
 

@@ -33,6 +33,11 @@ export type PaymentMethod =
   | "alatpay_card"
   | "usdt_trc20";
 
+export type PaymentProblem =
+  | "underpaid"
+  | "wrong_contract"
+  | "provider_failed";
+
 export type SubscriptionStatus =
   | "awaiting"
   | "confirmed"
@@ -52,6 +57,8 @@ export type Subscription = {
   provider_ref: string | null;
   provider_account_number: string | null;
   provider_bank_name: string | null;
+  problem: PaymentProblem | null;
+  problem_detail: string | null;
   starts_at: string | null;
   expires_at: string | null;
   created_at: string;
@@ -103,11 +110,15 @@ export type ServiceDatabase = {
       };
       crypto_invoices: {
         Row: CryptoInvoice;
-        Insert: Omit<
+        Insert: Pick<
           CryptoInvoice,
-          "id" | "status" | "seen_tx_hash" | "seen_micro_usdt" | "seen_at"
-          | "created_at" | "expires_at" | "updated_at"
-        > & Partial<CryptoInvoice>;
+          | "subscription_id"
+          | "address"
+          | "expected_micro_usdt"
+          | "contract"
+          | "confirmations_required"
+        > &
+          Partial<CryptoInvoice>;
         Update: Partial<CryptoInvoice>;
         Relationships: [];
       };
@@ -172,6 +183,9 @@ export type CryptoInvoice = {
   seen_tx_hash: string | null;
   seen_micro_usdt: number | null;
   seen_at: string | null;
+  problem: PaymentProblem | null;
+  problem_detail: string | null;
+  problem_at: string | null;
   created_at: string;
   expires_at: string;
   updated_at: string;

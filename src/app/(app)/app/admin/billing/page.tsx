@@ -67,6 +67,16 @@ export default async function AdminBillingPage() {
   const investors = (investorsResult.data ?? []) as Investor[];
   const summary = summarise(subscriptions);
 
+  // Money arrived and could not be credited. Leads the page because somebody
+  // is out of pocket and waiting, which outranks every other number here.
+  const { data: stuckInvoices } = await service
+    .from("crypto_invoices")
+    .select("*")
+    .not("problem", "is", null)
+    .order("problem_at", { ascending: false });
+
+  const stuckPayments = subscriptions.filter((s) => s.problem);
+
   const awaiting = subscriptions
     .filter((s) => s.status === "awaiting")
     .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
@@ -133,6 +143,52 @@ export default async function AdminBillingPage() {
           </dl>
         </Card>
       </div>
+
+      <section className="mt-12">
+        <h2 className="text-lg font-semibold">{t("problemsTitle")}</h2>
+        <p className="mt-2 max-w-2xl text-sm text-fg-muted">
+          {t("problemsIntro")}
+        </p>
+
+        {(stuckInvoices ?? []).length === 0 && stuckPayments.length === 0 ? (
+          <p className="mt-4 text-sm text-fg-muted">{t("problemsNone")}</p>
+        ) : (
+          <ul className="mt-4 space-y-3">
+            {(stuckInvoices ?? []).map((invoice) => (
+              <li
+                key={invoice.id}
+                className="rounded-xl border border-chart-down/40 bg-chart-down/5 p-4"
+              >
+                <p className="text-sm font-medium">
+                  {t(`problem.${invoice.problem}`)}
+                </p>
+                <p className="mt-1 text-sm text-fg-muted">
+                  {invoice.problem_detail}
+                </p>
+                <p className="mt-2 font-mono text-xs text-fg-muted">
+                  {invoice.address}
+                </p>
+              </li>
+            ))}
+            {stuckPayments.map((payment) => (
+              <li
+                key={payment.id}
+                className="rounded-xl border border-chart-down/40 bg-chart-down/5 p-4"
+              >
+                <p className="text-sm font-medium">
+                  {t(`problem.${payment.problem}`)}
+                </p>
+                <p className="mt-1 text-sm text-fg-muted">
+                  {payment.problem_detail}
+                </p>
+                <p className="mt-2 font-mono text-xs text-fg-muted">
+                  {formatUsd(payment.amount_usd)} · {payment.provider_ref ?? "—"}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       {/* What has actually been paid, and what has not. The headline figures
           above answer "how much"; an admin asking "did this person's money

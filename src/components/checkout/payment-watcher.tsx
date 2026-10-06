@@ -52,7 +52,14 @@ export function PaymentWatcher({ subscriptionId }: { subscriptionId: string }) {
         router.refresh();
         return;
       }
-      if (next.state === "expired" || next.state === "unknown") return;
+      // Stop polling on a problem too: it will not resolve itself, and a
+      // spinner next to "something is wrong" says we are still hoping.
+      if (
+        next.state === "expired" ||
+        next.state === "unknown" ||
+        next.state === "problem"
+      )
+        return;
 
       timer = setTimeout(check, POLL_MS);
     }
@@ -88,6 +95,34 @@ export function PaymentWatcher({ subscriptionId }: { subscriptionId: string }) {
         {/* Pressing it early costs nothing — it starts a watcher, it does not
             claim anything — so the copy removes the pressure to be precise. */}
         <p className="mt-3 text-xs text-fg-muted">{t("notYet")}</p>
+      </div>
+    );
+  }
+
+  if (status.state === "problem") {
+    return (
+      <div className="mt-5 rounded-xl border border-chart-down/50 bg-chart-down/5 p-4">
+        <div className="flex items-start gap-3">
+          <XCircle
+            className="mt-0.5 size-4 shrink-0 text-chart-down"
+            aria-hidden="true"
+          />
+          <div className="min-w-0">
+            <p aria-live="polite" className="text-sm font-medium">
+              {t("problem")}
+            </p>
+            <p className="mt-1 text-xs leading-relaxed text-fg-muted">
+              {t(status.kind)}
+            </p>
+            {/* The specifics — amounts, the token that arrived — so support
+                does not have to ask them what they sent. */}
+            {status.detail ? (
+              <p className="mt-2 font-mono text-xs text-fg-muted">
+                {status.detail}
+              </p>
+            ) : null}
+          </div>
+        </div>
       </div>
     );
   }

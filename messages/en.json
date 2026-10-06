@@ -478,7 +478,12 @@
       "idle": "Sent it?",
       "idleHint": "Press below once the transfer has left your wallet and we will start watching for it.",
       "sentIt": "I have sent it",
-      "notYet": "No rush — this address is yours for 2 hours."
+      "notYet": "No rush — this address is yours for 2 hours.",
+      "problem": "Something is wrong with this payment",
+      "underpaid": "We received less than the amount due, so the subscription has not started. Nothing is lost — contact us and we will sort it out.",
+      "wrong_contract": "A token arrived that is not USDT on TRON. We cannot credit it automatically. Contact us and we will look at it.",
+      "provider_failed": "Your bank or card provider declined this payment. Nothing has been taken. You can start again with another method.",
+      "contact": "Contact support"
     }
   },
   "legal": {
@@ -853,6 +858,14 @@
       "amount": "Amount",
       "ref": "Reference",
       "status": "Status"
+    },
+    "problemsTitle": "Needs a human",
+    "problemsIntro": "Money arrived but could not be credited automatically. Somebody is out of pocket and waiting.",
+    "problemsNone": "Nothing stuck.",
+    "problem": {
+      "underpaid": "Underpaid",
+      "wrong_contract": "Wrong token",
+      "provider_failed": "Provider declined"
     }
   },
   "adminHome": {

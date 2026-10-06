@@ -13,6 +13,7 @@ import {
 
 export type PaymentStatus =
   | { state: "awaiting" }
+  | { state: "problem"; kind: string; detail: string | null }
   | { state: "seen"; confirmations: number; required: number }
   | { state: "confirmed" }
   | { state: "expired" }
@@ -40,7 +41,7 @@ export async function getPaymentStatus(
   // that explicit rather than relying on it from a distance.
   const { data: subscription } = await supabase
     .from("subscriptions")
-    .select("id, status, investor_id, method")
+    .select("id, status, investor_id, method, problem, problem_detail")
     .eq("id", subscriptionId)
     .eq("investor_id", investor.id)
     .maybeSingle();
@@ -48,6 +49,16 @@ export async function getPaymentStatus(
   if (!subscription) return { state: "unknown" };
   if (subscription.status === "confirmed") return { state: "confirmed" };
   if (subscription.status === "expired") return { state: "expired" };
+
+  // A refused payment outranks everything below. Somebody has sent money and
+  // is watching a spinner; telling them what went wrong is the whole point.
+  if (subscription.problem) {
+    return {
+      state: "problem",
+      kind: subscription.problem,
+      detail: subscription.problem_detail,
+    };
+  }
 
   // Bank transfer is confirmed by ALATPay's webhook, not by us looking.
   if (subscription.method !== "usdt_trc20") return { state: "awaiting" };
@@ -59,6 +70,13 @@ export async function getPaymentStatus(
     .maybeSingle();
 
   if (!invoice) return { state: "awaiting" };
+  if (invoice.problem) {
+    return {
+      state: "problem",
+      kind: invoice.problem,
+      detail: invoice.problem_detail,
+    };
+  }
   if (invoice.status === "confirmed") return { state: "confirmed" };
   if (invoice.status === "expired") return { state: "expired" };
 

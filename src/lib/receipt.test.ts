@@ -15,6 +15,8 @@ const base: Subscription = {
   provider_ref: "TX-ABC123",
   provider_account_number: null,
   provider_bank_name: null,
+  problem: null,
+  problem_detail: null,
   starts_at: "2026-06-01T00:00:00Z",
   expires_at: "2026-09-01T00:00:00Z",
   created_at: "2026-06-01T00:00:00Z",

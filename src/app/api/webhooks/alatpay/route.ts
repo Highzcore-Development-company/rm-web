@@ -51,12 +51,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "verify_failed" }, { status: 503 });
   }
 
+  const service = createServiceClient();
+
   if (verified.data.status !== "succeeded") {
-    // Acknowledged so it stops being retried, but nothing is granted.
+    // Still acknowledged so it stops being retried — but a failure is
+    // recorded. Left as "awaiting" it is indistinguishable from somebody who
+    // never paid, and the one person it matters to is the one whose card was
+    // declined and is waiting to find out.
+    if (verified.data.status === "failed") {
+      await service
+        .from("subscriptions")
+        .update({
+          status: "failed",
+          problem: "provider_failed",
+          problem_detail: "The payment provider reported this transaction as failed.",
+        })
+        .eq("provider_ref", reference);
+    }
     return NextResponse.json({ status: verified.data.status });
   }
-
-  const service = createServiceClient();
 
   const { data: subscription } = await service
     .from("subscriptions")
