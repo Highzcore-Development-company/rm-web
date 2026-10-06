@@ -35,7 +35,6 @@
      quality than any amount of shadow. */
   --surface-top: #171717; /* surfaces are a gradient, not a flat fill */
   --input-bg: #0e0e0e; /* inputs recede; cards advance */
-  --input-border: #3a3a3a; /* louder than --border: a field must look typeable */
   --raise: inset 0 1px 0 rgb(255 255 255 / 0.04);
   --elev-1: 0 1px 2px rgb(0 0 0 / 0.4), 0 2px 8px rgb(0 0 0 / 0.25);
   --elev-2: 0 2px 4px rgb(0 0 0 / 0.4), 0 12px 32px rgb(0 0 0 / 0.35);
@@ -59,7 +58,6 @@
        grey smudges, and a white top-highlight is invisible. */
     --surface-top: #ffffff;
     --input-bg: #ffffff;
-    --input-border: #d4d4d8;
     --raise: inset 0 1px 0 rgb(255 255 255 / 0.9);
     --elev-1: 0 1px 2px rgb(0 0 0 / 0.06), 0 2px 8px rgb(0 0 0 / 0.04);
     --elev-2: 0 2px 4px rgb(0 0 0 / 0.06), 0 12px 32px rgb(0 0 0 / 0.08);
@@ -80,7 +78,6 @@
      grey smudges, and a white top-highlight is invisible. */
   --surface-top: #ffffff;
   --input-bg: #ffffff;
-  --input-border: #d4d4d8;
   --raise: inset 0 1px 0 rgb(255 255 255 / 0.9);
   --elev-1: 0 1px 2px rgb(0 0 0 / 0.06), 0 2px 8px rgb(0 0 0 / 0.04);
   --elev-2: 0 2px 4px rgb(0 0 0 / 0.06), 0 12px 32px rgb(0 0 0 / 0.08);
@@ -164,12 +161,96 @@ body {
   display: none;
 }
 
-/* ---------------------------------------------------------------------------
-   Surfaces.
+/* P2-001 — logo variants. CSS picks one so the correct wordmark is painted on
+   the first frame; choosing in React would render the wrong one on the server
+   and swap after hydration, which flashes on every cold load.
 
-   A card is a gradient with a lit top edge, not a flat fill. One utility so
-   every panel reads as the same material — otherwise each page invents its own
-   and the product looks assembled rather than designed.
+   These selectors mirror the theme blocks above exactly. Change one, change both. */
+.logo-light {
+  display: none;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .logo-dark {
+    display: none;
+  }
+  :root:not([data-theme="dark"]) .logo-light {
+    display: inline-block;
+  }
+}
+
+:root[data-theme="light"] .logo-dark {
+  display: none;
+}
+:root[data-theme="light"] .logo-light {
+  display: inline-block;
+}
+
+/* An explicit dark choice always wins, including on a light-preferring system. */
+:root[data-theme="dark"] .logo-dark {
+  display: inline-block;
+}
+:root[data-theme="dark"] .logo-light {
+  display: none;
+}
+
+/* ---- The depth utilities ------------------------------------------------
+   These three class names were already in use across the marketing pages, the
+   shared Card/Section primitives and the app shell, but nothing ever defined
+   them, so they were inert everywhere. The tokens they are built from were
+   already here; only the classes were missing. */
+
+/* A panel that sits above the page rather than being painted onto it: a
+   top-lit gradient instead of a flat fill, a 1px highlight along the top
+   edge, and a shadow underneath. */
+.surface-raised {
+  background-image: linear-gradient(
+    to bottom,
+    var(--surface-top),
+    var(--surface)
+  );
+  box-shadow: var(--raise), var(--elev-1);
+}
+
+/* One soft accent bloom behind a section. Large, very dilute and pinned to the
+   top: it should read as a light source off-screen, never as a coloured shape.
+   A pseudo-element so it costs no markup and never intercepts a click. */
+.ambient::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 32rem;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(
+    60% 60% at 50% 0%,
+    rgb(255 176 32 / 0.08) 0%,
+    transparent 70%
+  );
+}
+
+/* Headline typography. Size stays with the utilities so each heading can set
+   its own; this carries the things that should never vary — tighter tracking
+   at large sizes, and wrapping that avoids a one-word last line. */
+.display {
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+/* The ambient bloom is decoration. Reduced motion is not the same preference,
+   so this stays — but it must not animate, and nothing here does. */
+
+/* ---------------------------------------------------------------------------
+   Kept from the app surfaces.
+
+   `.surface-raised` above covers the heavier panels. `.surface` is the lighter
+   sibling used by the dashboard, admin and onboarding cards — same material,
+   one step less elevation.
+
+   `.field-input` remains for the Google button, which is an input-shaped
+   control rather than a form field, so it borrows the field treatment without
+   borrowing inputClass.
    --------------------------------------------------------------------------- */
 
 .surface {
@@ -177,88 +258,20 @@ body {
   box-shadow: var(--raise), var(--elev-1);
 }
 
-.surface-raised {
-  background-image: linear-gradient(to bottom, var(--surface-top), var(--surface));
-  box-shadow: var(--raise), var(--elev-2);
-}
-
-/* The page's ambient light: one soft accent bloom behind the content. Subtle
-   on purpose — you do not see it, you only notice its absence. */
-.ambient::before {
-  content: "";
-  position: absolute;
-  inset-inline: 0;
-  top: -12rem;
-  height: 40rem;
-  pointer-events: none;
-  z-index: -1;
-  background: radial-gradient(
-    60% 50% at 50% 0%,
-    rgb(255 176 32 / 0.1),
-    transparent 70%
-  );
-}
-
-:root[data-theme="light"] .ambient::before {
-  background: radial-gradient(
-    60% 50% at 50% 0%,
-    rgb(255 176 32 / 0.18),
-    transparent 70%
-  );
-}
-
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) .ambient::before {
-    background: radial-gradient(
-      60% 50% at 50% 0%,
-      rgb(255 176 32 / 0.18),
-      transparent 70%
-    );
-  }
-}
-
-/* ---------------------------------------------------------------------------
-   Form controls.
-
-   Inputs RECEDE below the card they sit on. A field the same colour as its
-   container does not look typeable — and with no background and no border at
-   all it is simply invisible, which is exactly what happened when this block
-   went missing.
-
-   The border is deliberately louder than --border: that token separates
-   regions, and is far too quiet for something a person has to find and click.
-   --------------------------------------------------------------------------- */
-
 .field-input {
   background-color: var(--input-bg);
-  border: 1px solid var(--input-border);
-  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.25);
+  border: 1px solid var(--border);
   transition:
     border-color 0.15s ease,
     box-shadow 0.15s ease;
 }
 
-.field-input::placeholder {
-  color: var(--fg-muted);
-}
-
 .field-input:hover {
-  border-color: color-mix(in oklab, var(--input-border) 50%, var(--fg-muted));
+  border-color: color-mix(in oklab, var(--fg-muted) 50%, var(--border));
 }
 
-.field-input:focus {
+.field-input:focus-visible {
   outline: none;
   border-color: var(--accent);
   box-shadow: var(--ring-accent);
-}
-
-:root[data-theme="light"] .field-input {
-  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.05);
-}
-
-/* Headline type. Default tracking on a 60px heading looks loose, and loose
-   tracking is the first thing that makes a page read as untouched defaults. */
-.display {
-  letter-spacing: -0.03em;
-  line-height: 1.05;
 }

@@ -4,12 +4,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
-import {
-  Field,
-  FormError,
-  inputClass,
-  submitClass,
-} from "@/components/auth/auth-card";
+import { Field, FormError, inputClass } from "@/components/auth/auth-card";
+import { PasswordField, SubmitButton } from "@/components/auth/fields";
 
 export function LoginForm() {
   const t = useTranslations("auth.login");
@@ -66,7 +62,7 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-5">
+    <form onSubmit={onSubmit} className="space-y-6">
       <FormError>{error}</FormError>
 
       <Field id="email" label={t("email")}>
@@ -82,22 +78,17 @@ export function LoginForm() {
         />
       </Field>
 
-      <Field id="password" label={t("password")}>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className={inputClass}
-        />
-      </Field>
+      <PasswordField
+        id="password"
+        label={t("password")}
+        value={password}
+        onChange={setPassword}
+        autoComplete="current-password"
+      />
 
-      <button type="submit" disabled={submitting} className={submitClass}>
-        {submitting ? t("submitting") : t("submit")}
-      </button>
+      <SubmitButton pending={submitting} pendingLabel={t("submitting")}>
+        {t("submit")}
+      </SubmitButton>
     </form>
   );
 }

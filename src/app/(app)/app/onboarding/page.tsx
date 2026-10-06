@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { LogoLink } from "@/components/logo";
 import { getTranslations } from "next-intl/server";
 import {
   ArrowRight,
@@ -156,9 +157,7 @@ export default async function OnboardingPage() {
     <div className="ambient relative">
       <Container className="py-10 sm:py-14">
         <div className="flex items-center justify-between gap-4">
-          <Link href="/" className="text-lg font-semibold tracking-tight">
-            Highzcore
-          </Link>
+          <LogoLink width={140} />
           <div className="flex items-center gap-4">
             <ThemeToggle />
             <SignOutButton />

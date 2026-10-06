@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { Logo } from "@/components/logo";
 import { Container } from "@/components/ui";
 
 export function SiteFooter() {
   const t = useTranslations("footer");
   const nav = useTranslations("nav");
-  const brand = useTranslations("brand");
 
   // Rendered on the server at request/build time; fine for a copyright year.
   const year = new Date().getFullYear();
@@ -15,7 +15,7 @@ export function SiteFooter() {
       <Container className="py-12">
         <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-4">
           <div>
-            <p className="text-base font-semibold">{brand("name")}</p>
+            <Logo width={130} />
             <p className="mt-2 text-sm text-fg-muted">{t("tagline")}</p>
           </div>
 

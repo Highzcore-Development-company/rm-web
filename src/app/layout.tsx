@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { siteUrl } from "@/lib/site";
 import { Geist, Geist_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import "./globals.css";
@@ -17,12 +18,29 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  // metadataBase makes every relative canonical and og:url in the app resolve
+  // to an absolute URL. Without it Next emits a warning and the OG tags point
+  // at nothing, so link previews come back blank.
+  metadataBase: new URL(siteUrl()),
   title: {
-    default: "Highzcore",
+    // The default is for pages that set no title of their own. It carries the
+    // category, not just the brand — "Highzcore" alone is unsearchable.
+    default: "Highzcore — Automated Copy Trading on Your Own Account",
     template: "%s · Highzcore",
   },
   description:
-    "Link your own Vantage account to our trading bot. You keep custody of your funds — we never hold them.",
+    "Automated forex and crypto copy trading through a broker account in your own name. Our bot trades it; you keep custody of your funds. $20 a month, flat.",
+  // P2-001. The mark alone, not the wordmark: at 32px a full wordmark is an
+  // unreadable smear, while the zigzag stays recognisable.
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon-32.png", type: "image/png", sizes: "32x32" },
+      { url: "/icon-192.png", type: "image/png", sizes: "192x192" },
+      { url: "/icon-512.png", type: "image/png", sizes: "512x512" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

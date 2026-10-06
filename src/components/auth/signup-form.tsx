@@ -6,12 +6,12 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { sendVerificationCode } from "@/app/(app)/app/verify-email/actions";
+import { Field, FormError, inputClass } from "@/components/auth/auth-card";
 import {
-  Field,
-  FormError,
-  inputClass,
-  submitClass,
-} from "@/components/auth/auth-card";
+  PasswordField,
+  PasswordStrength,
+  SubmitButton,
+} from "@/components/auth/fields";
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -97,17 +97,12 @@ export function SignupForm() {
       return;
     }
 
-    // Whether a session comes back depends on a Supabase setting we do not
-    // control from here: with email confirmation ON there is no session and a
-    // link is sent; with it OFF the account is live immediately.
-    //
-    // Branch on what actually happened rather than on what we assume is
-    // configured. Sending someone to "check your email" when no email is
-    // coming is a dead end they cannot get out of.
-    // Supabase is set to auto-confirm, because otherwise it would try to send
-    // its own mail. So a session exists immediately — but the address is NOT
-    // verified until our own code is accepted, and the app layout holds them
-    // on the verify page until it is.
+    // No investors row yet, and no session. "Email verification required
+    // before anything else" (P2-106) means exactly that — the row is created
+    // by the callback, after the address is confirmed.
+    // Supabase sends no mail in this product, so nothing has reached the
+    // investor yet. Without this the verify page would sit there asking for a
+    // code that was never issued.
     if (data.session) {
       await sendVerificationCode();
     }
@@ -116,7 +111,7 @@ export function SignupForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-5">
+    <form onSubmit={onSubmit} className="space-y-6">
       <FormError>{error}</FormError>
 
       <Field id="email" label={t("email")}>
@@ -132,21 +127,25 @@ export function SignupForm() {
         />
       </Field>
 
-      <Field id="password" label={t("password")} hint={t("passwordHint")}>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="new-password"
-          required
-          minLength={MIN_PASSWORD_LENGTH}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className={inputClass}
-        />
-      </Field>
+      <PasswordField
+        id="password"
+        label={t("password")}
+        hint={t("passwordHint")}
+        value={password}
+        onChange={setPassword}
+        autoComplete="new-password"
+        minLength={MIN_PASSWORD_LENGTH}
+      >
+        <PasswordStrength password={password} />
+      </PasswordField>
 
-      <div className="flex gap-3 rounded-md border border-border bg-surface p-4">
+      <div
+        className={`flex gap-3 rounded-lg border p-4 transition-colors ${
+          acknowledged
+            ? "border-accent/40 bg-accent/[0.06]"
+            : "border-border bg-[var(--input-bg)]"
+        }`}
+      >
         <input
           id="acknowledge"
           name="acknowledge"
@@ -170,9 +169,9 @@ export function SignupForm() {
         </div>
       </div>
 
-      <button type="submit" disabled={submitting} className={submitClass}>
-        {submitting ? t("submitting") : t("submit")}
-      </button>
+      <SubmitButton pending={submitting} pendingLabel={t("submitting")}>
+        {t("submit")}
+      </SubmitButton>
     </form>
   );
 }
