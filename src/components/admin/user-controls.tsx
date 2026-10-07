@@ -9,7 +9,7 @@ import {
   disableUser,
   enableUser,
   updateUser,
-} from "@/app/(app)/app/admin/users/actions";
+} from "@/app/(app)/app/admin/(panel)/users/actions";
 import { useToast } from "@/components/toast";
 import { Card } from "@/components/ui";
 import { inputClass } from "@/components/auth/auth-card";

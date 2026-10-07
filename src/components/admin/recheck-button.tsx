@@ -3,7 +3,7 @@
 import { useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { RefreshCw } from "lucide-react";
-import { recheckPayment } from "@/app/(app)/app/admin/billing/actions";
+import { recheckPayment } from "@/app/(app)/app/admin/(panel)/billing/actions";
 import { useToast } from "@/components/toast";
 
 export function RecheckButton({ subscriptionId }: { subscriptionId: string }) {

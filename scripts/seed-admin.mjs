@@ -107,8 +107,28 @@ const { data: investor } = await supabase
   .eq("user_id", userId)
   .maybeSingle();
 
+// email_verified_at is set deliberately.
+//
+// Samuel's hardening makes getAdmin() require a verified email, which is
+// right — sign-up is auto-confirmed, so otherwise whoever registers the
+// bootstrap address first becomes an admin without proving they own the
+// inbox. But it leaves the SEEDED admin held at the email-code page instead
+// of the forced password change this script promises.
+//
+// Safe here and nowhere else: the script refuses to run against anything but
+// a local database, and whoever runs it is holding the service-role key
+// already. The forced password change still applies.
 if (!investor) {
-  await supabase.from("investors").insert({ user_id: userId });
+  await supabase.from("investors").insert({
+    user_id: userId,
+    email_verified_at: new Date().toISOString(),
+  });
+} else {
+  await supabase
+    .from("investors")
+    .update({ email_verified_at: new Date().toISOString() })
+    .eq("id", investor.id)
+    .is("email_verified_at", null);
 }
 
 console.log(

@@ -3,7 +3,7 @@
 import { useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { Check, X } from "lucide-react";
-import { confirmLink, rejectLink } from "@/app/(app)/app/admin/links/actions";
+import { confirmLink, rejectLink } from "@/app/(app)/app/admin/(panel)/links/actions";
 import { useToast } from "@/components/toast";
 
 export function LinkActions({ investorId }: { investorId: string }) {

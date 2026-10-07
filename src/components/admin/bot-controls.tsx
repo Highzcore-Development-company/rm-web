@@ -9,7 +9,7 @@ import {
   setLotSize,
   setMarketEnabled,
   setTradingEnabled,
-} from "@/app/(app)/app/admin/bot/actions";
+} from "@/app/(app)/app/admin/(panel)/bot/actions";
 import { useToast } from "@/components/toast";
 
 export type MarketConfig = {

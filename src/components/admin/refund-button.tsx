@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { Undo2 } from "lucide-react";
-import { recordRefund } from "@/app/(app)/app/admin/billing/actions";
+import { recordRefund } from "@/app/(app)/app/admin/(panel)/billing/actions";
 import { useToast } from "@/components/toast";
 
 /**
