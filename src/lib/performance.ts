@@ -1,13 +1,19 @@
 /**
  * Performance feed (E4).
  *
- * The real source is the bot's equity snapshots in Supabase, which are known to
- * stop writing silently for 24h+ (P2-704, Victor). Until that is fixed, every
- * getter returns null and every surface renders its unavailable state.
+ * The real source is the bot's equity snapshots and closed trades on rm-server,
+ * read and computed in performance-feed.ts. The snapshots are known to stop
+ * writing silently for 24h+ (P2-704, Victor), so the feed goes dark rather than
+ * publish a record it cannot vouch for: a gap in the snapshots, trades closing
+ * after the last one, or money moving that no trade explains all make every
+ * getter return null, and every surface renders its unavailable state.
  *
  * Deliberate: a headline figure that is stale or zero is worse than no figure.
  * Callers must handle null — do not default to 0.
  */
+
+import { cache } from "react";
+import { loadPerformanceBundle } from "@/lib/performance-feed";
 
 export type PerformanceSummary = {
   /** Total return as a fraction, e.g. 0.095 for +9.5%. */
@@ -132,9 +138,14 @@ function sampleTrades(): PublicTrade[] {
   });
 }
 
+/** One read per request, shared by the four getters below. */
+const bundle = cache(() => loadPerformanceBundle());
+
 export async function getPerformanceSummary(): Promise<PerformanceSummary | null> {
-  // TODO(E4): read from Supabase once P2-704 lands and the feed is reliable.
-  if (!SHOW_SAMPLE) return null;
+  // Outside development this is the real record, or null. See
+  // performance-feed.ts for the source and performance-math.ts for the health
+  // rules that decide when it goes dark.
+  if (!SHOW_SAMPLE) return (await bundle())?.summary ?? null;
 
   const points = sampleEquity();
   const first = points[0].equity;
@@ -169,13 +180,15 @@ export async function getPerformanceSummary(): Promise<PerformanceSummary | null
 }
 
 export async function getEquityCurve(): Promise<EquityPoint[] | null> {
-  return SHOW_SAMPLE ? sampleEquity() : null;
+  return SHOW_SAMPLE ? sampleEquity() : ((await bundle())?.equity ?? null);
 }
 
 export async function getMonthlyReturns(): Promise<MonthlyReturn[] | null> {
-  return SHOW_SAMPLE ? sampleMonthly(sampleEquity()) : null;
+  return SHOW_SAMPLE
+    ? sampleMonthly(sampleEquity())
+    : ((await bundle())?.monthly ?? null);
 }
 
 export async function getRecentTrades(): Promise<PublicTrade[] | null> {
-  return SHOW_SAMPLE ? sampleTrades() : null;
+  return SHOW_SAMPLE ? sampleTrades() : ((await bundle())?.trades ?? null);
 }

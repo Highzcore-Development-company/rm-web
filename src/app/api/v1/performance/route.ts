@@ -41,6 +41,7 @@ export async function GET(request: Request) {
           total_return: summary.totalReturn,
           max_drawdown: summary.maxDrawdown,
           win_rate: summary.winRate,
+          // null means no losing trade yet, not unknown and not infinite.
           profit_factor: summary.profitFactor,
           trade_count: summary.tradeCount,
           months_live: summary.monthsLive,
