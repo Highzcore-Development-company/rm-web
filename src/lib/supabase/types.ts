@@ -16,6 +16,14 @@ export type Investor = {
   email_verified_at: string | null;
   /** P2-104. Server-written, and the RLS policy only allows null -> a value. */
   risk_acknowledged_at: string | null;
+  /** A6. Reversible; status_before_disable is what a re-enable restores. */
+  disabled_at: string | null;
+  disabled_by: string | null;
+  disabled_reason: string | null;
+  status_before_disable: InvestorStatus | null;
+  /** A7. Soft delete — personal data anonymised, money rows kept. */
+  deleted_at: string | null;
+  deleted_by: string | null;
   status: InvestorStatus;
   vantage_account_id: string | null;
   linked_at: string | null;
@@ -355,6 +363,21 @@ export type Database = {
           p_target_id: string | null;
           p_detail: Record<string, unknown> | null;
         };
+        Returns: undefined;
+      };
+      /** A6. Reversible; requires a reason and pauses the subscription. */
+      disable_investor: {
+        Args: { p_investor_id: string; p_reason: string };
+        Returns: undefined;
+      };
+      /** A6. Restores the previous status and gives back the paused time. */
+      enable_investor: {
+        Args: { p_investor_id: string };
+        Returns: undefined;
+      };
+      /** A7. Anonymises personal data; subscriptions and receipts are kept. */
+      soft_delete_investor: {
+        Args: { p_investor_id: string };
         Returns: undefined;
       };
       /** True when the caller holds this permission. */

@@ -606,7 +606,8 @@
       "adminLinks": "Verify links",
       "adminBilling": "Billing admin",
       "adminOverview": "Overview",
-      "admin": "Admin"
+      "admin": "Admin",
+      "adminUsers": "Users"
     },
     "account": {
       "title": "My account",
@@ -926,6 +927,98 @@
         "not_admin": "Your session expired. Sign in again.",
         "generic": "We could not change it. Please try again."
       }
+    }
+  },
+  "adminUsers": {
+    "title": "Users",
+    "intro": "Everyone who has signed up.",
+    "total": "Total users",
+    "search": "Search by email",
+    "searchPlaceholder": "name@example.com",
+    "filter": "Status",
+    "all": "All",
+    "cols": {
+      "email": "Email",
+      "signedUp": "Signed up",
+      "verified": "Verified",
+      "risk": "Risk ack.",
+      "subscription": "Subscription",
+      "broker": "Broker",
+      "lastSeen": "Last seen"
+    },
+    "state": {
+      "active": "Active",
+      "grace": "In grace",
+      "lapsed": "Lapsed",
+      "never": "Never paid",
+      "disabled": "Disabled",
+      "deleted": "Deleted"
+    },
+    "yes": "Yes",
+    "no": "No",
+    "never": "Never",
+    "empty": "Nobody matches that.",
+    "showing": "{from}–{to} of {total}",
+    "prev": "Previous",
+    "next": "Next",
+    "detail": {
+      "back": "All users",
+      "account": "Account",
+      "userId": "User ID",
+      "signedUp": "Signed up",
+      "lastSeen": "Last seen",
+      "verified": "Email verified",
+      "risk": "Risk disclosure acknowledged",
+      "riskNote": "Set by the investor only. An admin who could tick this would be manufacturing the evidence we would rely on.",
+      "broker": "Vantage account",
+      "linkedAt": "Confirmed",
+      "notLinked": "Not linked",
+      "payments": "Payments",
+      "noPayments": "No payments yet.",
+      "disabledBanner": "Disabled {when} by {who} — {reason}",
+      "deletedBanner": "Deleted {when}. Personal data was anonymised; payment records were kept."
+    },
+    "edit": {
+      "title": "Edit",
+      "email": "Email address",
+      "broker": "MT5 login",
+      "brokerHint": "Clearing this also clears the confirmation.",
+      "save": "Save changes",
+      "saving": "Saving…",
+      "saved": "Saved.",
+      "expiry": "Expires",
+      "setExpiry": "Update expiry"
+    },
+    "disable": {
+      "title": "Disable this account",
+      "body": "They will not be able to sign in, the bot detaches from their account, and the subscription pauses rather than running down.",
+      "reason": "Reason (required)",
+      "reasonPlaceholder": "Why is this account being disabled?",
+      "submit": "Disable account",
+      "done": "Account disabled.",
+      "enable": "Re-enable account",
+      "enabled": "Account re-enabled. Paused time was added back."
+    },
+    "delete": {
+      "title": "Delete this account",
+      "body": "Irreversible. Personal data is anonymised and payment records are kept, because deleting them would destroy the financial history and the receipts we are expected to keep.",
+      "confirm": "Type {email} to confirm",
+      "submit": "Delete permanently",
+      "done": "Account deleted.",
+      "superOnly": "Only a super admin can delete an account."
+    },
+    "errors": {
+      "forbidden": "You do not have permission for that.",
+      "not_found": "That account no longer exists.",
+      "bad_email": "That does not look like an email address.",
+      "email_taken": "Another account already uses that address.",
+      "bad_login": "An MT5 login is digits only.",
+      "login_taken": "That MT5 login is already linked to another account.",
+      "reason_required": "A reason is required.",
+      "email_mismatch": "That does not match the account's email.",
+      "bad_date": "That is not a valid date.",
+      "not_confirmed": "Only a confirmed payment has a term to move.",
+      "generic": "That did not work. Try again."
     }
   }
 }

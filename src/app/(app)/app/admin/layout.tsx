@@ -38,8 +38,13 @@ export default async function AdminLayout({
 
   const t = await getTranslations("dashboard.nav");
 
+  // Only the sections this admin can actually open. The pages 404 without the
+  // permission regardless; this stops the sidebar advertising them.
   const items = [
     { href: "/app/admin", label: t("adminOverview"), icon: "overview" as const },
+    ...(admin.permissions.includes("users.view")
+      ? [{ href: "/app/admin/users", label: t("adminUsers"), icon: "users" as const }]
+      : []),
     { href: "/app/admin/links", label: t("adminLinks"), icon: "links" as const },
     {
       href: "/app/admin/billing",
