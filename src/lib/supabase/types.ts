@@ -16,6 +16,14 @@ export type Investor = {
   email_verified_at: string | null;
   /** P2-104. Server-written, and the RLS policy only allows null -> a value. */
   risk_acknowledged_at: string | null;
+  /** A6. Reversible; status_before_disable is what a re-enable restores. */
+  disabled_at: string | null;
+  disabled_by: string | null;
+  disabled_reason: string | null;
+  status_before_disable: InvestorStatus | null;
+  /** A7. Soft delete — personal data anonymised, money rows kept. */
+  deleted_at: string | null;
+  deleted_by: string | null;
   status: InvestorStatus;
   vantage_account_id: string | null;
   linked_at: string | null;
@@ -79,7 +87,11 @@ export type ServiceDatabase = {
   public: Omit<Database["public"], "Tables"> & {
     Tables: Omit<
       Database["public"]["Tables"],
-      "investors" | "subscriptions" | "api_keys" | "crypto_invoices"
+      | "investors"
+      | "subscriptions"
+      | "api_keys"
+      | "crypto_invoices"
+      | "app_admins"
     > & {
       investors: {
         Row: Investor;
@@ -107,6 +119,12 @@ export type ServiceDatabase = {
           key_prefix: string;
         };
         Update: Partial<Pick<ApiKey, "revoked_at" | "last_used_at" | "name">>;
+        Relationships: [];
+      };
+      app_admins: {
+        Row: AppAdmin;
+        Insert: Partial<AppAdmin> & { user_id: string };
+        Update: Partial<AppAdmin>;
         Relationships: [];
       };
       crypto_invoices: {
@@ -171,6 +189,29 @@ export type NotificationPreferencesWrite = {
   bot_switched_off?: boolean;
 };
 
+/** Mirrors the admin_roles table. Super admin ignores `permissions` entirely. */
+export type AdminRole = {
+  name: string;
+  label: string;
+  permissions: string[];
+  is_super: boolean;
+  created_at: string;
+};
+
+/** Mirrors app_admins after the roles migration. */
+export type AppAdmin = {
+  user_id: string;
+  note: string | null;
+  role: string;
+  must_change_password: boolean;
+  disabled_at: string | null;
+  disabled_by: string | null;
+  disabled_reason: string | null;
+  created_by: string | null;
+  last_seen_at: string | null;
+  created_at: string;
+};
+
 /** Mirrors the crypto_invoices migration. Amounts in micro-USDT, integer. */
 export type CryptoInvoice = {
   id: string;
@@ -225,7 +266,28 @@ export type Database = {
        * anon and authenticated; only the service role and is_admin() see it.
        */
       app_admins: {
-        Row: { user_id: string; note: string | null; created_at: string };
+        Row: AppAdmin;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      admin_roles: {
+        Row: AdminRole;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      admin_audit: {
+        Row: {
+          id: string;
+          actor_user_id: string | null;
+          actor_email: string | null;
+          action: string;
+          target_type: string | null;
+          target_id: string | null;
+          detail: Record<string, unknown> | null;
+          created_at: string;
+        };
         Insert: never;
         Update: never;
         Relationships: [];
@@ -292,6 +354,36 @@ export type Database = {
       activate_subscription: {
         Args: { p_subscription_id: string; p_provider_ref: string };
         Returns: string;
+      };
+      /** Records an admin action. Actor comes from the session, not an argument. */
+      record_admin_action: {
+        Args: {
+          p_action: string;
+          p_target_type: string | null;
+          p_target_id: string | null;
+          p_detail: Record<string, unknown> | null;
+        };
+        Returns: undefined;
+      };
+      /** A6. Reversible; requires a reason and pauses the subscription. */
+      disable_investor: {
+        Args: { p_investor_id: string; p_reason: string };
+        Returns: undefined;
+      };
+      /** A6. Restores the previous status and gives back the paused time. */
+      enable_investor: {
+        Args: { p_investor_id: string };
+        Returns: undefined;
+      };
+      /** A7. Anonymises personal data; subscriptions and receipts are kept. */
+      soft_delete_investor: {
+        Args: { p_investor_id: string };
+        Returns: undefined;
+      };
+      /** True when the caller holds this permission. */
+      admin_has: {
+        Args: { p_permission: string };
+        Returns: boolean;
       };
       /** Service role only. Atomically claims an HD derivation index. */
       next_crypto_derivation_index: {

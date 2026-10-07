@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Card } from "@/components/ui";
-import { isAdmin } from "@/lib/admin";
+import { requirePermission } from "@/lib/admin";
 import { createServiceClient } from "@/lib/supabase/service";
 import { DetachButton } from "@/components/admin/detach-button";
 import { RecheckButton } from "@/components/admin/recheck-button";
@@ -51,9 +51,16 @@ function Stat({
   );
 }
 
-/** P2-313 — who is paid up, who is expiring, revenue this month, by method. */
+/**
+ * P2-313 + A9 — who is paid up, who is expiring, what has been earned.
+ *
+ * A2: guarded by finance.view, not by "is an admin". Support can disable an
+ * abusive account without being shown the company's revenue, and the guard is
+ * here on the server rather than in the sidebar — the nav hiding this link is
+ * a convenience, not the permission.
+ */
 export default async function AdminBillingPage() {
-  if (!(await isAdmin())) notFound();
+  if (!(await requirePermission("finance.view"))) notFound();
 
   const t = await getTranslations("adminBilling");
   const service = createServiceClient();
@@ -66,6 +73,22 @@ export default async function AdminBillingPage() {
   const subscriptions = (subsResult.data ?? []) as Subscription[];
   const investors = (investorsResult.data ?? []) as Investor[];
   const summary = summarise(subscriptions);
+
+  // A9 — names for the renewal queue. summarise() is pure and returns investor
+  // ids; "9 people renew this week" is a number, "these nine" is a task.
+  // Capped at ten: this is a prompt to act, not a mailing list.
+  const renewalRows = await Promise.all(
+    summary.upcomingRenewals.slice(0, 10).map(async (row) => {
+      const investor = investors.find((i) => i.id === row.investorId);
+      const account = investor?.user_id
+        ? await service.auth.admin.getUserById(investor.user_id)
+        : null;
+      return {
+        ...row,
+        email: account?.data?.user?.email ?? "(unknown)",
+      };
+    }),
+  );
 
   // Money arrived and could not be credited. Leads the page because somebody
   // is out of pocket and waiting, which outranks every other number here.
@@ -108,7 +131,7 @@ export default async function AdminBillingPage() {
         {t("intro")}
       </p>
 
-      <dl className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <dl className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <Stat label={t("paidUp")} value={String(summary.paidUp)} />
         <Stat label={t("expiringSoon")} value={String(summary.expiringSoon)} />
         <Stat label={t("lapsed")} value={String(summary.lapsed)} />
@@ -117,32 +140,112 @@ export default async function AdminBillingPage() {
           value={String(summary.awaiting)}
           muted
         />
+        <Stat label={t("failed")} value={String(summary.failed)} muted />
       </dl>
 
-      <div className="mt-10 max-w-xl">
+      {/* A9. Three different questions, so three figures rather than one
+          "revenue" number that quietly means whichever the reader assumes:
+          cash this month, cash ever, and the run rate. They do not
+          reconcile with each other and are not supposed to. */}
+      <dl className="mt-6 grid gap-4 lg:grid-cols-3">
         <Card>
           <dt className="text-xs uppercase tracking-wide text-fg-muted">
             {t("revenue")}
           </dt>
-          <dd className="mt-2 text-4xl font-semibold tabular-nums">
+          <dd className="mt-2 text-3xl font-semibold tabular-nums">
             {formatUsd(summary.revenueThisMonthUsd)}
           </dd>
+        </Card>
+        <Card>
+          <dt className="text-xs uppercase tracking-wide text-fg-muted">
+            {t("revenueAllTime")}
+          </dt>
+          <dd className="mt-2 text-3xl font-semibold tabular-nums">
+            {formatUsd(summary.revenueAllTimeUsd)}
+          </dd>
+        </Card>
+        <Card>
+          <dt className="text-xs uppercase tracking-wide text-fg-muted">
+            {t("mrr")}
+          </dt>
+          <dd className="mt-2 text-3xl font-semibold tabular-nums">
+            {formatUsd(summary.mrrUsd)}
+          </dd>
+          <p className="mt-2 text-xs leading-relaxed text-fg-muted">
+            {t("mrrNote")}
+          </p>
+        </Card>
+      </dl>
 
-          <h2 className="mt-8 text-xs uppercase tracking-wide text-fg-muted">
+      <div className="mt-10 max-w-xl">
+        <Card>
+          <h2 className="text-xs uppercase tracking-wide text-fg-muted">
             {t("byMethod")}
           </h2>
-          <dl className="mt-3 divide-y divide-border border-t border-border">
-            {METHODS.map((m) => (
-              <div key={m} className="flex justify-between py-3 text-sm">
-                <dt className="text-fg-muted">{t(`method.${m}`)}</dt>
-                <dd className="tabular-nums">
-                  {formatUsd(summary.revenueByMethod[m])}
-                </dd>
-              </div>
-            ))}
-          </dl>
+          {/* Both columns, because "USDT is 6% of this month" and "USDT is 6%
+              of everything" lead to different decisions about which rails to
+              keep paying for. */}
+          <table className="mt-3 w-full border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-border text-xs uppercase tracking-wide text-fg-muted">
+                <th scope="col" className="py-2 text-left font-medium">
+                  {t("method.heading")}
+                </th>
+                <th scope="col" className="py-2 text-right font-medium">
+                  {t("thisMonth")}
+                </th>
+                <th scope="col" className="py-2 text-right font-medium">
+                  {t("allTime")}
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {METHODS.map((m) => (
+                <tr key={m}>
+                  <th scope="row" className="py-3 text-left font-normal text-fg-muted">
+                    {t(`method.${m}`)}
+                  </th>
+                  <td className="py-3 text-right tabular-nums">
+                    {formatUsd(summary.revenueByMethod[m])}
+                  </td>
+                  <td className="py-3 text-right tabular-nums">
+                    {formatUsd(summary.revenueAllTimeByMethod[m])}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </Card>
       </div>
+
+      {/* A9 — who to chase, by name and by date. */}
+      <section className="mt-12">
+        <h2 className="text-lg font-semibold">{t("renewalsTitle")}</h2>
+        <p className="mt-2 max-w-2xl text-sm text-fg-muted">
+          {t("renewalsIntro")}
+        </p>
+
+        {renewalRows.length === 0 ? (
+          <p className="mt-4 text-sm text-fg-muted">{t("renewalsNone")}</p>
+        ) : (
+          <ul className="mt-4 divide-y divide-border border-y border-border">
+            {renewalRows.map((row) => (
+              <li
+                key={row.investorId}
+                className="flex flex-wrap items-baseline justify-between gap-2 py-3 text-sm"
+              >
+                <span>{row.email}</span>
+                <span className="tabular-nums text-fg-muted">
+                  {/* Days, then the date. The number is what you act on; the
+                      date is what you quote to the person. */}
+                  {t("renewalsIn", { days: row.daysRemaining })} ·{" "}
+                  {row.expiresAt.toISOString().slice(0, 10)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <section className="mt-12">
         <h2 className="text-lg font-semibold">{t("problemsTitle")}</h2>
