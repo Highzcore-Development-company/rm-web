@@ -71,3 +71,31 @@ export function LogoLink({
     </Link>
   );
 }
+
+/**
+ * The mark alone, no wordmark.
+ *
+ * For places too narrow for the full logo — chiefly the workspace rail when
+ * it is collapsed to 64px, where a 2000x433 wordmark would be an unreadable
+ * smear. Single source: the mark is the same in both themes, so unlike
+ * <Logo> there is no variant to choose and no CSS pairing to keep in sync.
+ */
+export function LogoMark({
+  className = "",
+  size = 32,
+}: {
+  className?: string;
+  size?: number;
+}) {
+  // Source is 313x238, so height follows at the same ratio.
+  return (
+    <Image
+      src="/logo-mark.png"
+      alt="Highzcore"
+      width={size}
+      height={Math.round((size * 238) / 313)}
+      className={className}
+      priority
+    />
+  );
+}

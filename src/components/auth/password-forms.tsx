@@ -95,7 +95,7 @@ export function ResetPasswordForm() {
       return;
     }
 
-    router.push("/app/onboarding");
+    router.push("/app/dashboard");
     router.refresh();
   }
 

@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -189,20 +191,20 @@ export function PaymentWatcher({ subscriptionId }: { subscriptionId: string }) {
               page has to let them leave rather than implying they must sit
               here watching it. */}
           {status.state === "confirmed" ? (
-            <a
+            <Link
               href="/app/dashboard"
               className="mt-3 inline-block text-sm text-accent underline underline-offset-2"
             >
               {t("toDashboard")}
-            </a>
+            </Link>
           ) : (
             <div className="mt-3">
-              <a
+              <Link
                 href="/app/dashboard"
                 className="text-sm text-accent underline underline-offset-2"
               >
                 {t("toDashboard")}
-              </a>
+              </Link>
               <p className="mt-1 text-xs text-fg-muted">{t("leaveHint")}</p>
             </div>
           )}

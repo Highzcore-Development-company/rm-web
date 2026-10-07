@@ -25,7 +25,7 @@ export function GoogleButton({ next }: { next?: string }) {
         provider: "google",
         options: {
           redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(
-            next ?? "/app/onboarding",
+            next ?? "/app/dashboard",
           )}`,
         },
       });

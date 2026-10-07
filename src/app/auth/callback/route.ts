@@ -11,13 +11,13 @@ import { createServiceClient } from "@/lib/supabase/service";
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/app/onboarding";
+  const next = searchParams.get("next") ?? "/app/dashboard";
 
   // Open redirect guard: `next` comes from a URL anyone can craft, and this
   // route is reached from an email. Relative paths only.
   const safeNext = next.startsWith("/") && !next.startsWith("//")
     ? next
-    : "/app/onboarding";
+    : "/app/dashboard";
 
   if (!code) {
     return NextResponse.redirect(`${origin}/app/login?error=missing_code`);

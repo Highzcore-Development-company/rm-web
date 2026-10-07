@@ -55,7 +55,7 @@ export function LoginForm() {
     const safeNext =
       next && next.startsWith("/") && !next.startsWith("//")
         ? next
-        : "/app/onboarding";
+        : "/app/dashboard";
 
     router.push(safeNext);
     router.refresh();

@@ -597,7 +597,8 @@
   "dashboard": {
     "title": "Dashboard",
     "nav": {
-      "overview": "Overview",
+      "overview": "Workspace",
+      "account": "Account",
       "link": "My Vantage account",
       "billing": "Subscription",
       "developer": "Developer",
