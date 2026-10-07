@@ -41,9 +41,10 @@ const PATHS = {
 
 export type VirtualAccount = {
   accountNumber: string;
+  /** Resolved from the NIBSS code ALATPay returns, not sent as a name. */
   bankName: string | null;
-  /** Who the account is in the name of. Nigerian transfers show this. */
-  accountName: string | null;
+  /** The raw code, shown when we cannot name it rather than hiding it. */
+  bankCode: string | null;
   /** ALATPay's id for this payment. Becomes subscriptions.provider_ref. */
   reference: string;
   expiresAt: string | null;
@@ -62,6 +63,37 @@ function credentials() {
 export function isAlatPayConfigured(): boolean {
   return credentials() !== null;
 }
+
+/**
+ * NIBSS bank codes to names.
+ *
+ * ALATPay returns the code and never a name. A payer typing a transfer needs
+ * the name, so it is resolved here. 035 is Wema, which is what ALAT issues
+ * against — the rest are here because the code is configurable per merchant
+ * and a wrong-bank transfer is not recoverable.
+ */
+const BANK_NAMES: Record<string, string> = {
+  "035": "Wema Bank",
+  "044": "Access Bank",
+  "011": "First Bank of Nigeria",
+  "058": "Guaranty Trust Bank",
+  "057": "Zenith Bank",
+  "033": "United Bank for Africa",
+  "214": "First City Monument Bank",
+  "070": "Fidelity Bank",
+  "232": "Sterling Bank",
+  "032": "Union Bank of Nigeria",
+  "050": "Ecobank Nigeria",
+  "221": "Stanbic IBTC Bank",
+  "076": "Polaris Bank",
+  "082": "Keystone Bank",
+  "023": "Citibank Nigeria",
+  "068": "Standard Chartered Bank",
+  "030": "Heritage Bank",
+  "301": "Jaiz Bank",
+  "100": "SunTrust Bank",
+  "101": "Providus Bank",
+};
 
 /** Pulls the first present value, since the field name is not confirmed. */
 function pick(source: Record<string, unknown>, ...names: string[]) {
@@ -134,31 +166,16 @@ export async function createVirtualAccount(input: {
   );
   const reference = pick(data, "transactionId", "orderId", "reference", "id");
 
-  // The account number came back on the first live call, so the endpoint is
-  // right — but the bank name did not, under any name I guessed. Without a
-  // bank the payer cannot complete the transfer at all, so when it is missing
-  // the field names are logged rather than left to guesswork.
-  const bankName = pick(
-    data,
-    "virtualBankName",
-    "bankName",
-    "bank",
-    "virtualBank",
-    "bankCode",
-  );
-  const accountName = pick(
-    data,
-    "virtualBankAccountName",
-    "accountName",
-    "virtualAccountName",
-    "beneficiaryName",
-  );
+  // ALATPay sends a NIBSS bank code, not a name — the live response carries
+  // virtualBankCode "035" and no name field anywhere. There is also no account
+  // name: banking apps resolve that from the number themselves.
+  const bankCode = pick(data, "virtualBankCode", "bankCode");
+  const bankName = bankCode ? (BANK_NAMES[bankCode] ?? null) : null;
 
-  if (!bankName || !accountName) {
-    console.info(
-      "[alatpay] fields present in response:",
-      Object.keys(data).join(", "),
-    );
+  if (bankCode && !bankName) {
+    // A code we have not mapped. Logged so it can be added, while the payer
+    // still sees the code rather than a blank where the bank should be.
+    console.info(`[alatpay] unmapped bank code: ${bankCode}`);
   }
 
   // Refuse rather than return a half-filled object. An account number we
@@ -172,7 +189,7 @@ export async function createVirtualAccount(input: {
     data: {
       accountNumber,
       bankName,
-      accountName,
+      bankCode,
       reference,
       expiresAt: pick(data, "expiredAt", "expiresAt", "expiryDate"),
     },

@@ -140,9 +140,6 @@ export function CheckoutForm({
       <Card className="max-w-lg">
         <h2 className="text-lg font-semibold">{t("transfer.title")}</h2>
         <CopyRow label={t("transfer.account")} value={result.accountNumber} />
-        {result.accountName ? (
-          <CopyRow label={t("transfer.accountName")} value={result.accountName} />
-        ) : null}
         {result.bankName ? (
           <CopyRow label={t("transfer.bank")} value={result.bankName} />
         ) : null}
@@ -153,13 +150,6 @@ export function CheckoutForm({
         <p className="mt-5 text-xs leading-relaxed text-fg-muted">
           {t("transfer.note")}
         </p>
-        {/* A Nigerian transfer needs a bank. Saying so is better than an
-            account number sitting there with no way to use it. */}
-        {!result.bankName ? (
-          <p className="mt-2 rounded-lg border border-accent/40 bg-accent/5 px-3 py-2 text-xs leading-relaxed">
-            {t("transfer.noBank")}
-          </p>
-        ) : null}
         <PaymentWatcher subscriptionId={result.subscriptionId} />
         <button
           type="button"

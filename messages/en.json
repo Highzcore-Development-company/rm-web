@@ -442,9 +442,7 @@
       "bank": "Bank",
       "amount": "Amount",
       "note": "Transfer the exact amount. The account is for this payment only and your subscription starts once the transfer clears.",
-      "reference": "Reference",
-      "accountName": "Account name",
-      "noBank": "If your banking app asks for a bank, contact us before sending — we will confirm it."
+      "reference": "Reference"
     },
     "crypto": {
       "title": "Send USDT to this address",
