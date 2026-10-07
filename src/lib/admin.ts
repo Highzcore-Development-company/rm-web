@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getInvestor } from "@/lib/investors";
 
 /**
  * Whether the signed-in user is an admin.
@@ -20,5 +21,11 @@ export async function isAdmin(): Promise<boolean> {
     return false;
   }
 
-  return data === true;
+  if (data !== true) return false;
+
+  // Sign-up is auto-confirmed, so the bootstrap address is an admin the moment
+  // it registers, before anyone has proved they own the inbox. Our own
+  // verification flag has to hold as well.
+  const investor = await getInvestor(supabase);
+  return Boolean(investor?.email_verified_at);
 }
