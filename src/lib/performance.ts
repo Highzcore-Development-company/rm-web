@@ -15,7 +15,8 @@ export type PerformanceSummary = {
   /** Max drawdown as a positive fraction, e.g. 0.12 for -12%. */
   maxDrawdown: number;
   winRate: number;
-  profitFactor: number;
+  /** Null when there has been no losing trade: the ratio is undefined, not infinite. */
+  profitFactor: number | null;
   tradeCount: number;
   monthsLive: number;
   /** When the underlying snapshot was taken. Used to detect staleness. */
@@ -47,8 +48,10 @@ export type PublicTrade = {
   side: "buy" | "sell";
   /** Hours held. */
   durationHours: number;
-  /** Result in R multiples. Signed. */
-  resultR: number;
+  /** Result in R multiples. Signed. Null when the trade had no stop to measure it against. */
+  resultR: number | null;
+  /** Net result as a fraction of the account before the trade. */
+  resultPct: number;
   closedAt: string;
 };
 
@@ -123,6 +126,7 @@ function sampleTrades(): PublicTrade[] {
       side: rand() > 0.5 ? ("buy" as const) : ("sell" as const),
       durationHours: Math.round(rand() * 40) + 1,
       resultR: Math.round(r * 10) / 10,
+      resultPct: Math.round(r * 10) / 1000,
       closedAt: new Date(Date.UTC(2026, 7, 20) - i * 7_200_000).toISOString(),
     };
   });
@@ -144,17 +148,20 @@ export async function getPerformanceSummary(): Promise<PerformanceSummary | null
   }
 
   const trades = sampleTrades();
-  const wins = trades.filter((t) => t.resultR > 0);
-  const grossWin = wins.reduce((a, t) => a + t.resultR, 0);
+  // The sample always has a stop, so resultR is set; `?? 0` is for the type.
+  const wins = trades.filter((t) => (t.resultR ?? 0) > 0);
+  const grossWin = wins.reduce((a, t) => a + (t.resultR ?? 0), 0);
   const grossLoss = Math.abs(
-    trades.filter((t) => t.resultR < 0).reduce((a, t) => a + t.resultR, 0),
+    trades
+      .filter((t) => (t.resultR ?? 0) < 0)
+      .reduce((a, t) => a + (t.resultR ?? 0), 0),
   );
 
   return {
     totalReturn: last / first - 1,
     maxDrawdown: maxDd,
     winRate: wins.length / trades.length,
-    profitFactor: grossLoss === 0 ? grossWin : grossWin / grossLoss,
+    profitFactor: grossLoss === 0 ? null : grossWin / grossLoss,
     tradeCount: trades.length,
     monthsLive: sampleMonthly(points).length,
     asOf: new Date().toISOString(),
