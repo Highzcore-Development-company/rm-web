@@ -112,7 +112,7 @@ export async function updateSession(request: NextRequest) {
   // Signed-in user on a guest-only route.
   if (user && matches(path, GUEST_ONLY)) {
     const url = request.nextUrl.clone();
-    url.pathname = "/app/onboarding";
+    url.pathname = "/app/dashboard";
     url.search = "";
     return NextResponse.redirect(url);
   }

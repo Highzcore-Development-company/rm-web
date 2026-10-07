@@ -41,6 +41,29 @@
   --glow-accent: 0 6px 24px -6px rgb(255 176 32 / 0.45);
   --ring-accent: 0 0 0 3px rgb(255 176 32 / 0.16);
 
+  /* ---- Workspace palette -------------------------------------------------
+     The Scora workspace is ported from the highzcore codebase, which names its
+     colours differently. Rather than rewrite several hundred class names (and
+     have the two copies drift the first time either is touched), its token
+     NAMES are declared here pointing at OUR values.
+
+     That is the whole of "same UI, different colours": the markup is identical
+     and this block is the difference. */
+  --bg-elevated: #141414;
+  --surface-hover: #1c1c1c;
+  --surface-active: #232323;
+  --fg-subtle: #71717a;
+  --fg-on-brand: #0a0a0a;
+  --fg-inverse: #0a0a0a;
+  --brand: var(--accent);
+  --brand-hover: var(--accent-hot);
+  --brand-active: var(--accent-hot);
+  --brand-fg: #0a0a0a;
+  --brand-tint: rgb(255 176 32 / 0.12);
+  --c-success: var(--chart-up);
+  --c-warning: #f59e0b;
+  --c-danger: var(--chart-down);
+
   color-scheme: dark;
 }
 
@@ -61,7 +84,19 @@
     --raise: inset 0 1px 0 rgb(255 255 255 / 0.9);
     --elev-1: 0 1px 2px rgb(0 0 0 / 0.06), 0 2px 8px rgb(0 0 0 / 0.04);
     --elev-2: 0 2px 4px rgb(0 0 0 / 0.06), 0 12px 32px rgb(0 0 0 / 0.08);
-    --glow-accent: 0 6px 20px -6px rgb(255 176 32 / 0.5);
+      --glow-accent: 0 6px 20px -6px rgb(255 176 32 / 0.5);
+
+  --bg-elevated: #ffffff;
+  --surface-hover: #f4f4f5;
+  --surface-active: #e9e9ec;
+  --fg-subtle: #71717a;
+  --fg-inverse: #fafafa;
+
+    --bg-elevated: #ffffff;
+    --surface-hover: #f4f4f5;
+    --surface-active: #e9e9ec;
+    --fg-subtle: #71717a;
+    --fg-inverse: #fafafa;
 
     color-scheme: light;
   }
@@ -101,6 +136,23 @@
   --color-chart-grid: var(--chart-grid);
   --color-surface-top: var(--surface-top);
   --color-input-bg: var(--input-bg);
+
+  /* Workspace aliases — see the block above. */
+  --color-bg-elevated: var(--bg-elevated);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-active: var(--surface-active);
+  --color-surface-raised: var(--surface-top);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-fg-on-brand: var(--fg-on-brand);
+  --color-fg-inverse: var(--fg-inverse);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-active: var(--brand-active);
+  --color-brand-fg: var(--brand-fg);
+  --color-brand-tint: var(--brand-tint);
+  --color-success: var(--c-success);
+  --color-warning: var(--c-warning);
+  --color-danger: var(--c-danger);
 
   --shadow-elev-1: var(--elev-1);
   --shadow-elev-2: var(--elev-2);

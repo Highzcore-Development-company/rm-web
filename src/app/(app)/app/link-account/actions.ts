@@ -46,6 +46,7 @@ export async function claimAccount(
 
   revalidatePath("/app/link-account");
   revalidatePath("/app/onboarding");
+  revalidatePath("/app/account");
   return { ok: true };
 }
 
@@ -81,5 +82,6 @@ export async function requestDisconnect(): Promise<ActionResult> {
 
   revalidatePath("/app/link-account");
   revalidatePath("/app/onboarding");
+  revalidatePath("/app/account");
   return { ok: true };
 }

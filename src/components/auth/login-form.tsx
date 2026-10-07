@@ -52,7 +52,7 @@ export function LoginForm() {
       return;
     }
 
-    router.push(safeInternalPath(params.get("next")));
+    router.push(safeInternalPath(params.get("next"), "/app/dashboard"));
     router.refresh();
   }
 

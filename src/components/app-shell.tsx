@@ -35,6 +35,7 @@ export async function AppShell({
 
   const items = [
     { key: "overview", href: "/app/dashboard", label: t("overview") },
+    { key: "account", href: "/app/account", label: t("account") },
     { key: "link", href: "/app/link-account", label: t("link") },
     { key: "billing", href: "/app/checkout", label: t("billing") },
     { key: "developer", href: "/app/developer", label: t("developer") },

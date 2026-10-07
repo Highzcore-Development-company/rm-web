@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
   // Open redirect guard: `next` comes from a URL anyone can craft, and this
   // route is reached from an email. Relative paths only.
-  const safeNext = safeInternalPath(searchParams.get("next"));
+  const safeNext = safeInternalPath(searchParams.get("next"), "/app/dashboard");
 
   if (!code) {
     return NextResponse.redirect(`${origin}/app/login?error=missing_code`);

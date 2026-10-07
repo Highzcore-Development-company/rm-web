@@ -6,7 +6,7 @@ import { useToast } from "@/components/toast";
 import {
   saveNotificationPreferences,
   type SwitchKey,
-} from "@/app/(app)/app/dashboard/actions";
+} from "@/app/(app)/app/account/actions";
 
 const SWITCHES: SwitchKey[] = [
   "trade_opened",
