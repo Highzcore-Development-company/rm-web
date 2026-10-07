@@ -43,3 +43,24 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Scheduled jobs
+
+Three POST endpoints, each requiring `CRON_SECRET`. **Nothing schedules them
+yet** — they answer 403 until the secret is set, and they only run when
+something calls them. Whatever runs them (Supabase cron, a Netlify scheduled
+function, an external cron) still has to be set up.
+
+| Endpoint | What it does | Suggested cadence |
+|---|---|---|
+| `/api/jobs/crypto-watch` | Polls TRON for incoming USDT, credits on confirmations | every 1–2 min |
+| `/api/jobs/reminders` | Renewal reminders at 7 and 1 day | daily |
+| `/api/jobs/notifications` | P2-506 trade opened/closed and bot-stopped emails | every 5–15 min |
+
+`notifications` only looks back one hour, so a gap longer than that silently
+drops the notifications in it. That is deliberate — a trade email is only worth
+sending while it is news — but it means the cadence matters: schedule it well
+inside the hour, not at it.
+
+Every send is recorded before it is attempted, so running any of these twice at
+once cannot double-send. They under-send rather than risk repeating.
