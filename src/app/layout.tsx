@@ -57,6 +57,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           // Must run before first paint to avoid a flash of the wrong theme.
           dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }}
         />
+        <noscript>
+          {/* Scroll-reveal sections start at opacity:0 and only JS shows them. */}
+          <style>{`[style*="opacity:0"]{opacity:1!important;transform:none!important;filter:none!important}`}</style>
+        </noscript>
       </head>
       <body className="min-h-full flex flex-col font-sans">
         <NextIntlClientProvider>

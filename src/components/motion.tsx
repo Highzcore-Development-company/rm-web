@@ -168,7 +168,9 @@ export function PageTransition({ children }: { children: ReactNode }) {
   return (
     <motion.div
       variants={pageTransition}
-      initial="hidden"
+      // false, not "hidden": "hidden" is server-rendered as opacity:0, so the
+      // page is blank until framer-motion hydrates, and for good without JS.
+      initial={false}
       animate="visible"
       className="flex-1"
     >
