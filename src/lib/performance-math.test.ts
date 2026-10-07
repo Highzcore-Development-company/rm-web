@@ -192,14 +192,22 @@ describe("win rate and profit factor", () => {
 });
 
 describe("the sample floor", () => {
-  it("publishes nothing from 29 trades and something from 30", () => {
-    const wins = (n: number) => Array.from({ length: n }, () => 10);
-    expect(MIN_PUBLIC_TRADES).toBe(30);
-    expect(run(wins(29), MIN_PUBLIC_TRADES)).toEqual({
+  it("is one closed trade: nothing from none, something from one", () => {
+    expect(MIN_PUBLIC_TRADES).toBe(1);
+    expect(computePerformance(ledger(T, 2, []), [], { now: NOW })).toEqual({
       ok: false,
       problem: "too_few_trades",
     });
-    expect(run(wins(30), MIN_PUBLIC_TRADES).ok).toBe(true);
+    const one = tradesWithNets([10]);
+    expect(
+      computePerformance(ledger(T, 2, one), one, { now: NOW }).ok,
+    ).toBe(true);
+  });
+
+  it("still refuses 29 trades when asked for 30", () => {
+    const wins = (n: number) => Array.from({ length: n }, () => 10);
+    expect(run(wins(29), 30)).toEqual({ ok: false, problem: "too_few_trades" });
+    expect(run(wins(30), 30).ok).toBe(true);
   });
 });
 
@@ -390,6 +398,32 @@ describe("the opening balance", () => {
     );
     expect(summary.tradeCount).toBe(1);
     expect(summary.totalReturn).toBeCloseTo(0.01, 10);
+  });
+
+  it("counts, with no cutover, a trade that closed just before the first snapshot", () => {
+    // The bot writes a snapshot right after a close, so the first snapshot's
+    // balance already includes this trade.
+    const first = T + 10 * DAY;
+    const trades = [trade({ close_ts: iso(first - 230), pnl: 100 })];
+    const snaps = [snap(iso(first), 10_100), snap(iso(first + HOUR), 10_100)];
+    const { summary, trades: rows } = bundleOf(
+      computePerformance(snaps, trades, { now: NOW }),
+    );
+    expect(summary.tradeCount).toBe(1);
+    expect(summary.totalReturn).toBeCloseTo(0.01, 10);
+    expect(rows[0].resultPct).toBeCloseTo(0.01, 10);
+  });
+
+  it("starts the monthly list at the month of the first trade when that is earlier", () => {
+    const first = Date.parse("2026-02-10T00:00:00Z");
+    const trades = [trade({ close_ts: "2026-01-25T12:00:00Z", pnl: 100 })];
+    const snaps = [snap(iso(first), 10_100), snap(iso(first + HOUR), 10_100)];
+    const { monthly, summary } = bundleOf(
+      computePerformance(snaps, trades, { now: NOW }),
+    );
+    expect(monthly.map((m) => m.month)).toEqual(["2026-01", "2026-02", "2026-03"]);
+    expect(monthly[0].ret).toBeCloseTo(0.01, 10);
+    expect(summary.monthsLive).toBe(3);
   });
 
   it("is not published from a single snapshot", () => {

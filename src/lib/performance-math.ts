@@ -66,12 +66,20 @@ export type PerformanceBundle = {
 export type ComputeOptions = {
   now: number;
   minTrades?: number;
-  /** The bot's own re-baseline (`cutover_at`). Absent: the first snapshot. */
+  /**
+   * The bot's own re-baseline (`cutover_at`). Absent: no cut at all, and every
+   * live closed trade counts, including one that closed just before the first
+   * snapshot (the bot writes a snapshot right after a close).
+   */
   start?: string | null;
 };
 
-/** Below this the figures are noise, and a win rate of 100% on 4 trades is an advert. */
-export const MIN_PUBLIC_TRADES = 30;
+/**
+ * Victor's ruling of 7 Oct 2026 is to show what is available, so the floor is
+ * one closed trade. The disclosure beside the figures states the trade count,
+ * which is what keeps a small sample honest. Zero trades still refuses.
+ */
+export const MIN_PUBLIC_TRADES = 1;
 /** The bot is known to stop writing snapshots silently (P2-704). */
 export const MAX_SNAPSHOT_GAP_MS = 24 * 60 * 60 * 1000;
 /** A close later than the last snapshot by more than this means snapshots stopped. */
@@ -190,16 +198,21 @@ export function computePerformance(
     return { ok: false, problem: "too_few_snapshots" };
   }
 
-  // The record starts where the bot says, or at its first snapshot. Nothing
-  // earlier is ours to count.
-  const startIso = opts.start ?? orderedSnapshots[0].ts;
-  const startMs = Date.parse(startIso);
-  if (!Number.isFinite(startMs)) {
+  // The record starts where the bot says. With no cutover there is no cut:
+  // every live trade and snapshot counts, and the opening balance is walked
+  // back from the first snapshot below.
+  const startMs = opts.start ? Date.parse(opts.start) : null;
+  if (startMs !== null && !Number.isFinite(startMs)) {
     return { ok: false, problem: "too_few_snapshots" };
   }
-  const snaps = orderedSnapshots.filter((s) => Date.parse(s.ts) >= startMs);
+  const snaps =
+    startMs === null
+      ? orderedSnapshots
+      : orderedSnapshots.filter((s) => Date.parse(s.ts) >= startMs);
   const closed = byTime(
-    trades.filter((t) => Date.parse(t.close_ts) >= startMs),
+    startMs === null
+      ? trades
+      : trades.filter((t) => Date.parse(t.close_ts) >= startMs),
     (t) => Date.parse(t.close_ts),
   );
 
@@ -236,9 +249,16 @@ export function computePerformance(
     return { ok: false, problem: "too_few_snapshots" };
   }
 
-  // Monthly: every UTC month from the start to now, quiet ones included.
+  // Monthly: every UTC month from the start to now, quiet ones included. With
+  // no cutover the start is the earlier of the first snapshot and first trade.
   const months: string[] = [];
-  const d = new Date(startMs);
+  const d = new Date(
+    startMs ??
+      Math.min(
+        Date.parse(first.ts),
+        ...closed.slice(0, 1).map((t) => Date.parse(t.close_ts)),
+      ),
+  );
   d.setUTCDate(1);
   d.setUTCHours(0, 0, 0, 0);
   for (; d.getTime() <= opts.now; d.setUTCMonth(d.getUTCMonth() + 1)) {
