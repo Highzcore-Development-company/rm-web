@@ -80,7 +80,7 @@ export type ComputeOptions = {
  * which is what keeps a small sample honest. Zero trades still refuses.
  */
 export const MIN_PUBLIC_TRADES = 1;
-/** The bot is known to stop writing snapshots silently (P2-704). */
+/** A hole longer than this with a close inside it means snapshots stopped (P2-704). */
 export const MAX_SNAPSHOT_GAP_MS = 24 * 60 * 60 * 1000;
 /** A close later than the last snapshot by more than this means snapshots stopped. */
 export const TRADE_AFTER_SNAPSHOT_MS = 60 * 60 * 1000;
@@ -121,9 +121,19 @@ export function feedHealth(
 ): FeedProblem | null {
   if (snapshots.length === 0) return null;
 
+  // A hole in the snapshots is the P2-704 signature only when trades went on
+  // closing inside it: the bot writes a snapshot after each close, so a close
+  // followed by no snapshot within TRADE_AFTER_SNAPSHOT_MS is a snapshot that
+  // was never written. A quiet day with nothing closed is not a fault.
   for (let i = 1; i < snapshots.length; i += 1) {
-    const gap = Date.parse(snapshots[i].ts) - Date.parse(snapshots[i - 1].ts);
-    if (gap > MAX_SNAPSHOT_GAP_MS) return "gap";
+    const prevTs = Date.parse(snapshots[i - 1].ts);
+    const curTs = Date.parse(snapshots[i].ts);
+    if (curTs - prevTs <= MAX_SNAPSHOT_GAP_MS) continue;
+    const unrecorded = trades.some((t) => {
+      const closeTs = Date.parse(t.close_ts);
+      return closeTs > prevTs && closeTs + TRADE_AFTER_SNAPSHOT_MS < curTs;
+    });
+    if (unrecorded) return "gap";
   }
 
   const last = Date.parse(snapshots[snapshots.length - 1].ts);

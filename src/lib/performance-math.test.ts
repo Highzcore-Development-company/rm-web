@@ -46,8 +46,8 @@ function trade(over: Partial<RawTrade> & { close_ts: string }): RawTrade {
 /**
  * Daily snapshots whose balance is exactly the opening balance plus what has
  * closed by then, so the cash-flow reconciliation has nothing to find. A
- * helper rather than literals: the 24-hour gap rule would otherwise force
- * every test to list a snapshot per day by hand.
+ * helper rather than literals, so no test has to list a snapshot per day by
+ * hand.
  */
 function ledger(
   from: number,
@@ -214,18 +214,40 @@ describe("the sample floor", () => {
 describe("the feed's health", () => {
   const start = iso(T - HOUR);
 
-  it("refuses a record with more than a day between snapshots", () => {
-    const snaps = [
-      snap(iso(T), 10_000),
-      snap(iso(T + HOUR), 10_000),
-      snap(iso(T + 31 * HOUR), 10_000),
+  const holed = [
+    snap(iso(T), 10_000),
+    snap(iso(T + HOUR), 10_000),
+    snap(iso(T + 31 * HOUR), 10_000),
+  ];
+  const opts = { now: NOW, minTrades: 1, start };
+
+  it("refuses a record with a close inside a day-long hole in the snapshots", () => {
+    const trades = [
+      anchor(T - 30 * 60_000),
+      trade({ close_ts: iso(T + 10 * HOUR), pnl: 0 }),
     ];
-    const result = computePerformance(snaps, [anchor(T - 30 * 60_000)], {
-      now: NOW,
-      minTrades: 1,
-      start,
+    expect(computePerformance(holed, trades, opts)).toEqual({
+      ok: false,
+      problem: "gap",
     });
-    expect(result).toEqual({ ok: false, problem: "gap" });
+  });
+
+  it("accepts a quiet day with nothing closed inside it", () => {
+    expect(
+      computePerformance(holed, [anchor(T - 30 * 60_000)], opts).ok,
+    ).toBe(true);
+  });
+
+  it("allows a close up to an hour before the snapshot that ends a long hole", () => {
+    const closeAt = (minutesBefore: number) => [
+      anchor(T - 30 * 60_000),
+      trade({ close_ts: iso(T + 31 * HOUR - minutesBefore * 60_000), pnl: 0 }),
+    ];
+    expect(computePerformance(holed, closeAt(59), opts).ok).toBe(true);
+    expect(computePerformance(holed, closeAt(61), opts)).toEqual({
+      ok: false,
+      problem: "gap",
+    });
   });
 
   it("recognises the P2-704 signature: trades closing long after the last snapshot", () => {
@@ -264,7 +286,7 @@ describe("the feed's health", () => {
     note(
       computePerformance(
         [snap(iso(T), 10_000), snap(iso(T + 2 * DAY), 10_000)],
-        [anchor(T - HOUR)],
+        [anchor(T - HOUR), trade({ close_ts: iso(T + 12 * HOUR), pnl: 0 })],
         { now: NOW, minTrades: 1, start: iso(T - 2 * HOUR) },
       ),
     );
