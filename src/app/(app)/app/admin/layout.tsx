@@ -1,13 +1,13 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { ArrowLeft } from "lucide-react";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AdminNav } from "@/components/admin/admin-nav";
 import { Container } from "@/components/ui";
-import { isAdmin } from "@/lib/admin";
+import { getAdmin } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +28,13 @@ export default async function AdminLayout({
 }: {
   children: ReactNode;
 }) {
-  if (!(await isAdmin())) notFound();
+  const admin = await getAdmin();
+  if (!admin) notFound();
+
+  // A1. A seeded password is a known password, and this account can disable
+  // users and read financials. Blocked here rather than on each page, so a
+  // route added later is covered the moment it exists.
+  if (admin.mustChangePassword) redirect("/app/admin/change-password");
 
   const t = await getTranslations("dashboard.nav");
 

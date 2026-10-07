@@ -908,5 +908,24 @@
     "paymentsPartial": "Card and transfer configured. Crypto on TESTNET — not real money.",
     "paymentsOff": "Not configured.",
     "paymentsUp": "Card, transfer and crypto all live."
+  },
+  "admin": {
+    "changePassword": {
+      "title": "Choose a new password",
+      "intro": "This account was created with a password that is written down. Nothing in the admin panel opens until it is changed.",
+      "password": "New password",
+      "confirm": "Confirm new password",
+      "hint": "At least 12 characters.",
+      "submit": "Set password",
+      "submitting": "Saving…",
+      "done": "Password changed.",
+      "errors": {
+        "too_short": "Use at least 12 characters.",
+        "mismatch": "The two passwords do not match.",
+        "seeded": "That is the password it came with. Choose a different one.",
+        "not_admin": "Your session expired. Sign in again.",
+        "generic": "We could not change it. Please try again."
+      }
+    }
   }
 }
