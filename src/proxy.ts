@@ -2,6 +2,10 @@ import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
 export async function proxy(request: NextRequest) {
+  // Never let a client-supplied copy of the header the layout gates on through,
+  // even on the fail-open path below.
+  request.headers.delete("x-pathname");
+
   // Fail open. Middleware runs on every route, so a throw here takes the whole
   // site down — on Netlify that surfaces as "edge function invocation failed",
   // including on the marketing pages, which do not need auth at all. Every
@@ -11,7 +15,7 @@ export async function proxy(request: NextRequest) {
     return await updateSession(request);
   } catch (err) {
     console.error("[proxy] updateSession threw, passing through:", err);
-    return NextResponse.next();
+    return NextResponse.next({ request });
   }
 }
 
