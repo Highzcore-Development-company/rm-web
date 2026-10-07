@@ -48,7 +48,10 @@ export async function startBankTransfer(
   method: PaymentMethod,
 ): Promise<CheckoutResult> {
   if (!isPlanMonths(months)) return { ok: false, error: "bad_term" };
-  if (method !== "alatpay_transfer" && method !== "alatpay_card") {
+  // Card is refused here as well as disabled in the UI. A disabled radio is a
+  // UI state; anything can post this action directly, and card would otherwise
+  // fall through to the bank-transfer path and issue an account number.
+  if (method !== "alatpay_transfer") {
     return { ok: false, error: "bad_method" };
   }
   if (!isAlatPayConfigured()) return { ok: false, error: "not_configured" };

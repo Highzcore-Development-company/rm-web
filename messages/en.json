@@ -421,9 +421,10 @@
       "alatpay_transfer": "Bank transfer",
       "alatpay_transferHint": "We show you an account number to transfer to.",
       "alatpay_card": "Card",
-      "alatpay_cardHint": "Pay by debit or credit card.",
+      "alatpay_cardHint": "Not available yet — use bank transfer or USDT.",
       "usdt_trc20": "USDT (TRC-20)",
-      "usdt_trc20Hint": "We give you a one-time address. Credited after confirmations."
+      "usdt_trc20Hint": "We give you a one-time address. Credited after confirmations.",
+      "unavailable": "Coming soon"
     },
     "total": {
       "label": "Total",

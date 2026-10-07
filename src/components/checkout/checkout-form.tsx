@@ -24,6 +24,20 @@ type Method = "alatpay_transfer" | "alatpay_card" | "usdt_trc20";
 
 const METHODS: Method[] = ["alatpay_transfer", "alatpay_card", "usdt_trc20"];
 
+/**
+ * Card is offered but not selectable.
+ *
+ * ALATPay exposes no server-side card endpoint we could find — seven candidate
+ * paths all returned 404, and the SDK host the company site uses does not
+ * resolve. Until their documentation arrives, picking Card ran the bank
+ * transfer path and handed the payer an account number: the wrong instrument,
+ * with nothing on screen admitting it.
+ *
+ * Shown rather than hidden, because it is coming and people ask for it. Saying
+ * "not yet" is honest; silently doing something else is not.
+ */
+const UNAVAILABLE: Method[] = ["alatpay_card"];
+
 
 /**
  * A value the payer has to reproduce exactly. Monospace so digits cannot be
@@ -273,13 +287,17 @@ export function CheckoutForm({
           <div className="mt-4 space-y-3">
             {METHODS.map((m) => {
               const selected = m === method;
+              const unavailable = UNAVAILABLE.includes(m);
+
               return (
                 <label
                   key={m}
-                  className={`flex cursor-pointer gap-3 rounded-lg border p-4 transition-colors ${
-                    selected
-                      ? "border-accent bg-accent/5"
-                      : "border-border bg-surface hover:border-fg-muted"
+                  className={`flex gap-3 rounded-lg border p-4 transition-colors ${
+                    unavailable
+                      ? "cursor-not-allowed border-border opacity-50"
+                      : selected
+                        ? "cursor-pointer border-accent bg-accent/5"
+                        : "cursor-pointer border-border bg-surface hover:border-fg-muted"
                   }`}
                 >
                   <input
@@ -287,12 +305,20 @@ export function CheckoutForm({
                     name="method"
                     value={m}
                     checked={selected}
+                    disabled={unavailable}
                     onChange={() => setMethod(m)}
                     className="control mt-0.5"
                   />
-                  <span>
-                    <span className="block text-sm font-medium">
-                      {t(`method.${m}`)}
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-2">
+                      <span className="text-sm font-medium">
+                        {t(`method.${m}`)}
+                      </span>
+                      {unavailable ? (
+                        <span className="rounded-full border border-border px-2 py-0.5 text-[10px] uppercase tracking-wide text-fg-muted">
+                          {t("method.unavailable")}
+                        </span>
+                      ) : null}
                     </span>
                     <span className="mt-1 block text-xs text-fg-muted">
                       {t(`method.${m}Hint`)}

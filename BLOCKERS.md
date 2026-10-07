@@ -10,7 +10,31 @@ things moving.
 
 ## 1. Credentials and API access — needed for 5 tickets
 
-### ALATPay → P2-304, P2-305
+### ALATPay → P2-305 (card only; transfer is DONE)
+
+**P2-304 bank transfer works.** The virtual-account endpoint was inferred, then
+confirmed against the live API: it returns `virtualBankAccountNumber` and
+`virtualBankCode` (035 = Wema). Payments are raised, displayed and watched.
+
+**P2-305 card is blocked and visibly disabled in the UI.** No server-side card
+endpoint could be found. Tried, all 404 on `https://apibox.alatpay.ng`:
+
+```
+/card/api/v1/paymentLink      /payment/api/v1/paymentLink
+/card/api/v1/payments         /checkout/api/v1/paymentLink
+/card/api/v1/charge           /bank-transfer/api/v1/paymentLink
+/card/api/v1/initialize
+```
+
+`payment-checkout.alatpay.ng`, the SDK host the company site loads, does not
+resolve. So either card is browser-SDK only, or it lives on a host we have not
+been told about. **Ask ALATPay for the card documentation** — one answer ends
+this.
+
+If it turns out to be SDK-only, that needs a decision: the SDK takes the API
+key in the browser, and ours is currently server-only on purpose.
+
+### What else ALATPay would need
 
 | Need | Note |
 |---|---|
