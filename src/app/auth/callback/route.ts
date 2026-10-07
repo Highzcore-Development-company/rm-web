@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { ensureInvestor } from "@/lib/investors";
+import { safeInternalPath } from "@/lib/safe-path";
 import { createServiceClient } from "@/lib/supabase/service";
 
 /**
@@ -11,13 +12,10 @@ import { createServiceClient } from "@/lib/supabase/service";
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/app/dashboard";
 
   // Open redirect guard: `next` comes from a URL anyone can craft, and this
   // route is reached from an email. Relative paths only.
-  const safeNext = next.startsWith("/") && !next.startsWith("//")
-    ? next
-    : "/app/dashboard";
+  const safeNext = safeInternalPath(searchParams.get("next"), "/app/dashboard");
 
   if (!code) {
     return NextResponse.redirect(`${origin}/app/login?error=missing_code`);

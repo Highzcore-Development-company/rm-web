@@ -35,12 +35,31 @@ export default async function AppLayout({
 }) {
   // Stamped by the proxy on every request. Without it this layout would send
   // the verify page to itself and loop.
-  const pathname = (await headers()).get("x-pathname") ?? "";
-  const ungated = UNGATED.some((p) => pathname.startsWith(p));
+  const stamped = (await headers()).get("x-pathname");
+  const pathname = stamped ?? "";
+
+  if (stamped === null) {
+    // Treated as ungated for this render: guessing a path here is how the
+    // redirects below would loop. Say so loudly instead of failing quietly.
+    console.error(
+      "[app layout] x-pathname header missing; skipping the session and verification gate. Check the proxy.",
+    );
+  }
+
+  const ungated =
+    stamped === null || UNGATED.some((p) => pathname.startsWith(p));
 
   if (!ungated) {
     const supabase = await createClient();
     const { data: auth } = await supabase.auth.getUser();
+
+    // The proxy sends anonymous visitors to login too; this is the second
+    // lock on the same door, for any path the proxy matcher does not cover.
+    if (!auth.user) {
+      redirect(
+        `/app/login?next=${encodeURIComponent(pathname || "/app/dashboard")}`,
+      );
+    }
 
     if (auth.user) {
       // Google and password signups both land here with a session and no row

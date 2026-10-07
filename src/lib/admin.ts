@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getInvestor } from "@/lib/investors";
 
 /**
  * A2 — admin identity and permissions.
@@ -45,6 +46,12 @@ export async function getAdmin(): Promise<AdminIdentity | null> {
     .maybeSingle();
 
   if (error || !data || data.disabled_at) return null;
+
+  // Sign-up is auto-confirmed, so the bootstrap address is an admin the moment
+  // it registers, before anyone has proved they own the inbox. Our own
+  // verification flag has to hold as well, for every check below.
+  const investor = await getInvestor(supabase);
+  if (!investor?.email_verified_at) return null;
 
   const role = data.admin_roles as unknown as {
     permissions: string[];
