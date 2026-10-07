@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import {
   Activity,
   ChevronDown,
@@ -59,13 +59,48 @@ const money = (n: number | null | undefined, dp = 2) =>
 const px = (n: number | null | undefined) =>
   n == null || !Number.isFinite(Number(n)) ? "—" : String(n);
 
-function since(iso: string | null | undefined): string {
+function since(iso: string | null | undefined, nowMs: number): string {
   if (!iso) return "—";
-  const s = (Date.now() - new Date(iso).getTime()) / 1000;
-  if (s < 60) return `${Math.max(0, Math.floor(s))}s`;
+  // Clamped at zero: the VM's clock runs ahead of this browser's, so a row
+  // written "now" can carry a timestamp a second or two in the future and
+  // would otherwise render as "-2s".
+  const s = Math.max(0, (nowMs - new Date(iso).getTime()) / 1000);
+  if (s < 60) return `${Math.floor(s)}s`;
   if (s < 3600) return `${Math.floor(s / 60)}m`;
   if (s < 86400) return `${Math.floor(s / 3600)}h`;
   return `${Math.floor(s / 86400)}d`;
+}
+
+/**
+ * A clock that does not exist during SSR.
+ *
+ * Rendering "11s ago" on the server and "18s ago" in the browser is a
+ * hydration mismatch — React regenerates the whole tree and logs an error. Any
+ * value derived from Date.now() has this problem; it is not about this
+ * component.
+ *
+ * useSyncExternalStore is the sanctioned way to say "this value is
+ * client-only": the server snapshot is null, the client snapshot is the
+ * current second, so the first client render matches the server exactly and
+ * the time appears on the next tick. It also avoids setState-in-an-effect,
+ * which the React Compiler lint correctly objects to.
+ */
+function useNowMs(): number | null {
+  return useSyncExternalStore(
+    (onChange) => {
+      const id = setInterval(onChange, 1000);
+      return () => clearInterval(id);
+    },
+    () => Math.floor(Date.now() / 1000) * 1000,
+    () => null,
+  );
+}
+
+/** Relative time, blank until the browser has a clock. */
+function Ago({ iso, suffix = true }: { iso: string | null | undefined; suffix?: boolean }) {
+  const now = useNowMs();
+  if (now == null) return <span className="opacity-0">00s</span>;
+  return <>{since(iso, now)}{suffix ? " ago" : ""}</>;
 }
 
 export function Desk({
@@ -327,7 +362,7 @@ function LiveTab({ rows }: { rows: BotMarket[] }) {
               <Cell label="tp" value={px(m.tp)} />
             </div>
             <p className="mt-2 text-xs text-fg-subtle">
-              open {since(m.opened_at)} · {m.strategy ?? "—"}
+              open <Ago iso={m.opened_at} suffix={false} /> · {m.strategy ?? "—"}
             </p>
           </li>
         );
@@ -393,7 +428,7 @@ function ActivitiesTab({
                 <span className="font-mono text-xs text-fg-subtle">{px(m.price)}</span>
               </div>
               <span className="shrink-0 font-mono text-[11px] text-fg-subtle">
-                {since(m.updated_at)} ago
+                <Ago iso={m.updated_at} />
               </span>
             </div>
 
@@ -464,7 +499,7 @@ function HistoryTab({ rows }: { rows: BotTrade[] }) {
             </div>
             <p className="mt-1 text-xs text-fg-subtle">
               {px(t.open_price)} → {px(t.close_price)} · {t.close_reason ?? "closed"} ·{" "}
-              {since(t.close_ts)} ago
+              <Ago iso={t.close_ts} />
             </p>
           </li>
         );
