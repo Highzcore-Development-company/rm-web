@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useSyncExternalStore } from "react";
+import { createClient } from "@/lib/supabase/client";
 import {
   Activity,
   ChevronDown,
@@ -12,6 +14,7 @@ import {
   Plus,
   Receipt,
   Send,
+  LogOut,
   Settings2,
   Sparkles,
   X,
@@ -512,6 +515,17 @@ function HistoryTab({ rows }: { rows: BotTrade[] }) {
 
 function ProfileMenu({ user }: { user: { name: string; initials: string } }) {
   const [open, setOpen] = useState(false);
+  const router = useRouter();
+
+  async function signOut() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/");
+    // The session lives in a cookie the server reads, so the cached RSC
+    // payload stays signed-in until this runs.
+    router.refresh();
+  }
+
   return (
     <div className="relative">
       <button
@@ -550,6 +564,16 @@ function ProfileMenu({ user }: { user: { name: string; initials: string } }) {
             <MenuLink href="/app/checkout" Icon={Receipt}>
               Transactions
             </MenuLink>
+            <div className="my-1 border-t border-border" />
+            <button
+              type="button"
+              role="menuitem"
+              onClick={signOut}
+              className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm text-fg-muted transition-colors hover:bg-surface-hover hover:text-fg"
+            >
+              <LogOut className="h-4 w-4" aria-hidden="true" />
+              Sign out
+            </button>
           </div>
         </>
       )}
