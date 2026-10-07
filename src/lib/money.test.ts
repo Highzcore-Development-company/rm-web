@@ -82,6 +82,10 @@ function sub(expiresAt: string | null, status = "confirmed"): Subscription {
   problem_detail: null,
     starts_at: "2026-01-01T00:00:00Z",
     expires_at: expiresAt,
+    refunded_usd: null,
+    refunded_at: null,
+    refunded_reason: null,
+    refunded_by: null,
     created_at: "2026-01-01T00:00:00Z",
     updated_at: "2026-01-01T00:00:00Z",
   };

@@ -9,7 +9,8 @@ import {
 } from "@/components/admin/bot-controls";
 import { getAdmin, requirePermission } from "@/lib/admin";
 import { getWorkspaceData } from "@/lib/workspace/data";
-import { isBotConfigurable } from "@/lib/supabase/rm-server-admin";
+import { BotConnect } from "@/components/admin/bot-connect";
+import { hasBotSession, isBotReachable } from "@/lib/supabase/rm-server-session";
 import type { BotConfig } from "@/lib/workspace/types";
 
 export const metadata: Metadata = { title: "Bot", robots: { index: false } };
@@ -36,7 +37,11 @@ export default async function AdminBotPage() {
   // Viewing and configuring are separate permissions: support can watch the
   // bot without being able to touch it.
   const canConfigure = admin?.permissions.includes("bot.configure") ?? false;
-  const configurable = canConfigure && isBotConfigurable();
+  // Three separate conditions, because they fail for different reasons and an
+  // admin needs to know which: no permission, rm-server not configured, or
+  // configured but this admin has not signed in to it yet.
+  const connected = await hasBotSession();
+  const configurable = canConfigure && isBotReachable() && connected;
 
   const markets: MarketConfig[] = (data.configs as BotConfig[]).map((c) => ({
     symbol: c.symbol,
@@ -52,16 +57,29 @@ export default async function AdminBotPage() {
       <p className="mt-2 text-sm text-fg-muted">{t("intro")}</p>
 
       {/* Said plainly rather than leaving an admin to wonder why a control
-          does nothing. Two different causes, two different messages. */}
-      {!data.connected ? (
+          does nothing. Reading and writing fail independently — the panels can
+          be full while changes are refused, and the reverse. */}
+      {!data.connected && (
         <p className="mt-6 rounded-lg border border-border bg-surface px-4 py-3 text-sm text-fg-muted">
-          {t("notConnected")}
+          {t("notReadable")}
         </p>
-      ) : !configurable ? (
-        <p className="mt-6 rounded-lg border border-accent/40 bg-accent/5 px-4 py-3 text-sm">
-          {t("notConfigured")}
+      )}
+
+      {canConfigure ? (
+        isBotReachable() ? (
+          <div className="mt-6">
+            <BotConnect connected={connected} />
+          </div>
+        ) : (
+          <p className="mt-6 rounded-lg border border-accent/40 bg-accent/5 px-4 py-3 text-sm">
+            {t("notConfigured")}
+          </p>
+        )
+      ) : (
+        <p className="mt-6 rounded-lg border border-border bg-surface px-4 py-3 text-sm text-fg-muted">
+          {t("viewOnly")}
         </p>
-      ) : null}
+      )}
 
       <section className="mt-8">
         <h2 className="text-xs uppercase tracking-wide text-fg-muted">
@@ -70,7 +88,6 @@ export default async function AdminBotPage() {
         <div className="mt-3">
           <TradingSwitch
             enabled={data.settings?.trading_enabled ?? false}
-            updatedBy={data.settings?.updated_by ?? null}
             configurable={configurable}
           />
         </div>

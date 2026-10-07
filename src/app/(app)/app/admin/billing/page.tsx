@@ -6,6 +6,7 @@ import { requirePermission } from "@/lib/admin";
 import { createServiceClient } from "@/lib/supabase/service";
 import { DetachButton } from "@/components/admin/detach-button";
 import { RecheckButton } from "@/components/admin/recheck-button";
+import { RefundButton } from "@/components/admin/refund-button";
 import { entitlementFrom } from "@/lib/entitlement";
 import { summarise } from "@/lib/billing-summary";
 import { formatUsd } from "@/lib/pricing";
@@ -108,12 +109,20 @@ export default async function AdminBillingPage() {
     .filter((s) => s.status === "confirmed")
     .sort((a, b) => ((a.starts_at ?? "") < (b.starts_at ?? "") ? 1 : -1));
 
-  // Who the "lapsed" number actually refers to. A count with no names cannot
-  // be acted on, and acting on it is the entire point of P2-311.
+  // Who should no longer be copied, by name. A count with no names cannot be
+  // acted on, and acting on it is the entire point of P2-311.
   //
-  // Only accounts still marked as tradeable: once an admin has detached one
-  // it leaves this list, so the queue drains rather than listing the same
-  // people forever.
+  // THREE reasons land here, not one. The bot trades a single master account
+  // and has no per-user loop — investors receive trades through the MAM — so
+  // "stop trading this person" is never something the bot does. It is a
+  // detachment at the broker, and it is the same operator step whether they
+  // lapsed, were disabled, or were deleted. Listing only the lapsed left the
+  // other two silently still being copied after an admin thought they had
+  // dealt with them.
+  //
+  // Only accounts still marked as tradeable: once an admin records the
+  // detachment the row leaves this list, so the queue drains rather than
+  // listing the same people forever.
   const toDetach = investors
     .filter((i) => i.status === "linked" || i.status === "active")
     .map((investor) => ({
@@ -122,7 +131,17 @@ export default async function AdminBillingPage() {
         subscriptions.filter((s) => s.investor_id === investor.id),
       ),
     }))
-    .filter((row) => row.entitlement.lapsed);
+    .map((row) => ({
+      ...row,
+      reason: row.investor.deleted_at
+        ? ("deleted" as const)
+        : row.investor.disabled_at
+          ? ("disabled" as const)
+          : row.entitlement.lapsed
+            ? ("lapsed" as const)
+            : null,
+    }))
+    .filter((row) => row.reason !== null);
 
   return (
     <div>
@@ -131,7 +150,7 @@ export default async function AdminBillingPage() {
         {t("intro")}
       </p>
 
-      <dl className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <dl className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Stat label={t("paidUp")} value={String(summary.paidUp)} />
         <Stat label={t("expiringSoon")} value={String(summary.expiringSoon)} />
         <Stat label={t("lapsed")} value={String(summary.lapsed)} />
@@ -141,6 +160,13 @@ export default async function AdminBillingPage() {
           muted
         />
         <Stat label={t("failed")} value={String(summary.failed)} muted />
+        {/* Shown even at zero: a refund silently netted off revenue with no
+            figure anywhere is how the numbers stop being trusted. */}
+        <Stat
+          label={t("refunded")}
+          value={formatUsd(summary.refundedUsd)}
+          muted
+        />
       </dl>
 
       {/* A9. Three different questions, so three figures rather than one
@@ -352,7 +378,8 @@ export default async function AdminBillingPage() {
                   <th scope="col" className="py-2 pr-4 font-medium">{t("cols.when")}</th>
                   <th scope="col" className="py-2 pr-4 font-medium">{t("cols.method")}</th>
                   <th scope="col" className="py-2 pr-4 font-medium">{t("cols.amount")}</th>
-                  <th scope="col" className="py-2 font-medium">{t("cols.ref")}</th>
+                  <th scope="col" className="py-2 pr-4 font-medium">{t("cols.ref")}</th>
+                  <th scope="col" className="py-2 font-medium">{t("cols.refund")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -369,8 +396,15 @@ export default async function AdminBillingPage() {
                     </td>
                     {/* The provider's own reference, so a figure here can be
                         matched against the bank or the chain. */}
-                    <td className="py-3 font-mono text-xs text-fg-muted">
+                    <td className="py-3 pr-4 font-mono text-xs text-fg-muted">
                       {s.provider_ref ?? "—"}
+                    </td>
+                    <td className="py-3">
+                      <RefundButton
+                        subscriptionId={s.id}
+                        amountUsd={s.amount_usd}
+                        refundedUsd={s.refunded_usd}
+                      />
                     </td>
                   </tr>
                 ))}
@@ -402,11 +436,14 @@ export default async function AdminBillingPage() {
                   <th scope="col" className="py-2 pr-4 font-medium">
                     {t("table.status")}
                   </th>
+                  <th scope="col" className="py-2 pr-4 font-medium">
+                    {t("table.reason")}
+                  </th>
                   <th scope="col" className="py-2 font-medium" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {toDetach.map(({ investor, entitlement }) => (
+                {toDetach.map(({ investor, entitlement, reason }) => (
                   <tr key={investor.id}>
                     <th scope="row" className="py-3 pr-4 font-mono text-xs font-normal">
                       {investor.vantage_account_id ?? "—"}
@@ -417,6 +454,20 @@ export default async function AdminBillingPage() {
                         : "never paid"}
                     </td>
                     <td className="py-3 pr-4 text-fg-muted">{investor.status}</td>
+                    <td className="py-3 pr-4">
+                      {/* Why this person is here. Deleted and disabled are not
+                          "expired" and the operator needs to know which, since
+                          a lapsed investor may well pay and come back. */}
+                      <span
+                        className={
+                          reason === "lapsed"
+                            ? "text-fg-muted"
+                            : "font-medium text-chart-down"
+                        }
+                      >
+                        {t(`detachReason.${reason}`)}
+                      </span>
+                    </td>
                     <td className="py-3">
                       <DetachButton investorId={investor.id} />
                     </td>

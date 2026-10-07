@@ -70,6 +70,11 @@ export type Subscription = {
   problem_detail: string | null;
   starts_at: string | null;
   expires_at: string | null;
+  /** Recorded manual refund. Nets off revenue; does not shorten entitlement. */
+  refunded_usd: number | null;
+  refunded_at: string | null;
+  refunded_reason: string | null;
+  refunded_by: string | null;
   created_at: string;
   updated_at: string;
 };

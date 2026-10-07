@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/service";
-import { isAdmin } from "@/lib/admin";
+import { isAdmin, recordAdminAction, requirePermission } from "@/lib/admin";
 import { sendReceiptFor } from "@/lib/send-receipt";
 import { verifyTransaction } from "@/lib/alatpay";
 import {
@@ -13,17 +13,25 @@ import {
 } from "@/lib/tron-watch";
 
 /**
- * P2-311 — record that a lapsed investor has been detached from the MAM.
+ * P2-311 — record that an investor has been detached from the MAM.
  *
  * Sets our status only. It does NOT detach anything at Vantage — nothing here
  * can, and the UI says so. If this silently implied the Vantage side were done,
- * an admin would tick it and walk away while the bot kept trading an account
+ * an admin would tick it and walk away while the bot kept copying an account
  * nobody is paying for.
+ *
+ * Reached from three places now — lapsed, disabled and deleted — because the
+ * bot trades one master account and has no per-user loop. Detachment at the
+ * broker is the only thing that stops an investor being copied, whatever the
+ * reason, and it is a human step either way.
  */
 export async function markDetached(
   investorId: string,
 ): Promise<{ ok: boolean }> {
-  if (!(await isAdmin())) return { ok: false };
+  // A2: this stops an account being traded, so it needs the same permission
+  // as disabling one — not merely "is an admin".
+  const admin = await requirePermission("users.disable");
+  if (!admin) return { ok: false };
 
   const { error } = await createServiceClient()
     .from("investors")
@@ -34,6 +42,65 @@ export async function markDetached(
     console.error("[admin/billing] mark detached failed:", error);
     return { ok: false };
   }
+
+  await recordAdminAction("investor.detached", {
+    type: "investor",
+    id: investorId,
+  });
+
+  revalidatePath("/app/admin/billing");
+  return { ok: true };
+}
+
+/**
+ * Record a refund that was paid out by hand.
+ *
+ * Victor's ruling: refunds stay a manual bank transfer for now, but they are
+ * recorded so the financial overview does not drift from reality. So this
+ * writes a note and NOTHING ELSE — it moves no money, calls no provider, and
+ * deliberately does not shorten the entitlement. If access should also end,
+ * an admin changes the expiry, visibly and on purpose.
+ *
+ * The amount is capped by the database at what was actually charged: a refund
+ * bigger than the payment is a typo, not a refund.
+ */
+export async function recordRefund(
+  subscriptionId: string,
+  amountUsd: number,
+  reason: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const admin = await requirePermission("finance.view");
+  if (!admin) return { ok: false, error: "forbidden" };
+
+  if (!Number.isInteger(amountUsd) || amountUsd <= 0) {
+    return { ok: false, error: "bad_amount" };
+  }
+  // A refund with no stated reason is unauditable six months later, which is
+  // exactly when somebody will ask about it.
+  if (reason.trim().length < 3) return { ok: false, error: "no_reason" };
+
+  const { error } = await createServiceClient()
+    .from("subscriptions")
+    .update({
+      refunded_usd: amountUsd,
+      refunded_at: new Date().toISOString(),
+      refunded_reason: reason.trim(),
+      refunded_by: admin.email,
+    })
+    .eq("id", subscriptionId)
+    .eq("status", "confirmed");
+
+  if (error) {
+    console.error("[admin/billing] record refund failed:", error.message);
+    // The amount cap is a CHECK constraint, so "too big" arrives here as a
+    // database error rather than passing validation above.
+    return { ok: false, error: "too_large" };
+  }
+
+  await recordAdminAction("subscription.refund_recorded", {
+    type: "subscription",
+    id: subscriptionId,
+  }, { amount_usd: amountUsd, reason: reason.trim() });
 
   revalidatePath("/app/admin/billing");
   return { ok: true };

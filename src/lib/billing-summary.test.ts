@@ -19,6 +19,7 @@ function sub(overrides: {
   amount_usd: number;
   status?: SubscriptionStatus;
   method?: PaymentMethod;
+  refunded_usd?: number | null;
   starts_at?: string | null;
   expires_at?: string | null;
 }): Subscription {
@@ -39,6 +40,10 @@ function sub(overrides: {
     problem_detail: null,
     starts_at: overrides.starts_at ?? null,
     expires_at: overrides.expires_at ?? null,
+    refunded_usd: overrides.refunded_usd ?? null,
+    refunded_at: null,
+    refunded_reason: null,
+    refunded_by: null,
     created_at: overrides.starts_at ?? "2026-01-01T00:00:00Z",
     updated_at: overrides.starts_at ?? "2026-01-01T00:00:00Z",
   };
@@ -193,6 +198,56 @@ describe("summarise — A9 figures", () => {
       "soon",
       "later",
     ]);
+  });
+
+  it("nets a recorded refund off revenue, and reports the refunded total", () => {
+    const s = summarise(
+      [
+        sub({
+          investor_id: "a",
+          months: 1,
+          amount_usd: 2000,
+          refunded_usd: 2000,
+          starts_at: "2026-06-02T00:00:00Z",
+          expires_at: "2026-07-02T00:00:00Z",
+        }),
+        sub({
+          investor_id: "b",
+          months: 1,
+          amount_usd: 2000,
+          starts_at: "2026-06-02T00:00:00Z",
+          expires_at: "2026-07-02T00:00:00Z",
+        }),
+      ],
+      NOW,
+    );
+
+    expect(s.revenueThisMonthUsd).toBe(2000);
+    expect(s.revenueAllTimeUsd).toBe(2000);
+    expect(s.refundedUsd).toBe(2000);
+    // By method too, or the split would not add up to the total.
+    expect(s.revenueByMethod.alatpay_transfer).toBe(2000);
+  });
+
+  it("leaves MRR alone when a refund is recorded", () => {
+    // The refund is a one-off cash event. They still hold the term, so the
+    // run rate is unchanged — the revenue figures are where it belongs.
+    const s = summarise(
+      [
+        sub({
+          investor_id: "a",
+          months: 1,
+          amount_usd: 2000,
+          refunded_usd: 500,
+          starts_at: "2026-06-02T00:00:00Z",
+          expires_at: "2026-07-02T00:00:00Z",
+        }),
+      ],
+      NOW,
+    );
+
+    expect(s.mrrUsd).toBe(2000);
+    expect(s.revenueAllTimeUsd).toBe(1500);
   });
 
   it("splits revenue by method for both this month and all time", () => {

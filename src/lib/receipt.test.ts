@@ -20,6 +20,10 @@ const base: Subscription = {
   problem_detail: null,
   starts_at: "2026-06-01T00:00:00Z",
   expires_at: "2026-09-01T00:00:00Z",
+  refunded_usd: null,
+  refunded_at: null,
+  refunded_reason: null,
+  refunded_by: null,
   created_at: "2026-06-01T00:00:00Z",
   updated_at: "2026-06-01T00:00:00Z",
 };

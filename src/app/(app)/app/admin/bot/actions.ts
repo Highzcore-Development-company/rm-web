@@ -2,7 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { recordAdminAction, requirePermission } from "@/lib/admin";
-import { createRmServerWriteClient } from "@/lib/supabase/rm-server-admin";
+import {
+  endBotSession,
+  getBotWriteClient,
+  startBotSession,
+} from "@/lib/supabase/rm-server-session";
 
 export type BotActionResult = { ok: true } | { ok: false; error: string };
 
@@ -10,7 +14,8 @@ export type BotActionResult = { ok: true } | { ok: false; error: string };
  * A8 — the controls an investor must never get.
  *
  * Each writes exactly the columns the bot granted `authenticated` and nothing
- * else. Lot size is NOT validated against broker min/max/step here on purpose:
+ * else, signed in as THE ADMIN on rm-server — the anon key would affect zero
+ * rows and report success. Lot size is NOT validated against broker min/max/step here on purpose:
  * the bot does that against the live instrument and snaps a bad value within
  * about a minute. Duplicating it would mean two sources of truth for a limit
  * that changes per symbol and per broker, and ours would be the stale one.
@@ -21,9 +26,45 @@ export type BotActionResult = { ok: true } | { ok: false; error: string };
  */
 
 async function writeClient() {
-  const client = await createRmServerWriteClient();
-  if (!client) return null;
-  return client;
+  return getBotWriteClient();
+}
+
+/**
+ * Connect this admin to rm-server.
+ *
+ * Their own rm-server credentials, never stored — only the resulting refresh
+ * token, in an httpOnly cookie for this browser session.
+ */
+export async function connectToBot(
+  email: string,
+  password: string,
+): Promise<BotActionResult> {
+  const admin = await requirePermission("bot.configure");
+  if (!admin) return { ok: false, error: "forbidden" };
+
+  const result = await startBotSession(email, password);
+  if (!result.ok) return { ok: false, error: result.error };
+
+  // Recorded because it is the moment an admin gained the ability to stop
+  // trading for everybody. The rm-server identity is noted alongside ours:
+  // the two are different accounts and may well be different emails.
+  await recordAdminAction("bot.connected", { type: "bot" }, {
+    rm_server_email: result.email,
+  });
+
+  revalidatePath("/app/admin/bot");
+  return { ok: true };
+}
+
+export async function disconnectFromBot(): Promise<BotActionResult> {
+  const admin = await requirePermission("bot.configure");
+  if (!admin) return { ok: false, error: "forbidden" };
+
+  await endBotSession();
+  await recordAdminAction("bot.disconnected", { type: "bot" });
+
+  revalidatePath("/app/admin/bot");
+  return { ok: true };
 }
 
 export async function setLotSize(
@@ -38,11 +79,17 @@ export async function setLotSize(
   }
 
   const client = await writeClient();
-  if (!client) return { ok: false, error: "not_configured" };
+  if (!client) return { ok: false, error: "not_connected" };
 
   const { error } = await client
     .from("bot_symbol_config")
-    .update({ lot_size: lotSize, updated_at: new Date().toISOString() })
+    .update({
+      lot_size: lotSize,
+      updated_at: new Date().toISOString(),
+      // Granted, and write-only for us (migration 019). Set because "who
+      // changed this lot size" is the question the column exists to answer.
+      updated_by: admin.email,
+    })
     .eq("symbol", symbol);
 
   if (error) {
@@ -71,13 +118,14 @@ export async function setCloseAtProfit(
   }
 
   const client = await writeClient();
-  if (!client) return { ok: false, error: "not_configured" };
+  if (!client) return { ok: false, error: "not_connected" };
 
   const { error } = await client
     .from("bot_symbol_config")
     .update({
       close_at_profit: closeAtProfit,
       updated_at: new Date().toISOString(),
+      updated_by: admin.email,
     })
     .eq("symbol", symbol);
 
@@ -103,11 +151,15 @@ export async function setMarketEnabled(
   if (!admin) return { ok: false, error: "forbidden" };
 
   const client = await writeClient();
-  if (!client) return { ok: false, error: "not_configured" };
+  if (!client) return { ok: false, error: "not_connected" };
 
   const { error } = await client
     .from("bot_symbol_config")
-    .update({ enabled, updated_at: new Date().toISOString() })
+    .update({
+      enabled,
+      updated_at: new Date().toISOString(),
+      updated_by: admin.email,
+    })
     .eq("symbol", symbol);
 
   if (error) {
@@ -123,13 +175,7 @@ export async function setMarketEnabled(
   return { ok: true };
 }
 
-/**
- * The global trading switch.
- *
- * updated_by takes the ADMIN's email, not the operator account's. The bot
- * repo's own migration describes this column as answering "who set this", and
- * "the operator account" is not an answer anybody can act on.
- */
+/** The global trading switch. */
 export async function setTradingEnabled(
   enabled: boolean,
 ): Promise<BotActionResult> {
@@ -137,7 +183,7 @@ export async function setTradingEnabled(
   if (!admin) return { ok: false, error: "forbidden" };
 
   const client = await writeClient();
-  if (!client) return { ok: false, error: "not_configured" };
+  if (!client) return { ok: false, error: "not_connected" };
 
   const { error } = await client
     .from("bot_settings")

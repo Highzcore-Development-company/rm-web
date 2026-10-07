@@ -32,11 +32,9 @@ export type MarketConfig = {
 /** The global switch. Given its own treatment because it stops everything. */
 export function TradingSwitch({
   enabled,
-  updatedBy,
   configurable,
 }: {
   enabled: boolean;
-  updatedBy: string | null;
   configurable: boolean;
 }) {
   const t = useTranslations("adminBot");
@@ -65,7 +63,7 @@ export function TradingSwitch({
             {enabled ? t("switch.on") : t("switch.off")}
           </p>
           <p className="mt-0.5 text-xs text-fg-muted">
-            {updatedBy ? t("switch.by", { who: updatedBy }) : t("switch.hint")}
+            {t("switch.hint")}
           </p>
         </div>
       </div>

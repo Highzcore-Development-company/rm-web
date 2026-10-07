@@ -848,7 +848,8 @@
       "login": "MT5 login",
       "expired": "Expired",
       "status": "Status",
-      "action": ""
+      "action": "",
+      "reason": "Why"
     },
     "markDetached": "Mark detached",
     "detached": "Marked detached. Remember to detach them in Vantage too.",
@@ -868,7 +869,8 @@
       "method": "Method",
       "amount": "Amount",
       "ref": "Reference",
-      "status": "Status"
+      "status": "Status",
+      "refund": "Refund"
     },
     "problemsTitle": "Needs a human",
     "problemsIntro": "Money arrived but could not be credited automatically. Somebody is out of pocket and waiting.",
@@ -887,7 +889,28 @@
     "renewalsTitle": "Renewing in the next 30 days",
     "renewalsIntro": "Soonest first. Reminders go out automatically at 7 days and 1 day; this is for the ones worth a word in person.",
     "renewalsNone": "Nobody is due in the next 30 days.",
-    "renewalsIn": "{days, plural, =0 {today} one {# day} other {# days}}"
+    "renewalsIn": "{days, plural, =0 {today} one {# day} other {# days}}",
+    "refunded": "Refunded",
+    "detachReason": {
+      "lapsed": "Subscription lapsed",
+      "disabled": "Account disabled",
+      "deleted": "Account deleted"
+    },
+    "refund": {
+      "open": "Record refund",
+      "amount": "Amount (USD)",
+      "reason": "Reason",
+      "save": "Record",
+      "cancel": "Cancel",
+      "recorded": "Refund recorded. Revenue figures now net it off.",
+      "already": "Refunded ${amount}",
+      "errors": {
+        "forbidden": "You do not have permission to record a refund.",
+        "bad_amount": "Enter an amount greater than zero.",
+        "no_reason": "Give a reason — it is the only record of why this happened.",
+        "too_large": "That is more than was charged for this payment."
+      }
+    }
   },
   "adminHome": {
     "title": "Admin",
@@ -1036,7 +1059,7 @@
   "adminBot": {
     "title": "Bot",
     "intro": "What the bot is doing, and the settings an investor never sees.",
-    "notConfigured": "The bot cannot be configured from here yet. Everything below is read-only until the rm-server operator account is set up.",
+    "notConfigured": "The bot's project is not configured in this environment, so nothing here can be changed.",
     "notConnected": "rm-server is not reachable, so there is nothing to show. This is configuration, not the bot being idle.",
     "settings": "Settings",
     "markets": "Markets",
@@ -1047,7 +1070,6 @@
       "on": "The bot is trading",
       "off": "The bot is stopped",
       "hint": "Applies to the master account, and so to every linked investor.",
-      "by": "Last changed by {who}",
       "start": "Start trading",
       "stop": "Stop trading",
       "confirmOff": "This stops the bot opening anything new, on the master account and every account linked to it. Continue?",
@@ -1068,10 +1090,30 @@
     },
     "errors": {
       "forbidden": "You do not have permission to configure the bot.",
-      "not_configured": "The rm-server operator account is not set up.",
       "bad_lot": "A lot size must be a number greater than zero.",
       "bad_profit": "A profit target must be a number greater than zero, or empty.",
-      "generic": "That did not reach the bot. Try again."
+      "generic": "That did not reach the bot. Try again.",
+      "not_connected": "You are not signed in to the bot. Connect above and try again."
+    },
+    "notReadable": "The bot's data is not readable from here right now, so the panels are empty. This is a connection problem, not the bot being idle.",
+    "viewOnly": "You can see what the bot is doing but not change it.",
+    "connect": {
+      "title": "Sign in to the bot to make changes",
+      "why": "The bot runs on a separate Supabase project with its own accounts, so your admin login does not reach it. Use the rm-server credentials issued to you. We never store your password — only the session, and only for this browser.",
+      "email": "rm-server email",
+      "password": "rm-server password",
+      "connect": "Connect",
+      "connecting": "Connecting…",
+      "connected": "Connected to the bot.",
+      "connectedAs": "Connected to the bot. Changes are recorded against you.",
+      "disconnect": "Disconnect",
+      "disconnected": "Disconnected from the bot.",
+      "errors": {
+        "forbidden": "You do not have permission to configure the bot.",
+        "unconfigured": "The bot's project is not configured in this environment.",
+        "bad_credentials": "Those rm-server credentials were not accepted.",
+        "generic": "That did not work. Try again."
+      }
     }
   }
 }

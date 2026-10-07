@@ -37,6 +37,11 @@ export type BillingSummary = {
    * 12-month term bought at a discount contributes its real monthly value,
    * not a twelfth of the list price and not the whole lump.
    *
+   * Refunds are NOT netted off here. A refund is a one-off cash event; this
+   * figure describes the term the investor currently holds, and their
+   * entitlement is unchanged by money going back out. The revenue figures are
+   * where a refund belongs, and that is where it is applied.
+   *
    * This is a RUN RATE, not cash. It answers "what is this book worth per
    * month if nobody leaves", which is a different question from the revenue
    * figures above, and the two will not reconcile. They are not meant to.
@@ -44,6 +49,13 @@ export type BillingSummary = {
   mrrUsd: number;
   /** Payments the provider or the chain reported as failed. */
   failed: number;
+  /**
+   * USD cents refunded, all time. Already SUBTRACTED from the revenue figures
+   * above — shown separately so the gross is not simply lost, which would
+   * make the netting invisible and the numbers look wrong to anyone holding
+   * a bank statement.
+   */
+  refundedUsd: number;
   /**
    * Who runs out in the next 30 days, soonest first. Investor ids rather
    * than emails: this module is pure and never touches auth.
@@ -122,6 +134,7 @@ export function summarise(
   let revenueAllTimeUsd = 0;
   let awaiting = 0;
   let failed = 0;
+  let refundedUsd = 0;
 
   for (const s of subscriptions) {
     if (s.status === "awaiting") {
@@ -134,13 +147,23 @@ export function summarise(
     }
     if (s.status !== "confirmed" || !s.starts_at) continue;
 
-    revenueAllTimeUsd += s.amount_usd;
-    revenueAllTimeByMethod[s.method] += s.amount_usd;
+    // Net of any recorded refund. A refunded month that still counts as
+    // revenue overstates that month forever, and the figure is what the
+    // boss reads — so the netting happens here, once, rather than in each
+    // place a number is displayed.
+    const net = s.amount_usd - (s.refunded_usd ?? 0);
+    refundedUsd += s.refunded_usd ?? 0;
 
-    // Banked when it was confirmed, which is what starts_at records.
+    revenueAllTimeUsd += net;
+    revenueAllTimeByMethod[s.method] += net;
+
+    // Banked when it was confirmed, which is what starts_at records. The
+    // refund is netted against the ORIGINAL month, not the month it was paid
+    // back in: this is an ops dashboard, and "which month was that sale in"
+    // is the question it answers.
     if (new Date(s.starts_at) >= monthStart) {
-      revenueThisMonthUsd += s.amount_usd;
-      revenueByMethod[s.method] += s.amount_usd;
+      revenueThisMonthUsd += net;
+      revenueByMethod[s.method] += net;
     }
   }
 
@@ -155,6 +178,7 @@ export function summarise(
     revenueAllTimeByMethod,
     mrrUsd,
     failed,
+    refundedUsd,
     upcomingRenewals,
   };
 }
