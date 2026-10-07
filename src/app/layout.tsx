@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { siteUrl } from "@/lib/site";
 import { Geist, Geist_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import "./globals.css";
 import { MotionProvider } from "@/components/motion";
 import { ToastProvider } from "@/components/toast";
+import { RouteProgress } from "@/components/route-progress";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 
 // Placeholder typefaces until the brand kit lands (P2-001, blocked on D5).
@@ -61,7 +63,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col font-sans">
         <NextIntlClientProvider>
           <MotionProvider>
-            <ToastProvider>{children}</ToastProvider>
+            <ToastProvider>
+              {/* useSearchParams needs a boundary, and this must never be the
+                  thing that stops a page rendering. */}
+              <Suspense fallback={null}>
+                <RouteProgress />
+              </Suspense>
+              {children}
+            </ToastProvider>
           </MotionProvider>
         </NextIntlClientProvider>
       </body>
