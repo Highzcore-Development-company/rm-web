@@ -32,7 +32,7 @@ function signed(value: number, digits: number): string {
 }
 
 /**
- * P2-402— a headline stat with its definition.
+ * P2-402 — a headline stat with its definition.
  *
  * The definition is a <details>, not a tooltip: a hover tooltip is unreachable
  * on a phone, and this is the page people read on a phone before deciding

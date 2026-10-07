@@ -27,7 +27,7 @@ import {
 const SNAPSHOT_SOURCE = "bot_equity_snapshots";
 const TRADE_SOURCE = "bot_trades";
 // Deliberately not volume, margin or anything else that sizes the account (P2-404).
-const SNAPSHOT_COLUMNS = "ts, balance, equity, open_positions";
+const SNAPSHOT_COLUMNS = "ts, balance, equity";
 const TRADE_COLUMNS =
   "id, symbol, side, open_ts, close_ts, open_price, close_price, sl, pnl, commission, swap, r_multiple";
 const PAGE = 1000;
@@ -54,25 +54,45 @@ function report(which: string, error: ReadError) {
 
 /**
  * Every page or nothing. A series with its tail cut off would publish a record
- * that stops short of the truth, so hitting the page limit is a refusal.
+ * that stops short of the truth, so hitting the page limit is a refusal, and so
+ * is a total that does not match the exact count the server reported. The
+ * server may also cap a page below PAGE (PostgREST max-rows), so the next page
+ * starts after the rows actually received, not after PAGE.
  */
 async function readAll(
   page: (
     from: number,
     to: number,
-  ) => PromiseLike<{ data: unknown; error: ReadError | null }>,
+  ) => PromiseLike<{
+    data: unknown;
+    count: number | null;
+    error: ReadError | null;
+  }>,
   which: string,
 ): Promise<Row[] | null> {
   const rows: Row[] = [];
+  let from = 0;
   for (let i = 0; i < MAX_PAGES; i += 1) {
-    const { data, error } = await page(i * PAGE, i * PAGE + PAGE - 1);
+    const { data, count, error } = await page(from, from + PAGE - 1);
     if (error) {
       report(which, error);
       return null;
     }
     const chunk = (data ?? []) as Row[];
     rows.push(...chunk);
-    if (chunk.length < PAGE) return rows;
+    from += chunk.length;
+    const done =
+      chunk.length === 0 ||
+      (count !== null ? rows.length >= count : chunk.length < PAGE);
+    if (done) {
+      if (count !== null && rows.length !== count) {
+        console.error(
+          `[performance] ${which}: read ${rows.length} of ${count} rows; refusing to publish a truncated series.`,
+        );
+        return null;
+      }
+      return rows;
+    }
   }
   console.error(
     `[performance] ${which}: more than ${MAX_PAGES * PAGE} rows; refusing to publish a truncated series.`,
@@ -104,7 +124,6 @@ function toSnapshot(row: Row): RawSnapshot {
     ts: text(row.ts, "snapshot ts"),
     balance: required(row.balance, "snapshot balance"),
     equity: required(row.equity, "snapshot equity"),
-    open_positions: required(row.open_positions, "snapshot open_positions"),
   };
 }
 
@@ -148,9 +167,11 @@ async function readBundle(): Promise<PerformanceBundle | null> {
   const snapshotRows = await readAll((from, to) => {
     let q = client
       .from(SNAPSHOT_SOURCE)
-      .select(SNAPSHOT_COLUMNS)
+      .select(SNAPSHOT_COLUMNS, { count: "exact" })
       .eq("is_dry_run", false)
-      .order("ts", { ascending: true });
+      .order("ts", { ascending: true })
+      // A tiebreak: ts can tie, and a tied row at a page edge could be skipped.
+      .order("id", { ascending: true });
     if (start) q = q.gte("ts", start);
     return q.range(from, to);
   }, "snapshots");
@@ -159,7 +180,7 @@ async function readBundle(): Promise<PerformanceBundle | null> {
   const tradeRows = await readAll((from, to) => {
     let q = client
       .from(TRADE_SOURCE)
-      .select(TRADE_COLUMNS)
+      .select(TRADE_COLUMNS, { count: "exact" })
       .eq("is_dry_run", false)
       .not("close_ts", "is", null)
       .order("close_ts", { ascending: true })

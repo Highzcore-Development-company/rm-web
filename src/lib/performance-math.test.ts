@@ -21,7 +21,7 @@ const T = Date.parse("2026-02-01T00:00:00Z");
 const iso = (ms: number) => new Date(ms).toISOString();
 
 function snap(ts: string, balance: number, equity = balance): RawSnapshot {
-  return { ts, balance, equity, open_positions: 0 };
+  return { ts, balance, equity };
 }
 
 let nextId = 0;

@@ -27,7 +27,6 @@ export type RawSnapshot = {
   ts: string;
   balance: number;
   equity: number;
-  open_positions: number;
 };
 
 export type RawTrade = {
