@@ -2,18 +2,27 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CreditCard, LayoutDashboard, Link2, type LucideIcon } from "lucide-react";
+import {
+  Bot,
+  CreditCard,
+  LayoutDashboard,
+  Link2,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 
 const ICONS: Record<string, LucideIcon> = {
   overview: LayoutDashboard,
   links: Link2,
   billing: CreditCard,
+  users: Users,
+  bot: Bot,
 };
 
 export type AdminNavItem = {
   href: string;
   label: string;
-  icon: "overview" | "links" | "billing";
+  icon: "overview" | "links" | "billing" | "users" | "bot";
 };
 
 /**

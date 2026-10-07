@@ -22,6 +22,11 @@ function matches(path: string, prefixes: string[]) {
 }
 
 export async function updateSession(request: NextRequest) {
+  // Stamped on the request so headers() in a server layout can read it on any
+  // host. A header set only on the response happens to reach layouts when
+  // self-hosted, and nowhere else.
+  request.headers.set("x-pathname", request.nextUrl.pathname);
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -83,7 +88,7 @@ export async function updateSession(request: NextRequest) {
       const url = request.nextUrl.clone();
       url.pathname = "/app/login";
       url.search = "";
-      url.searchParams.set("next", path);
+      url.searchParams.set("next", path + request.nextUrl.search);
       return clear(NextResponse.redirect(url));
     }
     return clear(NextResponse.next({ request }));
@@ -100,7 +105,7 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/app/login";
     url.search = "";
-    url.searchParams.set("next", path);
+    url.searchParams.set("next", path + request.nextUrl.search);
     return NextResponse.redirect(url);
   }
 

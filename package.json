@@ -3,14 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3000",
+    "dev": "next dev",
     "build": "next build",
-    "start": "next start -p 3000",
+    "start": "next start",
     "lint": "eslint",
+    "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:smtp": "node scripts/test-smtp.mjs",
     "test:tron": "node scripts/test-tron.mjs",
-    "simulate:payment": "node scripts/simulate-payment.mjs"
+    "simulate:payment": "node scripts/simulate-payment.mjs",
+    "seed:admin": "node scripts/seed-admin.mjs"
   },
   "dependencies": {
     "@noble/curves": "^2.4.0",

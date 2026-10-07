@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 import { Hero } from "@/components/hero";
 import { PerformanceStrip } from "@/components/performance-strip";
 import { Analysis } from "@/components/sections/analysis";
@@ -52,7 +54,14 @@ export const metadata: Metadata = {
  *   FAQ          everything else
  *   CTA          somewhere to go after reading it all
  */
-export default function HomePage() {
+export default async function HomePage() {
+  // A signed-in visitor landing on the pitch has to find their own way in.
+  // getUser rather than getSession: it verifies the token with Supabase rather
+  // than trusting a cookie that may be stale or forged.
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  if (auth.user) redirect("/app/dashboard");
+
   return (
     <>
       <Hero />

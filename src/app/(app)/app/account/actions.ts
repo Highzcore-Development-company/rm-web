@@ -43,6 +43,6 @@ export async function saveNotificationPreferences(
     return { ok: false, error: "generic" };
   }
 
-  revalidatePath("/app/dashboard");
+  revalidatePath("/app/account");
   return { ok: true };
 }

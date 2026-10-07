@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
+import { safeInternalPath } from "@/lib/safe-path";
 import { Field, FormError, inputClass } from "@/components/auth/auth-card";
 import { PasswordField, SubmitButton } from "@/components/auth/fields";
 
@@ -51,13 +52,7 @@ export function LoginForm() {
       return;
     }
 
-    const next = params.get("next");
-    const safeNext =
-      next && next.startsWith("/") && !next.startsWith("//")
-        ? next
-        : "/app/dashboard";
-
-    router.push(safeNext);
+    router.push(safeInternalPath(params.get("next"), "/app/dashboard"));
     router.refresh();
   }
 

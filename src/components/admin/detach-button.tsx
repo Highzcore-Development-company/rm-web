@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { useTranslations } from "next-intl";
-import { markDetached } from "@/app/(app)/app/admin/billing/actions";
+import { markDetached } from "@/app/(app)/app/admin/(panel)/billing/actions";
 import { useToast } from "@/components/toast";
 
 export function DetachButton({ investorId }: { investorId: string }) {
