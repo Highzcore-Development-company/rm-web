@@ -607,7 +607,8 @@
       "adminBilling": "Billing admin",
       "adminOverview": "Overview",
       "admin": "Admin",
-      "adminUsers": "Users"
+      "adminUsers": "Users",
+      "adminBot": "Bot"
     },
     "account": {
       "title": "My account",
@@ -836,7 +837,8 @@
     "method": {
       "alatpay_transfer": "Bank transfer",
       "alatpay_card": "Card",
-      "usdt_trc20": "USDT (TRC-20)"
+      "usdt_trc20": "USDT (TRC-20)",
+      "heading": "Method"
     },
     "detachNote": "Lapsed investors are past the grace period and should be detached from the MAM. This is a manual step — nothing here does it for you.",
     "detachTitle": "To detach from the MAM",
@@ -875,7 +877,17 @@
       "underpaid": "Underpaid",
       "wrong_contract": "Wrong token",
       "provider_failed": "Provider declined"
-    }
+    },
+    "revenueAllTime": "Revenue to date",
+    "mrr": "Monthly run rate",
+    "mrrNote": "What the current book is worth per month if nobody leaves. A run rate, not cash taken — it will not match the figures beside it.",
+    "failed": "Failed",
+    "thisMonth": "This month",
+    "allTime": "To date",
+    "renewalsTitle": "Renewing in the next 30 days",
+    "renewalsIntro": "Soonest first. Reminders go out automatically at 7 days and 1 day; this is for the ones worth a word in person.",
+    "renewalsNone": "Nobody is due in the next 30 days.",
+    "renewalsIn": "{days, plural, =0 {today} one {# day} other {# days}}"
   },
   "adminHome": {
     "title": "Admin",
@@ -1019,6 +1031,47 @@
       "bad_date": "That is not a valid date.",
       "not_confirmed": "Only a confirmed payment has a term to move.",
       "generic": "That did not work. Try again."
+    }
+  },
+  "adminBot": {
+    "title": "Bot",
+    "intro": "What the bot is doing, and the settings an investor never sees.",
+    "notConfigured": "The bot cannot be configured from here yet. Everything below is read-only until the rm-server operator account is set up.",
+    "notConnected": "rm-server is not reachable, so there is nothing to show. This is configuration, not the bot being idle.",
+    "settings": "Settings",
+    "markets": "Markets",
+    "noMarkets": "No markets configured.",
+    "noProfitTarget": "none",
+    "lotNote": "The bot checks lot size against the broker and snaps a value outside the allowed range within about a minute. A number here is a request, not the final word.",
+    "switch": {
+      "on": "The bot is trading",
+      "off": "The bot is stopped",
+      "hint": "Applies to the master account, and so to every linked investor.",
+      "by": "Last changed by {who}",
+      "start": "Start trading",
+      "stop": "Stop trading",
+      "confirmOff": "This stops the bot opening anything new, on the master account and every account linked to it. Continue?",
+      "started": "Trading started.",
+      "stopped": "Trading stopped."
+    },
+    "cols": {
+      "market": "Market",
+      "lot": "Lot size",
+      "profit": "Close at profit",
+      "enabled": "Enabled"
+    },
+    "saved": {
+      "lot": "Lot size sent for {symbol}. The bot will confirm or snap it shortly.",
+      "profit": "Profit target updated for {symbol}.",
+      "enabled": "{symbol} enabled.",
+      "disabled": "{symbol} disabled."
+    },
+    "errors": {
+      "forbidden": "You do not have permission to configure the bot.",
+      "not_configured": "The rm-server operator account is not set up.",
+      "bad_lot": "A lot size must be a number greater than zero.",
+      "bad_profit": "A profit target must be a number greater than zero, or empty.",
+      "generic": "That did not reach the bot. Try again."
     }
   }
 }

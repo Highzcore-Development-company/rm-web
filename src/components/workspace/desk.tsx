@@ -16,6 +16,7 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
+import type { ReactNode } from "react";
 import { MarketChart } from "@/components/workspace/market-chart";
 import { LogoLink } from "@/components/logo";
 import type { BotMarket, BotSettings, BotTrade } from "@/lib/workspace/types";
@@ -73,6 +74,9 @@ export function Desk({
   settings,
   connected,
   user,
+  showChart = true,
+  centre = null,
+  embedded = false,
 }: {
   markets: BotMarket[];
   closedTrades: BotTrade[];
@@ -80,6 +84,23 @@ export function Desk({
   /** rm-server reachable. False means unconfigured, not "the bot did nothing". */
   connected: boolean;
   user: { name: string; initials: string };
+  /**
+   * A8 renders this same desk without the chart. A prop rather than a fork:
+   * the investor desk and the admin desk must show the same Live, Activities
+   * and History, and two copies drift the first time one is touched.
+   */
+  showChart?: boolean;
+  /** Dropped into the centre column when the chart is hidden. */
+  centre?: ReactNode;
+  /**
+   * Inside another page's chrome rather than owning the viewport.
+   *
+   * The admin panel already has a header, a sidebar and branding, so the desk
+   * drops its own and takes a bounded height instead of h-dvh. It also drops
+   * the Scora rail — the spec puts Scora out of scope for the admin, and an
+   * admin is configuring the bot, not asking it questions.
+   */
+  embedded?: boolean;
 }) {
   // Desktop: both rails open. Mobile: both closed over the chart.
   const [scoraOpen, setScoraOpen] = useState(true);
@@ -96,9 +117,16 @@ export function Desk({
     null;
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-bg text-fg">
+    <div
+      className={
+        embedded
+          ? "flex min-h-[34rem] flex-col overflow-hidden rounded-xl border border-border bg-bg text-fg lg:h-[calc(100dvh-13rem)] lg:flex-row"
+          : "flex h-dvh overflow-hidden bg-bg text-fg"
+      }
+    >
       {/* ---- left: the Scora CHAT ----
           A drawer over the chart below lg, a column beside it above. */}
+      {!embedded && (
       <aside
         className={`fixed inset-y-0 left-0 z-40 flex w-full flex-col border-r border-border bg-bg transition-transform duration-200 sm:w-[360px] lg:relative lg:z-auto lg:translate-x-0 lg:transition-[width] ${
           scoraOpen ? "translate-x-0" : "-translate-x-full"
@@ -118,9 +146,13 @@ export function Desk({
         </header>
         <ScoraChat name={user.name} />
       </aside>
+      )}
 
       {/* ---- centre: the chart ---- */}
       <main className="flex min-w-0 flex-1 flex-col">
+        {/* Dropped when embedded: the admin panel's own header already carries
+            the logo and the profile menu, and two of each is a bug. */}
+        {!embedded && (
         <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-3">
           <LogoLink width={124} priority />
 
@@ -144,23 +176,37 @@ export function Desk({
             </div>
           </div>
         </header>
+        )}
 
-        {/* The ported chart, in its full-height "workspace" chrome. */}
-        <div className="min-h-0 flex-1">
-          <MarketChart
-            markets={markets.map((m) => ({ symbol: m.symbol, alias: m.alias }))}
-            openTrades={live.map((m) => ({ symbol: m.symbol, side: "buy" }))}
-            focusSymbol={focus}
-            chrome="workspace"
-          />
+        {/* The ported chart, in its full-height "workspace" chrome. Replaced
+            by `centre` on the admin desk, where the chart is out of scope and
+            the configuration belongs instead. */}
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          {showChart ? (
+            <MarketChart
+              markets={markets.map((m) => ({ symbol: m.symbol, alias: m.alias }))}
+              openTrades={live.map((m) => ({ symbol: m.symbol, side: "buy" }))}
+              focusSymbol={focus}
+              chrome="workspace"
+            />
+          ) : (
+            centre
+          )}
         </div>
       </main>
 
       {/* ---- right: the feed. Narrow — the chart is the focus. ---- */}
       <aside
-        className={`fixed inset-y-0 right-0 z-40 flex w-full flex-col border-l border-border bg-bg transition-transform duration-200 sm:w-[380px] lg:relative lg:z-auto lg:translate-x-0 lg:transition-[width] ${
-          feedOpen ? "translate-x-0" : "translate-x-full"
-        } ${feedOpen ? "lg:w-[320px] xl:w-[360px]" : "lg:w-0 lg:overflow-hidden lg:border-l-0"}`}
+        className={
+          // Embedded, it is a plain column: the mobile toggle that opened the
+          // drawer lived in the header this mode drops, so a drawer here could
+          // be closed with no way back.
+          embedded
+            ? "flex min-h-[20rem] w-full shrink-0 flex-col border-t border-border bg-bg lg:w-[320px] lg:border-l lg:border-t-0 xl:w-[360px]"
+            : `fixed inset-y-0 right-0 z-40 flex w-full flex-col border-l border-border bg-bg transition-transform duration-200 sm:w-[380px] lg:relative lg:z-auto lg:translate-x-0 lg:transition-[width] ${
+                feedOpen ? "translate-x-0" : "translate-x-full"
+              } ${feedOpen ? "lg:w-[320px] xl:w-[360px]" : "lg:w-0 lg:overflow-hidden lg:border-l-0"}`
+        }
       >
         <header className="flex h-14 shrink-0 items-center gap-1 border-b border-border px-2">
           <div role="tablist" aria-label="Bot" className="flex min-w-0 items-center gap-0.5">

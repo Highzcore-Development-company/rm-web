@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Bot,
   CreditCard,
   LayoutDashboard,
   Link2,
@@ -15,12 +16,13 @@ const ICONS: Record<string, LucideIcon> = {
   links: Link2,
   billing: CreditCard,
   users: Users,
+  bot: Bot,
 };
 
 export type AdminNavItem = {
   href: string;
   label: string;
-  icon: "overview" | "links" | "billing" | "users";
+  icon: "overview" | "links" | "billing" | "users" | "bot";
 };
 
 /**

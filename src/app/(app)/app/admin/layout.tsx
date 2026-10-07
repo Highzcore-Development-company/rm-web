@@ -45,12 +45,19 @@ export default async function AdminLayout({
     ...(admin.permissions.includes("users.view")
       ? [{ href: "/app/admin/users", label: t("adminUsers"), icon: "users" as const }]
       : []),
+    ...(admin.permissions.includes("bot.view")
+      ? [{ href: "/app/admin/bot", label: t("adminBot"), icon: "bot" as const }]
+      : []),
     { href: "/app/admin/links", label: t("adminLinks"), icon: "links" as const },
-    {
-      href: "/app/admin/billing",
-      label: t("adminBilling"),
-      icon: "billing" as const,
-    },
+    ...(admin.permissions.includes("finance.view")
+      ? [
+          {
+            href: "/app/admin/billing",
+            label: t("adminBilling"),
+            icon: "billing" as const,
+          },
+        ]
+      : []),
   ];
 
   return (
