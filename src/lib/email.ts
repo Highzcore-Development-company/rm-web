@@ -232,3 +232,122 @@ ${note}
     ),
   };
 }
+
+/**
+ * P2-506 — the bot opened a position.
+ *
+ * Deliberately does NOT carry a lot size, a balance or a cash P&L. The
+ * investor's own size is whatever the MAM allocated them, so any figure we
+ * printed would be the MASTER's and wrong for the reader. Direction, market
+ * and price are true for everyone copied; a number is not.
+ */
+export function tradeOpenedEmail(input: {
+  symbol: string;
+  side: string;
+  openedAt: Date;
+  dashboardUrl: string;
+}) {
+  const side = input.side.toLowerCase() === "sell" ? "Sell" : "Buy";
+  const when = input.openedAt.toLocaleString("en-GB", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  const lead = `The bot opened a ${side.toLowerCase()} on ${input.symbol}.`;
+
+  return {
+    subject: `${side} ${input.symbol} opened`,
+    text: `${lead}\n\nOpened ${when}. Your own position size is whatever Vantage allocated to your account.\n\nSee it: ${input.dashboardUrl}\n`,
+    html: layout(
+      `<p style="margin:0 0 16px;font-size:16px;line-height:1.5">${lead}</p>
+<p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:#444">Opened ${when}. Your own position size is whatever Vantage allocated to your account.</p>
+<a href="${input.dashboardUrl}" style="display:inline-block;margin-top:8px;background:#FFB020;color:#0A0A0A;text-decoration:none;font-weight:600;font-size:14px;padding:12px 20px;border-radius:8px">Open dashboard</a>`,
+    ),
+  };
+}
+
+/**
+ * P2-506 — the bot closed a position.
+ *
+ * The result is a PERCENTAGE move on the instrument, never a cash figure, for
+ * the same reason as above: the cash is the master's. The sign is written into
+ * the number and the word, not carried by colour — a red figure and a green
+ * one are the same figure to a deuteranopic reader, and this is the email that
+ * tells somebody whether they made money.
+ */
+export function tradeClosedEmail(input: {
+  symbol: string;
+  side: string;
+  movePercent: number | null;
+  closedAt: Date;
+  dashboardUrl: string;
+}) {
+  const side = input.side.toLowerCase() === "sell" ? "sell" : "buy";
+  const when = input.closedAt.toLocaleString("en-GB", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  const move =
+    input.movePercent === null
+      ? null
+      : `${input.movePercent >= 0 ? "+" : "−"}${Math.abs(input.movePercent).toFixed(2)}%`;
+
+  const outcome =
+    input.movePercent === null
+      ? "closed"
+      : input.movePercent >= 0
+        ? `closed up ${move}`
+        : `closed down ${move}`;
+
+  const lead = `The ${side} on ${input.symbol} ${outcome}.`;
+
+  return {
+    subject: `${input.symbol} closed${move ? ` ${move}` : ""}`,
+    text: `${lead}\n\nClosed ${when}. That is the move on the instrument, not your cash result — your own figure depends on the size Vantage allocated you.\n\nSee it: ${input.dashboardUrl}\n`,
+    html: layout(
+      `<p style="margin:0 0 16px;font-size:16px;line-height:1.5">${lead}</p>
+<p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:#444">Closed ${when}. That is the move on the instrument, not your cash result — your own figure depends on the size Vantage allocated you.</p>
+<a href="${input.dashboardUrl}" style="display:inline-block;margin-top:8px;background:#FFB020;color:#0A0A0A;text-decoration:none;font-weight:600;font-size:14px;padding:12px 20px;border-radius:8px">Open dashboard</a>`,
+    ),
+  };
+}
+
+/**
+ * P2-506 — trading has been switched off.
+ *
+ * The one notification in the list that is NOT about money, and the one people
+ * most need: silence from a trading bot is ambiguous. Without this, "no emails
+ * today" means either a quiet market or a stopped bot, and the investor cannot
+ * tell which.
+ *
+ * No reason is given because we do not reliably have one, and inventing a
+ * reassuring one would be worse than saying nothing.
+ */
+export function botSwitchedOffEmail(input: {
+  stoppedAt: Date;
+  dashboardUrl: string;
+}) {
+  const when = input.stoppedAt.toLocaleString("en-GB", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  const lead = "Trading has been switched off.";
+
+  return {
+    subject: "Trading has been switched off",
+    text: `${lead}\n\nAs of ${when} the bot is not opening new positions on any account, including yours. Anything already open is unaffected. Your Vantage account and the money in it stay yours throughout.\n\nDashboard: ${input.dashboardUrl}\n`,
+    html: layout(
+      `<p style="margin:0 0 16px;font-size:16px;line-height:1.5">${lead}</p>
+<p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:#444">As of <strong>${when}</strong> the bot is not opening new positions on any account, including yours. Anything already open is unaffected. Your Vantage account and the money in it stay yours throughout.</p>
+<a href="${input.dashboardUrl}" style="display:inline-block;margin-top:8px;background:#FFB020;color:#0A0A0A;text-decoration:none;font-weight:600;font-size:14px;padding:12px 20px;border-radius:8px">Open dashboard</a>`,
+    ),
+  };
+}

@@ -171,6 +171,21 @@ export type ServiceDatabase = {
         Update: never;
         Relationships: [];
       };
+      /**
+       * P2-506. Append-only: the row IS the idempotency guard, so there is
+       * nothing to update and Update is never, as with sent_reminders.
+       */
+      sent_notifications: {
+        Row: {
+          investor_id: string;
+          kind: string;
+          ref: string;
+          sent_at: string;
+        };
+        Insert: { investor_id: string; kind: string; ref: string };
+        Update: never;
+        Relationships: [];
+      };
     };
   };
 };
