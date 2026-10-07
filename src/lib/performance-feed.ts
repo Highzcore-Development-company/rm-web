@@ -31,7 +31,10 @@ const SNAPSHOT_COLUMNS = "ts, balance, equity";
 const TRADE_COLUMNS =
   "id, symbol, side, open_ts, close_ts, open_price, close_price, sl, pnl, commission, swap, r_multiple";
 const PAGE = 1000;
-const MAX_PAGES = 20;
+/** The most rows we will read; a longer series needs an aggregate view on rm-server. */
+const MAX_ROWS = 20_000;
+/** Requests, not rows: the server may cap a page below PAGE. */
+const MAX_REQUESTS = 40;
 export const REVALIDATE_SECONDS = 300;
 
 type ReadError = { code?: string; message: string };
@@ -54,8 +57,9 @@ function report(which: string, error: ReadError) {
 
 /**
  * Every page or nothing. A series with its tail cut off would publish a record
- * that stops short of the truth, so hitting the page limit is a refusal, and so
- * is a total that does not match the exact count the server reported. The
+ * that stops short of the truth, so a series over the row limit, or one still
+ * unfinished at the request limit, is a refusal, and so is a total that does
+ * not match the exact count the server reported. The
  * server may also cap a page below PAGE (PostgREST max-rows), so the next page
  * starts after the rows actually received, not after PAGE.
  */
@@ -72,14 +76,29 @@ async function readAll(
 ): Promise<Row[] | null> {
   const rows: Row[] = [];
   let from = 0;
-  for (let i = 0; i < MAX_PAGES; i += 1) {
-    const { data, count, error } = await page(from, from + PAGE - 1);
+  let count: number | null = null;
+  for (let i = 0; i < MAX_REQUESTS; i += 1) {
+    const response = await page(from, from + PAGE - 1);
+    const { data, error } = response;
+    count = response.count;
     if (error) {
       report(which, error);
       return null;
     }
     const chunk = (data ?? []) as Row[];
+    if (count !== null && count > MAX_ROWS) {
+      console.error(
+        `[performance] ${which}: ${count} rows is more than the ${MAX_ROWS} we will read; refusing to publish a truncated series.`,
+      );
+      return null;
+    }
     rows.push(...chunk);
+    if (rows.length > MAX_ROWS) {
+      console.error(
+        `[performance] ${which}: ${rows.length} rows is more than the ${MAX_ROWS} we will read; refusing to publish a truncated series.`,
+      );
+      return null;
+    }
     from += chunk.length;
     const done =
       chunk.length === 0 ||
@@ -95,7 +114,7 @@ async function readAll(
     }
   }
   console.error(
-    `[performance] ${which}: more than ${MAX_PAGES * PAGE} rows; refusing to publish a truncated series.`,
+    `[performance] ${which}: read ${rows.length}${count !== null ? ` of ${count}` : ""} rows in ${MAX_REQUESTS} requests; refusing to publish a truncated series.`,
   );
   return null;
 }
@@ -192,7 +211,10 @@ async function readBundle(): Promise<PerformanceBundle | null> {
   if (!tradeRows) return null;
 
   const snapshots = snapshotRows.map(toSnapshot);
-  const trades = tradeRows.map(toTrade);
+  // By id, so a trade inserted below an offset already read cannot be counted twice.
+  const trades = [...new Map(tradeRows.map((r) => [String(r.id), r])).values()].map(
+    toTrade,
+  );
 
   const result = computePerformance(snapshots, trades, {
     now: Date.now(),
