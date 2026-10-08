@@ -4,6 +4,7 @@ import { siteUrl } from "@/lib/site";
 import { Geist, Geist_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import "./globals.css";
+import { ExtensionNoise } from "@/components/extension-noise";
 import { MotionProvider } from "@/components/motion";
 import { ToastProvider } from "@/components/toast";
 import { RouteProgress } from "@/components/route-progress";
@@ -65,6 +66,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         </noscript>
       </head>
       <body className="min-h-full flex flex-col font-sans">
+        {/* Must mount before anything else can reject: a browser extension's
+            unhandled rejection is forwarded into the Node render worker in dev
+            and kills it. See the component for the full chain. */}
+        <ExtensionNoise />
         <NextIntlClientProvider>
           <MotionProvider>
             <ToastProvider>
