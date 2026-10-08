@@ -1358,14 +1358,13 @@ export function MarketChart({
       return x === null ? null : Number(x);
     };
 
-    const onClick = (param: MouseEventParams) => {
+    const placeAt = (x: number, y: number) => {
       const t = toolRef.current;
       // Cursor is a plain crosshair now; SL/TP overlays are always drawn.
       if (t === 'cursor') return;
-      if (!param.point) return;
-      const price = series.coordinateToPrice(param.point.y);
+      const price = series.coordinateToPrice(y);
       if (price == null) return;
-      const time = (param.time as number | undefined) ?? timeAtX(param.point.x);
+      const time = timeAtX(x);
       if (time == null) return;
       if (t === 'hline') {
         const d: Drawing = { id: newDrawId(), kind: 'hline', price };
@@ -1449,7 +1448,14 @@ export function MarketChart({
         setTool('cursor');
       }
     };
-    chart.subscribeClick(onClick);
+    /* PLACEMENT FROM THE POINTER, NOT chart.subscribeClick.
+     *
+     * The library fires no click for a second press within 500 ms of the first
+     * (unless it is a double-click within 5 px) and none for a touch press of
+     * 240 ms or more, so quick second points and slightly long taps were lost.
+     * A press is recorded on pointerdown and placed on pointerup if it did not
+     * travel (see onDown / endDrag below). */
+    const pressRef: { current: { x: number; y: number; id: number } | null } = { current: null };
 
     /* THE BAR UNDER THE CURSOR.
      *
@@ -1519,6 +1525,10 @@ export function MarketChart({
       return null;
     };
     const onDown = (e: PointerEvent) => {
+      if (toolRef.current !== 'cursor' && e.button === 0) {
+        const { x, y } = localXY(e);
+        pressRef.current = { x, y, id: e.pointerId };
+      }
       if (toolRef.current !== 'cursor') return;
       // Locked: the lines stay where they are. Without this, a pan that starts
       // near a level silently drags the level instead of the chart.
@@ -1678,6 +1688,13 @@ export function MarketChart({
       el!.style.cursor = 'grabbing';
     };
     const endDrag = (e: PointerEvent) => {
+      const press = pressRef.current;
+      pressRef.current = null;
+      if (press && !drag.current && toolRef.current !== 'cursor'
+        && e.type === 'pointerup' && e.button === 0 && e.pointerId === press.id) {
+        const { x, y } = localXY(e);
+        if (Math.hypot(x - press.x, y - press.y) <= 5) placeAt(x, y);
+      }
       if (!drag.current) return;
       drag.current = null;
       chart.applyOptions({ handleScroll: true, handleScale: true });
