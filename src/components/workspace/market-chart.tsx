@@ -1908,7 +1908,12 @@ export function MarketChart({
           liveBar.current = { time: bucket, open: price, high: price, low: price, close: price };
           // The projection grid (bar-time.ts) must see every bar the series has,
           // or a point placed on a live bar after a gap lands one slot off on reload.
-          barsRef.current = [...barsRef.current, liveBar.current];
+          // Only when it is newer than what is loaded: a tick landing mid market
+          // switch must not push the new market's bucket onto the old array.
+          const lastKnown = barsRef.current.at(-1);
+          if (!lastKnown || (lastKnown.time as number) < (bucket as number)) {
+            barsRef.current = [...barsRef.current, liveBar.current];
+          }
         } else if (secs <= INTRADAY_MAX_SECS && (bucket as number) > (lb.time as number)) {
           liveBar.current = { time: bucket, open: price, high: price, low: price, close: price };
           // The projection grid (bar-time.ts) must see every bar the series has,
@@ -1916,6 +1921,9 @@ export function MarketChart({
           barsRef.current = [...barsRef.current, liveBar.current];
         } else {
           liveBar.current = { time: lb.time, open: lb.open, high: Math.max(lb.high, price), low: Math.min(lb.low, price), close: price };
+          // Keep barsRef a mirror of the series (CSV copy, indicators).
+          const known = barsRef.current;
+          if (known.length && (known[known.length - 1].time as number) === (lb.time as number)) known[known.length - 1] = liveBar.current;
         }
         series.update(liveBar.current);
         // The legend's C should track the live price, not the last close.
