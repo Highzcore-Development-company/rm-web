@@ -50,8 +50,9 @@ import {
   createChart, CandlestickSeries, LineSeries, LineStyle, createSeriesMarkers,
   type IChartApi, type ISeriesApi, type UTCTimestamp, type Time,
   type SeriesMarker, type IPriceLine, type ISeriesMarkersPluginApi,
-  type MouseEventParams,
+  type MouseEventParams, type Logical,
 } from 'lightweight-charts';
+import { inferBarSecs, timeToLogical, logicalToTime } from './bar-time';
 
 type Tool =
   | 'cursor' | 'hline' | 'trend' | 'text' | 'ray' | 'extended' | 'hray'
@@ -666,6 +667,7 @@ export function MarketChart({
    * render gives React no reason to re-render when they change — the toolbar
    * would show stale values after every edit. */
   const [selected, setSelected] = useState<Drawing | null>(null);
+  const selectedRef = useRef<Drawing | null>(null);
 
   /** Where each diagonal's label sits, in pane pixels. Recomputed whenever the
    *  chart moves, because the line's midpoint moves with it. */
@@ -713,6 +715,13 @@ export function MarketChart({
 
     const W = wrapRef.current?.clientWidth ?? 0;
     const H = wrapRef.current?.clientHeight ?? 0;
+    const xAt = (t: number): number | null => {
+      const bars = barsRef.current;
+      const L = timeToLogical(bars, inferBarSecs(bars), t);
+      if (L === null) return null;
+      const x = c.timeScale().logicalToCoordinate(L as Logical);
+      return x === null ? null : Number(x);
+    };
 
     /* Each diagonal, as pane coordinates.
      *
@@ -723,9 +732,9 @@ export function MarketChart({
     const out: typeof segs = [];
     for (const d of drawings.current) {
       if (d.kind !== 'trend') continue;
-      const ax = c.timeScale().timeToCoordinate(d.t1 as UTCTimestamp);
+      const ax = xAt(d.t1);
       const ay = s.priceToCoordinate(d.v1);
-      const bx = c.timeScale().timeToCoordinate(d.t2 as UTCTimestamp);
+      const bx = xAt(d.t2);
       const by = s.priceToCoordinate(d.v2);
       if (ax == null || ay == null || bx == null || by == null) continue;
 
@@ -768,7 +777,7 @@ export function MarketChart({
     for (const d of drawings.current) {
       if (d.kind !== 'pitchfork') continue;
       const pt = (t: number, v: number) => {
-        const x = c.timeScale().timeToCoordinate(t as UTCTimestamp);
+        const x = xAt(t);
         const y = s.priceToCoordinate(v);
         return x == null || y == null ? null : { x: x as number, y: y as number };
       };
@@ -789,7 +798,7 @@ export function MarketChart({
      * marks a moment, and a moment has no height. */
     for (const d of drawings.current) {
       if (d.kind !== 'vline' && d.kind !== 'cross') continue;
-      const cx = c.timeScale().timeToCoordinate(d.t1 as UTCTimestamp);
+      const cx = xAt(d.t1);
       if (cx == null) continue;
       const color = d.color ?? DRAW_COLOR;
       const width = d.width ?? 2;
@@ -860,14 +869,15 @@ export function MarketChart({
     const hs: { id: string; x: number; y: number }[] = [];
     for (const d of drawings.current) {
       if (d.kind !== 'trend') continue;
+      if (d.id !== selectedRef.current?.id) continue;
       const reach = d.reach ?? 'segment';
-      const x1 = c.timeScale().timeToCoordinate(d.t1 as UTCTimestamp);
+      const x1 = xAt(d.t1);
       const y1 = s.priceToCoordinate(d.v1);
       if (x1 != null && y1 != null) hs.push({ id: `${d.id}:a`, x: x1 as number, y: y1 as number });
       // The second click is a real point on a segment; on a ray or an extended
       // line it only set the direction.
       if (reach === 'segment') {
-        const x2 = c.timeScale().timeToCoordinate(d.t2 as UTCTimestamp);
+        const x2 = xAt(d.t2);
         const y2 = s.priceToCoordinate(d.v2);
         if (x2 != null && y2 != null) hs.push({ id: `${d.id}:b`, x: x2 as number, y: y2 as number });
       }
@@ -876,11 +886,12 @@ export function MarketChart({
      * unlike a ray, whose far end is a computed edge. */
     for (const d of drawings.current) {
       if (d.kind !== 'pitchfork') continue;
-      const pts: [number, number, string][] = [
+      if (d.id !== selectedRef.current?.id) continue;
+      const pts:[number, number, string][] = [
         [d.t1, d.v1, 'a'], [d.t2, d.v2, 'b'], [d.t3, d.v3, 'c'],
       ];
       for (const [t, v, key] of pts) {
-        const x = c.timeScale().timeToCoordinate(t as UTCTimestamp);
+        const x = xAt(t);
         const y = s.priceToCoordinate(v);
         if (x != null && y != null) hs.push({ id: `${d.id}:${key}`, x: x as number, y: y as number });
       }
@@ -1008,6 +1019,7 @@ export function MarketChart({
   const indSeries = useRef<ISeriesApi<'Line'>[]>([]);
 
   useEffect(() => { toolRef.current = tool; }, [tool]);
+  useEffect(() => { selectedRef.current = selected; syncLabels(); }, [selected]);
 
   const alias = markets.find((m) => m.symbol === symbol)?.alias ?? symbol;
 
@@ -1065,6 +1077,8 @@ export function MarketChart({
     trendStart.current = null;
     forkPts.current = [];
     persistDrawings();
+    setSelected(null); clearPreview(); syncLabels();
+    redoStack.current = [];
   };
 
   // Undo / redo, over the drawings only — the chart's pan and zoom are not
@@ -1331,31 +1345,31 @@ export function MarketChart({
      * wide a bar is on screen. That keeps the anchor a real timestamp rather
      * than a pixel, which is what lets it survive a zoom. */
     const timeAtX = (x: number): number | null => {
-      const ts = chart.timeScale();
-      const onBar = ts.coordinateToTime(x);
-      if (onBar != null) return onBar as number;
       const bars = barsRef.current;
-      if (bars.length < 2) return null;
-      const last = bars[bars.length - 1].time as number;
-      const step = last - (bars[bars.length - 2].time as number);
-      const lastX = ts.timeToCoordinate(last as UTCTimestamp);
-      const spacing = ts.options().barSpacing;
-      if (lastX == null || step <= 0 || !spacing) return null;
-      return last + Math.round((x - (lastX as number)) / spacing) * step;
+      const L = chart.timeScale().coordinateToLogical(x);
+      return L === null ? null : logicalToTime(bars, inferBarSecs(bars), Math.round(L));
+    };
+    /** Pane x of a stored time, through the bar slots (see bar-time.ts). */
+    const xAt = (t: number): number | null => {
+      const bars = barsRef.current;
+      const L = timeToLogical(bars, inferBarSecs(bars), t);
+      if (L === null) return null;
+      const x = chart.timeScale().logicalToCoordinate(L as Logical);
+      return x === null ? null : Number(x);
     };
 
-    const onClick = (param: MouseEventParams) => {
+    const placeAt = (x: number, y: number) => {
       const t = toolRef.current;
       // Cursor is a plain crosshair now; SL/TP overlays are always drawn.
       if (t === 'cursor') return;
-      if (!param.point) return;
-      const price = series.coordinateToPrice(param.point.y);
+      const price = series.coordinateToPrice(y);
       if (price == null) return;
-      const time = (param.time as number | undefined) ?? timeAtX(param.point.x);
+      const time = timeAtX(x);
       if (time == null) return;
       if (t === 'hline') {
         const d: Drawing = { id: newDrawId(), kind: 'hline', price };
         drawings.current.push(d); addDrawingObject(d); persistDrawings(); setSelected(d);
+        setTool('cursor');
         clearPreview();
       } else if (t === 'hray') {
         // One click. A horizontal RAY differs from a horizontal LINE in where
@@ -1367,6 +1381,7 @@ export function MarketChart({
           t1: time, v1: price, t2: time, v2: price,
         };
         drawings.current.push(d); addDrawingObject(d); persistDrawings(); setSelected(d);
+        setTool('cursor');
         syncLabels();           // a horizontal ray is a diagonal too — same overlay
       } else if (t === 'vline' || t === 'cross') {
         // One click each. A vertical line marks WHEN and takes no price; a
@@ -1375,10 +1390,15 @@ export function MarketChart({
           ? { id: newDrawId(), kind: 'vline', t1: time }
           : { id: newDrawId(), kind: 'cross', t1: time, v1: price };
         drawings.current.push(d); addDrawingObject(d); persistDrawings(); setSelected(d);
+        setTool('cursor');
         clearPreview();
         syncLabels();
       } else if (t === 'trend' || t === 'ray' || t === 'extended' || t === 'info' || t === 'angle') {
         // Two clicks. The first is remembered; the second completes it.
+        // A second point on the very same spot would be a zero-length line:
+        // ignore it and keep the draft pending for the next distinct click.
+        if (trendStart.current && trendStart.current.time === time
+          && Math.abs(trendStart.current.value - price) < 1e-12) return;
         if (!trendStart.current) {
           trendStart.current = { time: time as Time, value: price };
           setDrawPending(true);
@@ -1394,6 +1414,7 @@ export function MarketChart({
           t2: time, v2: price,
         };
         drawings.current.push(d); addDrawingObject(d); persistDrawings(); setSelected(d);
+        setTool('cursor');
         trendStart.current = null;
         setDrawPending(false);
         clearPreview();
@@ -1402,6 +1423,8 @@ export function MarketChart({
         // Three clicks: pivot, then the two ends of the swing off it. The first
         // two are only remembered — nothing is drawn until the third, because
         // two points do not yet describe a fork.
+        const prevPt = forkPts.current.at(-1);
+        if (prevPt && prevPt.time === time && Math.abs(prevPt.value - price) < 1e-12) return;
         forkPts.current.push({ time: time as Time, value: price });
         if (forkPts.current.length < 3) { setDrawPending(true); return; }
         const [a, b, c3] = forkPts.current;
@@ -1412,6 +1435,7 @@ export function MarketChart({
           t3: c3.time as number, v3: c3.value,
         };
         drawings.current.push(d); addDrawingObject(d); persistDrawings(); setSelected(d);
+        setTool('cursor');
         forkPts.current = [];
         setDrawPending(false);
         clearPreview();
@@ -1427,9 +1451,17 @@ export function MarketChart({
         if (label == null || !label.trim()) return;
         const d: Drawing = { id: newDrawId(), kind: 'hline', price, label: label.trim() };
         drawings.current.push(d); addDrawingObject(d); persistDrawings(); setSelected(d);
+        setTool('cursor');
       }
     };
-    chart.subscribeClick(onClick);
+    /* PLACEMENT FROM THE POINTER, NOT chart.subscribeClick.
+     *
+     * The library fires no click for a second press within 500 ms of the first
+     * (unless it is a double-click within 5 px) and none for a touch press of
+     * 240 ms or more, so quick second points and slightly long taps were lost.
+     * A press is recorded on pointerdown and placed on pointerup if it did not
+     * travel (see onDown / endDrag below). */
+    const pressRef: { current: { x: number; y: number; id: number } | null } = { current: null };
 
     /* THE BAR UNDER THE CURSOR.
      *
@@ -1473,9 +1505,9 @@ export function MarketChart({
         if (cy != null && Math.abs(cy - y) <= HIT) return { id: d.id, kind: 'hline' };
       }
       for (const d of drawings.current) {
-        if (d.kind !== 'trend') continue;
-        const x1 = c.timeScale().timeToCoordinate(d.t1 as UTCTimestamp);
-        const x2 = c.timeScale().timeToCoordinate(d.t2 as UTCTimestamp);
+        if (d.kind !== 'trend' || d.reach === 'hray') continue;
+        const x1 = xAt(d.t1);
+        const x2 = xAt(d.t2);
         const y1 = s.priceToCoordinate(d.v1), y2 = s.priceToCoordinate(d.v2);
         if (x1 == null || x2 == null || y1 == null || y2 == null) continue;
         if (distToSeg(x, y, x1, y1, x2, y2) <= HIT) return { id: d.id, kind: 'trend' };
@@ -1485,7 +1517,8 @@ export function MarketChart({
        * the geometry here, so the thing you can see and the thing you can grab
        * cannot disagree. */
       for (const d of drawings.current) {
-        if (d.kind !== 'pitchfork' && d.kind !== 'vline' && d.kind !== 'cross') continue;
+        if (d.kind !== 'pitchfork' && d.kind !== 'vline' && d.kind !== 'cross'
+          && !(d.kind === 'trend' && d.reach === 'hray')) continue;
         const mine = segsRef.current.filter(
           (g) => g.id === d.id || g.id.startsWith(`${d.id}#`),
         );
@@ -1498,6 +1531,10 @@ export function MarketChart({
       return null;
     };
     const onDown = (e: PointerEvent) => {
+      if (toolRef.current !== 'cursor' && e.button === 0) {
+        const { x, y } = localXY(e);
+        pressRef.current = { x, y, id: e.pointerId };
+      }
       if (toolRef.current !== 'cursor') return;
       // Locked: the lines stay where they are. Without this, a pan that starts
       // near a level silently drags the level instead of the chart.
@@ -1555,9 +1592,9 @@ export function MarketChart({
           if (bandRef.current) { bandRef.current = null; setBand(null); }
         } else if (t === 'pitchfork') {
           const px = (p: { time: Time; value: number }): Pt | null => {
-            const ax = c.timeScale().timeToCoordinate(p.time as UTCTimestamp);
+            const ax = xAt(p.time as number);
             const ay = s.priceToCoordinate(p.value);
-            return ax == null || ay == null ? null : { x: ax as number, y: ay as number };
+            return ax == null || ay == null ? null : { x: ax, y: ay as number };
           };
           const pts = forkPts.current;
           if (pts.length === 2) {
@@ -1585,10 +1622,10 @@ export function MarketChart({
             if (bandRef.current) { bandRef.current = null; setBand(null); }
           }
         } else if (twoClick && st) {
-          const ax = c.timeScale().timeToCoordinate(st.time as UTCTimestamp);
+          const ax = xAt(st.time as number);
           const ay = s.priceToCoordinate(st.value);
           const next = ax != null && ay != null
-            ? { x1: ax as number, y1: ay as number, x2: x, y2: y, flat: false }
+            ? { x1: ax, y1: ay as number, x2: x, y2: y, flat: false }
             : null;
           bandRef.current = next;
           setBand(next);
@@ -1628,20 +1665,44 @@ export function MarketChart({
           if (d.kind === 'trend' || d.kind === 'pitchfork') d.v2 += dv;
           if (d.kind === 'pitchfork') d.v3 += dv;
         }
-        const tNow = c.timeScale().coordinateToTime(x), tLast = c.timeScale().coordinateToTime(dg.lastX);
-        if (tNow != null && tLast != null) {
-          const dt = (tNow as number) - (tLast as number);
-          d.t1 += dt;
-          if (d.kind === 'trend' || d.kind === 'pitchfork') d.t2 += dt;
-          if (d.kind === 'pitchfork') d.t3 += dt;
+        /* Moved by whole bar slots, not by time: coordinateToTime is null right
+         * of the last candle, so a time delta stopped the drag there. */
+        const lNow = c.timeScale().coordinateToLogical(x);
+        const lLast = c.timeScale().coordinateToLogical(dg.lastX);
+        if (lNow !== null && lLast !== null) {
+          const dL = Math.round(lNow) - Math.round(lLast);
+          if (dL !== 0) {
+            const bars = barsRef.current;
+            const secs = inferBarSecs(bars);
+            const shift = (t: number): number => {
+              const L = timeToLogical(bars, secs, t);
+              const moved = L === null ? null : logicalToTime(bars, secs, L + dL);
+              return moved === null ? t : Math.round(moved);
+            };
+            d.t1 = shift(d.t1);
+            if (d.kind === 'trend' || d.kind === 'pitchfork') d.t2 = shift(d.t2);
+            if (d.kind === 'pitchfork') d.t3 = shift(d.t3);
+            // Only advance the reference when a whole slot moved, so slow
+            // sub-slot drags accumulate instead of rounding away.
+            dg.lastX = x;
+          }
         }
         // The overlay owns diagonals now, so moving one is just re-measuring.
         syncLabels();
       }
-      dg.lastX = x; dg.lastY = y;
+      dg.lastY = y;
       el!.style.cursor = 'grabbing';
     };
     const endDrag = (e: PointerEvent) => {
+      const press = pressRef.current;
+      pressRef.current = null;
+      if (press && !drag.current && toolRef.current !== 'cursor'
+        && e.type === 'pointerup' && e.button === 0 && e.pointerId === press.id) {
+        const { x, y } = localXY(e);
+        const pane = chart.paneSize();
+        if (x >= 0 && x <= pane.width && y >= 0 && y <= pane.height
+          && Math.hypot(x - press.x, y - press.y) <= 5) placeAt(x, y);
+      }
       if (!drag.current) return;
       drag.current = null;
       chart.applyOptions({ handleScroll: true, handleScale: true });
@@ -1669,6 +1730,7 @@ export function MarketChart({
     let alive = true;
     setLoading(true);
     liveBar.current = null;
+    trendStart.current = null; forkPts.current = []; setDrawPending(false); clearPreview(); setSelected(null);
     // Detach the previous market's drawing objects (keep them saved), then switch
     // the storage key and load this market/timeframe's saved drawings. They are
     // rendered after the candles load (trend lines need the time axis).
@@ -1844,10 +1906,24 @@ export function MarketChart({
         // extend the last historical bar (epoch buckets don't match broker weeks/months).
         if (!lb) {
           liveBar.current = { time: bucket, open: price, high: price, low: price, close: price };
+          // The projection grid (bar-time.ts) must see every bar the series has,
+          // or a point placed on a live bar after a gap lands one slot off on reload.
+          // Only when it is newer than what is loaded: a tick landing mid market
+          // switch must not push the new market's bucket onto the old array.
+          const lastKnown = barsRef.current.at(-1);
+          if (!lastKnown || (lastKnown.time as number) < (bucket as number)) {
+            barsRef.current = [...barsRef.current, liveBar.current];
+          }
         } else if (secs <= INTRADAY_MAX_SECS && (bucket as number) > (lb.time as number)) {
           liveBar.current = { time: bucket, open: price, high: price, low: price, close: price };
+          // The projection grid (bar-time.ts) must see every bar the series has,
+          // or a point placed on a live bar after a gap lands one slot off on reload.
+          barsRef.current = [...barsRef.current, liveBar.current];
         } else {
           liveBar.current = { time: lb.time, open: lb.open, high: Math.max(lb.high, price), low: Math.min(lb.low, price), close: price };
+          // Keep barsRef a mirror of the series (CSV copy, indicators).
+          const known = barsRef.current;
+          if (known.length && (known[known.length - 1].time as number) === (lb.time as number)) known[known.length - 1] = liveBar.current;
         }
         series.update(liveBar.current);
         // The legend's C should track the live price, not the last close.
@@ -1874,7 +1950,7 @@ export function MarketChart({
         <div
           ref={wrapRef}
           className={`h-full w-full transition-opacity ${showEmpty ? 'opacity-0' : 'opacity-100'}`}
-          style={tool !== 'cursor' ? { cursor: 'crosshair' } : undefined}
+          style={tool !== 'cursor' ? { cursor: 'crosshair', touchAction: 'none' } : { touchAction: 'none' }}
         />
 
         {/* Diagonals and their handles. Clipped by the SVG viewport, which is
@@ -2152,7 +2228,10 @@ export function MarketChart({
               railHidden ? 'hidden' : 'flex'
             }`}
           >
-            <RailBtn active={tool === 'cursor'} onClick={() => setTool('cursor')} title="Crosshair">
+            <RailBtn active={tool === 'cursor'} onClick={() => {
+              setTool('cursor');
+              trendStart.current = null; forkPts.current = []; setDrawPending(false); clearPreview();
+            }} title="Crosshair">
               <Crosshair className="h-4 w-4" />
             </RailBtn>
             {/* SPLIT BUTTON. The icon arms the line type you last used — one
