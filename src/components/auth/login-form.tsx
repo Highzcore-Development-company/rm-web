@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { safeInternalPath } from "@/lib/safe-path";
-import { Field, FormError, inputClass } from "@/components/auth/auth-card";
+import { Field, FormError, inputClass } from "@/components/auth/form-bits";
 import { PasswordField, SubmitButton } from "@/components/auth/fields";
 
 export function LoginForm() {

@@ -3,7 +3,7 @@
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useId, useState } from "react";
-import { Field, inputClass, submitClass } from "@/components/auth/auth-card";
+import { Field, inputClass, submitClass } from "@/components/auth/form-bits";
 
 /**
  * A password field you can read back.

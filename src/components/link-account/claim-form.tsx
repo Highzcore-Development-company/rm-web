@@ -8,12 +8,7 @@ import {
   type ActionResult,
 } from "@/app/(app)/app/link-account/actions";
 import { useToast } from "@/components/toast";
-import {
-  Field,
-  FormError,
-  inputClass,
-  submitClass,
-} from "@/components/auth/auth-card";
+import { Field, FormError, inputClass, submitClass } from "@/components/auth/form-bits";
 
 export function ClaimForm({ initialLogin }: { initialLogin: string | null }) {
   const t = useTranslations("linkAccount.claim");

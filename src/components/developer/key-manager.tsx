@@ -7,7 +7,7 @@ import {
   revokeApiKey,
   type CreateKeyResult,
 } from "@/app/(app)/app/developer/actions";
-import { Field, FormError, inputClass, submitClass } from "@/components/auth/auth-card";
+import { Field, FormError, inputClass, submitClass } from "@/components/auth/form-bits";
 
 export type KeyRow = {
   id: string;

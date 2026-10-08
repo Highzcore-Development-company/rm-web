@@ -7,7 +7,7 @@ import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { sendVerificationCode } from "@/app/(app)/app/verify-email/actions";
 import { acknowledgeRisk } from "@/app/(app)/app/risk-acknowledgement/actions";
-import { Field, FormError, inputClass } from "@/components/auth/auth-card";
+import { Field, FormError, inputClass } from "@/components/auth/form-bits";
 import {
   PasswordField,
   PasswordStrength,

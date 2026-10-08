@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { changeAdminPassword } from "@/app/(app)/app/admin/change-password/actions";
-import { Field, FormError, inputClass, submitClass } from "@/components/auth/auth-card";
+import { Field, FormError, inputClass, submitClass } from "@/components/auth/form-bits";
 import { useToast } from "@/components/toast";
 
 export function ChangePasswordForm() {

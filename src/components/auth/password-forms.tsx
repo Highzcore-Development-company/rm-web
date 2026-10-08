@@ -4,12 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
-import {
-  Field,
-  FormError,
-  inputClass,
-  submitClass,
-} from "@/components/auth/auth-card";
+import { Field, FormError, inputClass, submitClass } from "@/components/auth/form-bits";
 
 const MIN_PASSWORD_LENGTH = 8;
 
