@@ -666,6 +666,7 @@ export function MarketChart({
    * render gives React no reason to re-render when they change — the toolbar
    * would show stale values after every edit. */
   const [selected, setSelected] = useState<Drawing | null>(null);
+  const selectedRef = useRef<Drawing | null>(null);
 
   /** Where each diagonal's label sits, in pane pixels. Recomputed whenever the
    *  chart moves, because the line's midpoint moves with it. */
@@ -860,8 +861,9 @@ export function MarketChart({
     const hs: { id: string; x: number; y: number }[] = [];
     for (const d of drawings.current) {
       if (d.kind !== 'trend') continue;
+      if (d.id !== selectedRef.current?.id) continue;
       const reach = d.reach ?? 'segment';
-      const x1 = c.timeScale().timeToCoordinate(d.t1 as UTCTimestamp);
+      const x1 =c.timeScale().timeToCoordinate(d.t1 as UTCTimestamp);
       const y1 = s.priceToCoordinate(d.v1);
       if (x1 != null && y1 != null) hs.push({ id: `${d.id}:a`, x: x1 as number, y: y1 as number });
       // The second click is a real point on a segment; on a ray or an extended
@@ -876,7 +878,8 @@ export function MarketChart({
      * unlike a ray, whose far end is a computed edge. */
     for (const d of drawings.current) {
       if (d.kind !== 'pitchfork') continue;
-      const pts: [number, number, string][] = [
+      if (d.id !== selectedRef.current?.id) continue;
+      const pts:[number, number, string][] = [
         [d.t1, d.v1, 'a'], [d.t2, d.v2, 'b'], [d.t3, d.v3, 'c'],
       ];
       for (const [t, v, key] of pts) {
@@ -1008,6 +1011,7 @@ export function MarketChart({
   const indSeries = useRef<ISeriesApi<'Line'>[]>([]);
 
   useEffect(() => { toolRef.current = tool; }, [tool]);
+  useEffect(() => { selectedRef.current = selected; syncLabels(); }, [selected]);
 
   const alias = markets.find((m) => m.symbol === symbol)?.alias ?? symbol;
 
@@ -1065,6 +1069,8 @@ export function MarketChart({
     trendStart.current = null;
     forkPts.current = [];
     persistDrawings();
+    setSelected(null); clearPreview(); syncLabels();
+    redoStack.current = [];
   };
 
   // Undo / redo, over the drawings only — the chart's pan and zoom are not
@@ -1356,6 +1362,7 @@ export function MarketChart({
       if (t === 'hline') {
         const d: Drawing = { id: newDrawId(), kind: 'hline', price };
         drawings.current.push(d); addDrawingObject(d); persistDrawings(); setSelected(d);
+        setTool('cursor');
         clearPreview();
       } else if (t === 'hray') {
         // One click. A horizontal RAY differs from a horizontal LINE in where
@@ -1367,6 +1374,7 @@ export function MarketChart({
           t1: time, v1: price, t2: time, v2: price,
         };
         drawings.current.push(d); addDrawingObject(d); persistDrawings(); setSelected(d);
+        setTool('cursor');
         syncLabels();           // a horizontal ray is a diagonal too — same overlay
       } else if (t === 'vline' || t === 'cross') {
         // One click each. A vertical line marks WHEN and takes no price; a
@@ -1375,6 +1383,7 @@ export function MarketChart({
           ? { id: newDrawId(), kind: 'vline', t1: time }
           : { id: newDrawId(), kind: 'cross', t1: time, v1: price };
         drawings.current.push(d); addDrawingObject(d); persistDrawings(); setSelected(d);
+        setTool('cursor');
         clearPreview();
         syncLabels();
       } else if (t === 'trend' || t === 'ray' || t === 'extended' || t === 'info' || t === 'angle') {
@@ -1394,6 +1403,7 @@ export function MarketChart({
           t2: time, v2: price,
         };
         drawings.current.push(d); addDrawingObject(d); persistDrawings(); setSelected(d);
+        setTool('cursor');
         trendStart.current = null;
         setDrawPending(false);
         clearPreview();
@@ -1412,6 +1422,7 @@ export function MarketChart({
           t3: c3.time as number, v3: c3.value,
         };
         drawings.current.push(d); addDrawingObject(d); persistDrawings(); setSelected(d);
+        setTool('cursor');
         forkPts.current = [];
         setDrawPending(false);
         clearPreview();
@@ -1427,6 +1438,7 @@ export function MarketChart({
         if (label == null || !label.trim()) return;
         const d: Drawing = { id: newDrawId(), kind: 'hline', price, label: label.trim() };
         drawings.current.push(d); addDrawingObject(d); persistDrawings(); setSelected(d);
+        setTool('cursor');
       }
     };
     chart.subscribeClick(onClick);
@@ -1473,7 +1485,7 @@ export function MarketChart({
         if (cy != null && Math.abs(cy - y) <= HIT) return { id: d.id, kind: 'hline' };
       }
       for (const d of drawings.current) {
-        if (d.kind !== 'trend') continue;
+        if (d.kind !== 'trend' || d.reach === 'hray') continue;
         const x1 = c.timeScale().timeToCoordinate(d.t1 as UTCTimestamp);
         const x2 = c.timeScale().timeToCoordinate(d.t2 as UTCTimestamp);
         const y1 = s.priceToCoordinate(d.v1), y2 = s.priceToCoordinate(d.v2);
@@ -1485,7 +1497,8 @@ export function MarketChart({
        * the geometry here, so the thing you can see and the thing you can grab
        * cannot disagree. */
       for (const d of drawings.current) {
-        if (d.kind !== 'pitchfork' && d.kind !== 'vline' && d.kind !== 'cross') continue;
+        if (d.kind !== 'pitchfork' && d.kind !== 'vline' && d.kind !== 'cross'
+          && !(d.kind === 'trend' && d.reach === 'hray')) continue;
         const mine = segsRef.current.filter(
           (g) => g.id === d.id || g.id.startsWith(`${d.id}#`),
         );
@@ -1669,6 +1682,7 @@ export function MarketChart({
     let alive = true;
     setLoading(true);
     liveBar.current = null;
+    trendStart.current = null; forkPts.current = []; setDrawPending(false); clearPreview(); setSelected(null);
     // Detach the previous market's drawing objects (keep them saved), then switch
     // the storage key and load this market/timeframe's saved drawings. They are
     // rendered after the candles load (trend lines need the time axis).
@@ -1874,7 +1888,7 @@ export function MarketChart({
         <div
           ref={wrapRef}
           className={`h-full w-full transition-opacity ${showEmpty ? 'opacity-0' : 'opacity-100'}`}
-          style={tool !== 'cursor' ? { cursor: 'crosshair' } : undefined}
+          style={tool !== 'cursor' ? { cursor: 'crosshair', touchAction: 'none' } : { touchAction: 'none' }}
         />
 
         {/* Diagonals and their handles. Clipped by the SVG viewport, which is
@@ -2152,7 +2166,10 @@ export function MarketChart({
               railHidden ? 'hidden' : 'flex'
             }`}
           >
-            <RailBtn active={tool === 'cursor'} onClick={() => setTool('cursor')} title="Crosshair">
+            <RailBtn active={tool === 'cursor'} onClick={() => {
+              setTool('cursor');
+              trendStart.current = null; forkPts.current = []; setDrawPending(false); clearPreview();
+            }} title="Crosshair">
               <Crosshair className="h-4 w-4" />
             </RailBtn>
             {/* SPLIT BUTTON. The icon arms the line type you last used — one
