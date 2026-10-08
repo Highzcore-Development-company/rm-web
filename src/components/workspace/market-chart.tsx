@@ -50,8 +50,9 @@ import {
   createChart, CandlestickSeries, LineSeries, LineStyle, createSeriesMarkers,
   type IChartApi, type ISeriesApi, type UTCTimestamp, type Time,
   type SeriesMarker, type IPriceLine, type ISeriesMarkersPluginApi,
-  type MouseEventParams,
+  type MouseEventParams, type Logical,
 } from 'lightweight-charts';
+import { inferBarSecs, timeToLogical, logicalToTime } from './bar-time';
 
 type Tool =
   | 'cursor' | 'hline' | 'trend' | 'text' | 'ray' | 'extended' | 'hray'
@@ -714,6 +715,13 @@ export function MarketChart({
 
     const W = wrapRef.current?.clientWidth ?? 0;
     const H = wrapRef.current?.clientHeight ?? 0;
+    const xAt = (t: number): number | null => {
+      const bars = barsRef.current;
+      const L = timeToLogical(bars, inferBarSecs(bars), t);
+      if (L === null) return null;
+      const x = c.timeScale().logicalToCoordinate(L as Logical);
+      return x === null ? null : Number(x);
+    };
 
     /* Each diagonal, as pane coordinates.
      *
@@ -724,9 +732,9 @@ export function MarketChart({
     const out: typeof segs = [];
     for (const d of drawings.current) {
       if (d.kind !== 'trend') continue;
-      const ax = c.timeScale().timeToCoordinate(d.t1 as UTCTimestamp);
+      const ax = xAt(d.t1);
       const ay = s.priceToCoordinate(d.v1);
-      const bx = c.timeScale().timeToCoordinate(d.t2 as UTCTimestamp);
+      const bx = xAt(d.t2);
       const by = s.priceToCoordinate(d.v2);
       if (ax == null || ay == null || bx == null || by == null) continue;
 
@@ -769,7 +777,7 @@ export function MarketChart({
     for (const d of drawings.current) {
       if (d.kind !== 'pitchfork') continue;
       const pt = (t: number, v: number) => {
-        const x = c.timeScale().timeToCoordinate(t as UTCTimestamp);
+        const x = xAt(t);
         const y = s.priceToCoordinate(v);
         return x == null || y == null ? null : { x: x as number, y: y as number };
       };
@@ -790,7 +798,7 @@ export function MarketChart({
      * marks a moment, and a moment has no height. */
     for (const d of drawings.current) {
       if (d.kind !== 'vline' && d.kind !== 'cross') continue;
-      const cx = c.timeScale().timeToCoordinate(d.t1 as UTCTimestamp);
+      const cx = xAt(d.t1);
       if (cx == null) continue;
       const color = d.color ?? DRAW_COLOR;
       const width = d.width ?? 2;
@@ -863,13 +871,13 @@ export function MarketChart({
       if (d.kind !== 'trend') continue;
       if (d.id !== selectedRef.current?.id) continue;
       const reach = d.reach ?? 'segment';
-      const x1 =c.timeScale().timeToCoordinate(d.t1 as UTCTimestamp);
+      const x1 = xAt(d.t1);
       const y1 = s.priceToCoordinate(d.v1);
       if (x1 != null && y1 != null) hs.push({ id: `${d.id}:a`, x: x1 as number, y: y1 as number });
       // The second click is a real point on a segment; on a ray or an extended
       // line it only set the direction.
       if (reach === 'segment') {
-        const x2 = c.timeScale().timeToCoordinate(d.t2 as UTCTimestamp);
+        const x2 = xAt(d.t2);
         const y2 = s.priceToCoordinate(d.v2);
         if (x2 != null && y2 != null) hs.push({ id: `${d.id}:b`, x: x2 as number, y: y2 as number });
       }
@@ -883,7 +891,7 @@ export function MarketChart({
         [d.t1, d.v1, 'a'], [d.t2, d.v2, 'b'], [d.t3, d.v3, 'c'],
       ];
       for (const [t, v, key] of pts) {
-        const x = c.timeScale().timeToCoordinate(t as UTCTimestamp);
+        const x = xAt(t);
         const y = s.priceToCoordinate(v);
         if (x != null && y != null) hs.push({ id: `${d.id}:${key}`, x: x as number, y: y as number });
       }
@@ -1337,17 +1345,17 @@ export function MarketChart({
      * wide a bar is on screen. That keeps the anchor a real timestamp rather
      * than a pixel, which is what lets it survive a zoom. */
     const timeAtX = (x: number): number | null => {
-      const ts = chart.timeScale();
-      const onBar = ts.coordinateToTime(x);
-      if (onBar != null) return onBar as number;
       const bars = barsRef.current;
-      if (bars.length < 2) return null;
-      const last = bars[bars.length - 1].time as number;
-      const step = last - (bars[bars.length - 2].time as number);
-      const lastX = ts.timeToCoordinate(last as UTCTimestamp);
-      const spacing = ts.options().barSpacing;
-      if (lastX == null || step <= 0 || !spacing) return null;
-      return last + Math.round((x - (lastX as number)) / spacing) * step;
+      const L = chart.timeScale().coordinateToLogical(x);
+      return L === null ? null : logicalToTime(bars, inferBarSecs(bars), Math.round(L));
+    };
+    /** Pane x of a stored time, through the bar slots (see bar-time.ts). */
+    const xAt = (t: number): number | null => {
+      const bars = barsRef.current;
+      const L = timeToLogical(bars, inferBarSecs(bars), t);
+      if (L === null) return null;
+      const x = chart.timeScale().logicalToCoordinate(L as Logical);
+      return x === null ? null : Number(x);
     };
 
     const onClick = (param: MouseEventParams) => {
@@ -1486,8 +1494,8 @@ export function MarketChart({
       }
       for (const d of drawings.current) {
         if (d.kind !== 'trend' || d.reach === 'hray') continue;
-        const x1 = c.timeScale().timeToCoordinate(d.t1 as UTCTimestamp);
-        const x2 = c.timeScale().timeToCoordinate(d.t2 as UTCTimestamp);
+        const x1 = xAt(d.t1);
+        const x2 = xAt(d.t2);
         const y1 = s.priceToCoordinate(d.v1), y2 = s.priceToCoordinate(d.v2);
         if (x1 == null || x2 == null || y1 == null || y2 == null) continue;
         if (distToSeg(x, y, x1, y1, x2, y2) <= HIT) return { id: d.id, kind: 'trend' };
@@ -1568,9 +1576,9 @@ export function MarketChart({
           if (bandRef.current) { bandRef.current = null; setBand(null); }
         } else if (t === 'pitchfork') {
           const px = (p: { time: Time; value: number }): Pt | null => {
-            const ax = c.timeScale().timeToCoordinate(p.time as UTCTimestamp);
+            const ax = xAt(p.time as number);
             const ay = s.priceToCoordinate(p.value);
-            return ax == null || ay == null ? null : { x: ax as number, y: ay as number };
+            return ax == null || ay == null ? null : { x: ax, y: ay as number };
           };
           const pts = forkPts.current;
           if (pts.length === 2) {
@@ -1598,10 +1606,10 @@ export function MarketChart({
             if (bandRef.current) { bandRef.current = null; setBand(null); }
           }
         } else if (twoClick && st) {
-          const ax = c.timeScale().timeToCoordinate(st.time as UTCTimestamp);
+          const ax = xAt(st.time as number);
           const ay = s.priceToCoordinate(st.value);
           const next = ax != null && ay != null
-            ? { x1: ax as number, y1: ay as number, x2: x, y2: y, flat: false }
+            ? { x1: ax, y1: ay as number, x2: x, y2: y, flat: false }
             : null;
           bandRef.current = next;
           setBand(next);
@@ -1641,17 +1649,32 @@ export function MarketChart({
           if (d.kind === 'trend' || d.kind === 'pitchfork') d.v2 += dv;
           if (d.kind === 'pitchfork') d.v3 += dv;
         }
-        const tNow = c.timeScale().coordinateToTime(x), tLast = c.timeScale().coordinateToTime(dg.lastX);
-        if (tNow != null && tLast != null) {
-          const dt = (tNow as number) - (tLast as number);
-          d.t1 += dt;
-          if (d.kind === 'trend' || d.kind === 'pitchfork') d.t2 += dt;
-          if (d.kind === 'pitchfork') d.t3 += dt;
+        /* Moved by whole bar slots, not by time: coordinateToTime is null right
+         * of the last candle, so a time delta stopped the drag there. */
+        const lNow = c.timeScale().coordinateToLogical(x);
+        const lLast = c.timeScale().coordinateToLogical(dg.lastX);
+        if (lNow !== null && lLast !== null) {
+          const dL = Math.round(lNow) - Math.round(lLast);
+          if (dL !== 0) {
+            const bars = barsRef.current;
+            const secs = inferBarSecs(bars);
+            const shift = (t: number): number => {
+              const L = timeToLogical(bars, secs, t);
+              const moved = L === null ? null : logicalToTime(bars, secs, L + dL);
+              return moved === null ? t : Math.round(moved);
+            };
+            d.t1 = shift(d.t1);
+            if (d.kind === 'trend' || d.kind === 'pitchfork') d.t2 = shift(d.t2);
+            if (d.kind === 'pitchfork') d.t3 = shift(d.t3);
+            // Only advance the reference when a whole slot moved, so slow
+            // sub-slot drags accumulate instead of rounding away.
+            dg.lastX = x;
+          }
         }
         // The overlay owns diagonals now, so moving one is just re-measuring.
         syncLabels();
       }
-      dg.lastX = x; dg.lastY = y;
+      dg.lastY = y;
       el!.style.cursor = 'grabbing';
     };
     const endDrag = (e: PointerEvent) => {
