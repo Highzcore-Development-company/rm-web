@@ -1395,6 +1395,10 @@ export function MarketChart({
         syncLabels();
       } else if (t === 'trend' || t === 'ray' || t === 'extended' || t === 'info' || t === 'angle') {
         // Two clicks. The first is remembered; the second completes it.
+        // A second point on the very same spot would be a zero-length line:
+        // ignore it and keep the draft pending for the next distinct click.
+        if (trendStart.current && trendStart.current.time === time
+          && Math.abs(trendStart.current.value - price) < 1e-12) return;
         if (!trendStart.current) {
           trendStart.current = { time: time as Time, value: price };
           setDrawPending(true);
@@ -1419,6 +1423,8 @@ export function MarketChart({
         // Three clicks: pivot, then the two ends of the swing off it. The first
         // two are only remembered — nothing is drawn until the third, because
         // two points do not yet describe a fork.
+        const prevPt = forkPts.current.at(-1);
+        if (prevPt && prevPt.time === time && Math.abs(prevPt.value - price) < 1e-12) return;
         forkPts.current.push({ time: time as Time, value: price });
         if (forkPts.current.length < 3) { setDrawPending(true); return; }
         const [a, b, c3] = forkPts.current;
@@ -1693,7 +1699,9 @@ export function MarketChart({
       if (press && !drag.current && toolRef.current !== 'cursor'
         && e.type === 'pointerup' && e.button === 0 && e.pointerId === press.id) {
         const { x, y } = localXY(e);
-        if (Math.hypot(x - press.x, y - press.y) <= 5) placeAt(x, y);
+        const pane = chart.paneSize();
+        if (x >= 0 && x <= pane.width && y >= 0 && y <= pane.height
+          && Math.hypot(x - press.x, y - press.y) <= 5) placeAt(x, y);
       }
       if (!drag.current) return;
       drag.current = null;
@@ -1898,8 +1906,14 @@ export function MarketChart({
         // extend the last historical bar (epoch buckets don't match broker weeks/months).
         if (!lb) {
           liveBar.current = { time: bucket, open: price, high: price, low: price, close: price };
+          // The projection grid (bar-time.ts) must see every bar the series has,
+          // or a point placed on a live bar after a gap lands one slot off on reload.
+          barsRef.current = [...barsRef.current, liveBar.current];
         } else if (secs <= INTRADAY_MAX_SECS && (bucket as number) > (lb.time as number)) {
           liveBar.current = { time: bucket, open: price, high: price, low: price, close: price };
+          // The projection grid (bar-time.ts) must see every bar the series has,
+          // or a point placed on a live bar after a gap lands one slot off on reload.
+          barsRef.current = [...barsRef.current, liveBar.current];
         } else {
           liveBar.current = { time: lb.time, open: lb.open, high: Math.max(lb.high, price), low: Math.min(lb.low, price), close: price };
         }
