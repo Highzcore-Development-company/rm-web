@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { MarketChart } from "@/components/workspace/market-chart";
+import { useLiveMarkets } from "@/components/workspace/use-live-markets";
 import { LogoLink } from "@/components/logo";
 import type { BotMarket, BotSettings, BotTrade } from "@/lib/workspace/types";
 
@@ -106,7 +107,7 @@ function Ago({ iso, suffix = true }: { iso: string | null | undefined; suffix?: 
 }
 
 export function Desk({
-  markets,
+  markets: initialMarkets,
   closedTrades,
   settings,
   connected,
@@ -115,6 +116,7 @@ export function Desk({
   centre = null,
   embedded = false,
 }: {
+  /** Server-rendered snapshot; useLiveMarkets takes over once mounted. */
   markets: BotMarket[];
   closedTrades: BotTrade[];
   settings: BotSettings | null;
@@ -139,6 +141,11 @@ export function Desk({
    */
   embedded?: boolean;
 }) {
+  // Live, not the snapshot the page was rendered with. The feed's job is
+  // showing what the bot is doing now; a frozen row is worse than no row,
+  // because it looks current.
+  const markets = useLiveMarkets(initialMarkets);
+
   // Desktop: both rails open. Mobile: both closed over the chart.
   const [scoraOpen, setScoraOpen] = useState(true);
   const [feedOpen, setFeedOpen] = useState(true);

@@ -53,7 +53,19 @@ export function createRmServerBrowserClient() {
   const key = process.env.NEXT_PUBLIC_RM_SERVER_SUPABASE_ANON_KEY;
 
   if (!url || !key) {
-    return { from: () => stubQuery() } as unknown as ReturnType<typeof createBrowserClient>;
+    // `channel` too, not just `from`: the Activities feed subscribes to
+    // realtime on mount, and a stub without it would throw on the first
+    // render rather than degrading to an empty desk.
+    const channel = {
+      on: () => channel,
+      subscribe: () => channel,
+      unsubscribe: () => Promise.resolve("ok"),
+    };
+    return {
+      from: () => stubQuery(),
+      channel: () => channel,
+      removeChannel: () => Promise.resolve("ok"),
+    } as unknown as ReturnType<typeof createBrowserClient>;
   }
 
   return createBrowserClient(url, key);
