@@ -175,6 +175,29 @@ export type ServiceDatabase = {
        * P2-506. Append-only: the row IS the idempotency guard, so there is
        * nothing to update and Update is never, as with sent_reminders.
        */
+      admin_invitations: {
+        Row: AdminInvitation;
+        Insert: Pick<
+          AdminInvitation,
+          "email" | "role" | "token_hash" | "invited_by"
+        > &
+          Partial<AdminInvitation>;
+        Update: Partial<AdminInvitation>;
+        Relationships: [];
+      };
+      /** Append-only. Update is never: a sign-in record that can be edited
+       *  answers nothing when it matters. */
+      admin_logins: {
+        Row: {
+          id: number;
+          user_id: string;
+          signed_in_at: string;
+          seen_at: string;
+        };
+        Insert: { user_id: string; signed_in_at: string };
+        Update: never;
+        Relationships: [];
+      };
       sent_notifications: {
         Row: {
           investor_id: string;
@@ -230,6 +253,26 @@ export type AppAdmin = {
   created_by: string | null;
   last_seen_at: string | null;
   created_at: string;
+  /** Staff identity, independent of investors. See the staff_accounts migration. */
+  accepted_at: string | null;
+  email_verified_at: string | null;
+  invited_by: string | null;
+  last_login_at: string | null;
+  login_count: number;
+};
+
+/** A pending staff invitation. The token is stored hashed, never raw. */
+export type AdminInvitation = {
+  id: string;
+  email: string;
+  role: string;
+  token_hash: string;
+  invited_by: string;
+  created_at: string;
+  expires_at: string;
+  accepted_at: string | null;
+  accepted_by: string | null;
+  revoked_at: string | null;
 };
 
 /** Mirrors the crypto_invoices migration. Amounts in micro-USDT, integer. */

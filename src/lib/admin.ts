@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { getInvestor } from "@/lib/investors";
+import { createServiceClient } from "@/lib/supabase/service";
 
 /**
  * A2 — admin identity and permissions.
@@ -30,6 +30,8 @@ export type AdminIdentity = {
   isSuper: boolean;
   mustChangePassword: boolean;
   permissions: Permission[];
+  /** From the auth system. The idempotency key for the login log. */
+  lastSignInAt: string | null;
 };
 
 /** The signed-in admin, or null. Disabled admins are not admins. */
@@ -41,17 +43,26 @@ export async function getAdmin(): Promise<AdminIdentity | null> {
 
   const { data, error } = await supabase
     .from("app_admins")
-    .select("role, must_change_password, disabled_at, admin_roles(permissions, is_super)")
+    .select(
+      "role, must_change_password, disabled_at, accepted_at, email_verified_at, admin_roles(permissions, is_super)",
+    )
     .eq("user_id", auth.user.id)
     .maybeSingle();
 
   if (error || !data || data.disabled_at) return null;
 
-  // Sign-up is auto-confirmed, so the bootstrap address is an admin the moment
-  // it registers, before anyone has proved they own the inbox. Our own
-  // verification flag has to hold as well, for every check below.
-  const investor = await getInvestor(supabase);
-  if (!investor?.email_verified_at) return null;
+  // Staff identity stands on its own: app_admins carries accepted_at and
+  // email_verified_at, so a colleague needs no investors row. Before this,
+  // every admin had to be a customer, which is why staff showed up in the
+  // user list indistinguishable from people paying us.
+  //
+  // Both are required. Invited-but-not-accepted holds nothing, and an address
+  // nobody has proved they can read is not an identity — sign-up is
+  // auto-confirmed, so Supabase's own flag proves nothing here.
+  //
+  // Mirrors is_admin() in 20261008120000_staff_accounts.sql. If one changes,
+  // change both.
+  if (!data.accepted_at || !data.email_verified_at) return null;
 
   const role = data.admin_roles as unknown as {
     permissions: string[];
@@ -66,6 +77,7 @@ export async function getAdmin(): Promise<AdminIdentity | null> {
     role: data.role,
     isSuper,
     mustChangePassword: data.must_change_password,
+    lastSignInAt: auth.user.last_sign_in_at ?? null,
     // Super admin holds everything, including permissions no role lists.
     permissions: isSuper
       ? [...PERMISSIONS]
@@ -126,4 +138,53 @@ export async function recordAdminAction(
   // it was describing — but it must be loud, because an action nobody can
   // account for is the thing audit exists to prevent.
   if (error) console.error("[admin] audit write failed:", action, error.message);
+}
+
+/**
+ * Record that this staff member signed in.
+ *
+ * Keyed on auth.users.last_sign_in_at rather than "now", which makes it
+ * idempotent for free: twenty page loads inside one session all carry the same
+ * timestamp and collide on the unique constraint, so the row is written once
+ * per actual sign-in. Writing "now" on every request would turn a login log
+ * into a page-view log and tell nobody anything.
+ *
+ * Deliberately never throws and never blocks. This is an audit convenience,
+ * and a logging failure must not be able to keep staff out of the panel.
+ */
+export async function recordAdminLogin(
+  userId: string,
+  lastSignInAt: string | null,
+): Promise<void> {
+  if (!lastSignInAt) return;
+
+  try {
+    const service = createServiceClient();
+
+    const { error } = await service
+      .from("admin_logins")
+      .insert({ user_id: userId, signed_in_at: lastSignInAt });
+
+    // Conflict means this sign-in is already recorded — the common case on
+    // every page load after the first. Nothing to do, and not an error.
+    if (error) return;
+
+    // Only reached on a genuinely new sign-in, so the counter counts logins.
+    const { data: current } = await service
+      .from("app_admins")
+      .select("login_count")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    await service
+      .from("app_admins")
+      .update({
+        last_login_at: lastSignInAt,
+        last_seen_at: new Date().toISOString(),
+        login_count: (current?.login_count ?? 0) + 1,
+      })
+      .eq("user_id", userId);
+  } catch (err) {
+    console.error("[admin] could not record login:", err);
+  }
 }

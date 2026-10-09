@@ -7,7 +7,7 @@ import { SignOutButton } from "@/components/auth/sign-out-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AdminNav } from "@/components/admin/admin-nav";
 import { Container } from "@/components/ui";
-import { getAdmin } from "@/lib/admin";
+import { getAdmin, recordAdminLogin } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +31,12 @@ export default async function AdminLayout({
   const admin = await getAdmin();
   if (!admin) notFound();
 
+  // Staff login activity. Keyed on the auth system's own last_sign_in_at, so
+  // this writes once per actual sign-in no matter how many admin pages get
+  // loaded in the session. Never throws: an audit convenience must not be
+  // able to keep staff out of the panel.
+  await recordAdminLogin(admin.userId, admin.lastSignInAt);
+
   // A1. A seeded password is a known password, and this account can disable
   // users and read financials. Blocked here rather than on each page, so a
   // route added later is covered the moment it exists.
@@ -49,6 +55,9 @@ export default async function AdminLayout({
       ? [{ href: "/app/admin/bot", label: t("adminBot"), icon: "bot" as const }]
       : []),
     { href: "/app/admin/links", label: t("adminLinks"), icon: "links" as const },
+    ...(admin.permissions.includes("bot.view")
+      ? [{ href: "/app/admin/trading", label: t("adminTrading"), icon: "trading" as const }]
+      : []),
     ...(admin.permissions.includes("admins.manage")
       ? [{ href: "/app/admin/admins", label: t("adminAdmins"), icon: "admins" as const }]
       : []),

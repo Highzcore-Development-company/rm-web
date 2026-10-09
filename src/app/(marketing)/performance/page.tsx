@@ -24,6 +24,13 @@ function pct(fraction: number, signed = false): string {
   return signed && fraction > 0 ? `+${value}%` : `${value}%`;
 }
 
+/** A signed figure. The sign is typed out, not left to toFixed, so a loss reads as a loss. */
+function signed(value: number, digits: number): string {
+  const text = Math.abs(value).toFixed(digits);
+  if (Number(text) === 0) return text;
+  return `${value < 0 ? "−" : "+"}${text}`;
+}
+
 /**
  * P2-402 — a headline stat with its definition.
  *
@@ -143,12 +150,17 @@ function TradeTable({
               </td>
               <td
                 className={`py-3 text-right tabular-nums ${
-                  t.resultR >= 0 ? "text-chart-up" : "text-chart-down"
+                  (t.resultR ?? t.resultPct) >= 0
+                    ? "text-chart-up"
+                    : "text-chart-down"
                 }`}
               >
-                <span aria-hidden="true">{t.resultR >= 0 ? "▲ " : "▼ "}</span>
-                {t.resultR > 0 ? "+" : ""}
-                {t.resultR.toFixed(1)}R
+                <span aria-hidden="true">
+                  {(t.resultR ?? t.resultPct) >= 0 ? "▲ " : "▼ "}
+                </span>
+                {t.resultR !== null
+                  ? `${signed(t.resultR, 1)}R`
+                  : `${signed(t.resultPct * 100, 2)}%`}
               </td>
               <td className="py-3 text-fg-muted">
                 {new Date(t.closedAt).toLocaleDateString("en-GB")}
@@ -190,7 +202,11 @@ export default async function PerformancePage() {
     ["totalReturn", pct(summary.totalReturn, true)],
     ["maxDrawdown", `−${pct(summary.maxDrawdown)}`],
     ["winRate", pct(summary.winRate)],
-    ["profitFactor", summary.profitFactor.toFixed(2)],
+    // Null means no losing trade yet; a dash, not a made-up number.
+    [
+      "profitFactor",
+      summary.profitFactor === null ? "—" : summary.profitFactor.toFixed(2),
+    ],
     ["tradeCount", String(summary.tradeCount)],
     ["monthsLive", String(summary.monthsLive)],
   ] as const;

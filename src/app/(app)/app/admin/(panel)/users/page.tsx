@@ -106,6 +106,15 @@ export default async function AdminUsersPage({
                       >
                         {row.email}
                       </Link>
+                      {/* An admin is an in-house person who was invited into
+                          this panel — not every colleague is one. They may
+                          also be a customer, so the badge is how you avoid
+                          chasing a teammate for a renewal. */}
+                      {row.isAdmin ? (
+                        <span className="ml-2 rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-accent">
+                          {t("adminBadge")}
+                        </span>
+                      ) : null}
                       {row.disabledAt ? (
                         <span className="ml-2 rounded-full border border-chart-down/40 px-2 py-0.5 text-[10px] uppercase tracking-wide text-chart-down">
                           {t("state.disabled")}

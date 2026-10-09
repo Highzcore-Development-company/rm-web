@@ -1,13 +1,19 @@
 /**
  * Performance feed (E4).
  *
- * The real source is the bot's equity snapshots in Supabase, which are known to
- * stop writing silently for 24h+ (P2-704, Victor). Until that is fixed, every
- * getter returns null and every surface renders its unavailable state.
+ * The real source is the bot's equity snapshots and closed trades on rm-server,
+ * read and computed in performance-feed.ts. The snapshots are known to stop
+ * writing silently for 24h+ (P2-704, Victor), so the feed goes dark rather than
+ * publish a record it cannot vouch for: a gap in the snapshots, trades closing
+ * after the last one, or money moving that no trade explains all make every
+ * getter return null, and every surface renders its unavailable state.
  *
  * Deliberate: a headline figure that is stale or zero is worse than no figure.
  * Callers must handle null — do not default to 0.
  */
+
+import { cache } from "react";
+import { loadPerformanceBundle } from "@/lib/performance-feed";
 
 export type PerformanceSummary = {
   /** Total return as a fraction, e.g. 0.095 for +9.5%. */
@@ -15,7 +21,8 @@ export type PerformanceSummary = {
   /** Max drawdown as a positive fraction, e.g. 0.12 for -12%. */
   maxDrawdown: number;
   winRate: number;
-  profitFactor: number;
+  /** Null when there has been no losing trade: the ratio is undefined, not infinite. */
+  profitFactor: number | null;
   tradeCount: number;
   monthsLive: number;
   /** When the underlying snapshot was taken. Used to detect staleness. */
@@ -47,8 +54,10 @@ export type PublicTrade = {
   side: "buy" | "sell";
   /** Hours held. */
   durationHours: number;
-  /** Result in R multiples. Signed. */
-  resultR: number;
+  /** Result in R multiples. Signed. Null when the trade had no stop to measure it against. */
+  resultR: number | null;
+  /** Net result as a fraction of the account before the trade. */
+  resultPct: number;
   closedAt: string;
 };
 
@@ -123,14 +132,20 @@ function sampleTrades(): PublicTrade[] {
       side: rand() > 0.5 ? ("buy" as const) : ("sell" as const),
       durationHours: Math.round(rand() * 40) + 1,
       resultR: Math.round(r * 10) / 10,
+      resultPct: Math.round(r * 10) / 1000,
       closedAt: new Date(Date.UTC(2026, 7, 20) - i * 7_200_000).toISOString(),
     };
   });
 }
 
+/** One read per request, shared by the four getters below. */
+const bundle = cache(() => loadPerformanceBundle());
+
 export async function getPerformanceSummary(): Promise<PerformanceSummary | null> {
-  // TODO(E4): read from Supabase once P2-704 lands and the feed is reliable.
-  if (!SHOW_SAMPLE) return null;
+  // Outside development this is the real record, or null. See
+  // performance-feed.ts for the source and performance-math.ts for the health
+  // rules that decide when it goes dark.
+  if (!SHOW_SAMPLE) return (await bundle())?.summary ?? null;
 
   const points = sampleEquity();
   const first = points[0].equity;
@@ -144,17 +159,20 @@ export async function getPerformanceSummary(): Promise<PerformanceSummary | null
   }
 
   const trades = sampleTrades();
-  const wins = trades.filter((t) => t.resultR > 0);
-  const grossWin = wins.reduce((a, t) => a + t.resultR, 0);
+  // The sample always has a stop, so resultR is set; `?? 0` is for the type.
+  const wins = trades.filter((t) => (t.resultR ?? 0) > 0);
+  const grossWin = wins.reduce((a, t) => a + (t.resultR ?? 0), 0);
   const grossLoss = Math.abs(
-    trades.filter((t) => t.resultR < 0).reduce((a, t) => a + t.resultR, 0),
+    trades
+      .filter((t) => (t.resultR ?? 0) < 0)
+      .reduce((a, t) => a + (t.resultR ?? 0), 0),
   );
 
   return {
     totalReturn: last / first - 1,
     maxDrawdown: maxDd,
     winRate: wins.length / trades.length,
-    profitFactor: grossLoss === 0 ? grossWin : grossWin / grossLoss,
+    profitFactor: grossLoss === 0 ? null : grossWin / grossLoss,
     tradeCount: trades.length,
     monthsLive: sampleMonthly(points).length,
     asOf: new Date().toISOString(),
@@ -162,13 +180,15 @@ export async function getPerformanceSummary(): Promise<PerformanceSummary | null
 }
 
 export async function getEquityCurve(): Promise<EquityPoint[] | null> {
-  return SHOW_SAMPLE ? sampleEquity() : null;
+  return SHOW_SAMPLE ? sampleEquity() : ((await bundle())?.equity ?? null);
 }
 
 export async function getMonthlyReturns(): Promise<MonthlyReturn[] | null> {
-  return SHOW_SAMPLE ? sampleMonthly(sampleEquity()) : null;
+  return SHOW_SAMPLE
+    ? sampleMonthly(sampleEquity())
+    : ((await bundle())?.monthly ?? null);
 }
 
 export async function getRecentTrades(): Promise<PublicTrade[] | null> {
-  return SHOW_SAMPLE ? sampleTrades() : null;
+  return SHOW_SAMPLE ? sampleTrades() : ((await bundle())?.trades ?? null);
 }

@@ -351,3 +351,38 @@ export function botSwitchedOffEmail(input: {
     ),
   };
 }
+
+/**
+ * A staff invitation.
+ *
+ * Names who sent it and what it grants, because an unexpected "you have been
+ * made an admin" email is indistinguishable from a phishing attempt — and this
+ * one asks the recipient to click a link and sign in.
+ */
+export function staffInviteEmail(input: {
+  invitedBy: string;
+  roleLabel: string;
+  acceptUrl: string;
+  expiresAt: Date;
+}) {
+  const when = input.expiresAt.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
+  const lead = `${input.invitedBy} has invited you to the Highzcore admin panel as ${input.roleLabel}.`;
+  const how =
+    "Open the link below and sign in with your Highzcore account. If you do not have one, create it with this same email address first — the invitation only works for the address it was sent to.";
+
+  return {
+    subject: "You have been invited to the Highzcore admin panel",
+    text: `${lead}\n\n${how}\n\nAccept: ${input.acceptUrl}\n\nThe invitation expires on ${when}. If you were not expecting this, ignore it and tell ${input.invitedBy}.\n`,
+    html: layout(
+      `<p style="margin:0 0 16px;font-size:16px;line-height:1.5">${lead}</p>
+<p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:#444">${how}</p>
+<a href="${input.acceptUrl}" style="display:inline-block;margin-top:8px;background:#FFB020;color:#0A0A0A;text-decoration:none;font-weight:600;font-size:14px;padding:12px 20px;border-radius:8px">Accept invitation</a>
+<p style="margin:24px 0 0;font-size:13px;line-height:1.6;color:#666">The invitation expires on <strong>${when}</strong>. If you were not expecting this, ignore it and tell ${input.invitedBy}.</p>`,
+    ),
+  };
+}
