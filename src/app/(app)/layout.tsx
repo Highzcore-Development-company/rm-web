@@ -77,7 +77,26 @@ export default async function AppLayout({
       // P2-104. The email form has its own checkbox, but Google signup never
       // saw one — and a disclosure that one of two routes in can skip is not
       // "shown during signup". Checked here so the route taken cannot matter.
-      if (investor && !investor.risk_acknowledged_at) {
+      //
+      // INVESTORS ONLY. Staff are not asked to acknowledge the risk of
+      // trading their own money, because they are not trading it: the bot
+      // trades one master account and an admin configures it. Every signed-in
+      // user gets an investors row — ensureInvestor above creates one, and
+      // getAdmin() needs it for the email-verification flag — so having a row
+      // is not evidence that someone is an investor. Membership of app_admins
+      // is what distinguishes them.
+      //
+      // The verification gate above still applies to admins. That one is
+      // about proving you own the inbox, which matters more for an account
+      // that can disable users and read financials, not less.
+      const { data: adminRow } = await supabase
+        .from("app_admins")
+        .select("user_id")
+        .eq("user_id", auth.user.id)
+        .is("disabled_at", null)
+        .maybeSingle();
+
+      if (!adminRow && investor && !investor.risk_acknowledged_at) {
         redirect("/app/risk-acknowledgement");
       }
     }

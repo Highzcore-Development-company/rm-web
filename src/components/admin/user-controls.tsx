@@ -12,7 +12,7 @@ import {
 } from "@/app/(app)/app/admin/(panel)/users/actions";
 import { useToast } from "@/components/toast";
 import { Card } from "@/components/ui";
-import { inputClass } from "@/components/auth/auth-card";
+import { inputClass } from "@/components/auth/form-bits";
 
 /** A5 — the editable fields, and only those. */
 export function EditUser({

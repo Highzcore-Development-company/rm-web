@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { acknowledgeRisk } from "@/app/(app)/app/risk-acknowledgement/actions";
-import { FormError, submitClass } from "@/components/auth/auth-card";
+import { FormError, submitClass } from "@/components/auth/form-bits";
 
 export function RiskAcknowledgement() {
   const t = useTranslations("auth.signup");
