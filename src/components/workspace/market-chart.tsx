@@ -1714,12 +1714,18 @@ export function MarketChart({
     el?.addEventListener('pointermove', onMove);
     el?.addEventListener('pointerup', endDrag);
     el?.addEventListener('pointercancel', endDrag);
+    // While a drawing is being dragged the library stops cancelling touch
+    // moves (handleScroll is off), so without this the page pans and the
+    // browser fires pointercancel a few px into the drag.
+    const onTouchMove = (e: TouchEvent) => { if (drag.current) e.preventDefault(); };
+    el?.addEventListener('touchmove', onTouchMove, { passive: false });
 
     return () => {
       el?.removeEventListener('pointerdown', onDown);
       el?.removeEventListener('pointermove', onMove);
       el?.removeEventListener('pointerup', endDrag);
       el?.removeEventListener('pointercancel', endDrag);
+      el?.removeEventListener('touchmove', onTouchMove);
       chart.remove(); chartRef.current = null; seriesRef.current = null;
     };
   }, []);
@@ -1950,7 +1956,7 @@ export function MarketChart({
         <div
           ref={wrapRef}
           className={`h-full w-full transition-opacity ${showEmpty ? 'opacity-0' : 'opacity-100'}`}
-          style={tool !== 'cursor' ? { cursor: 'crosshair', touchAction: 'none' } : { touchAction: 'none' }}
+          style={tool !== 'cursor' ? { cursor: 'crosshair', touchAction: 'none' } : undefined}
         />
 
         {/* Diagonals and their handles. Clipped by the SVG viewport, which is

@@ -204,6 +204,12 @@ describe("the sample floor", () => {
     ).toBe(true);
   });
 
+  it("never publishes with no closed trade, even when asked for none", () => {
+    expect(
+      computePerformance(ledger(T, 2, []), [], { now: NOW, minTrades: 0 }),
+    ).toEqual({ ok: false, problem: "too_few_trades" });
+  });
+
   it("still refuses 29 trades when asked for 30", () => {
     const wins = (n: number) => Array.from({ length: n }, () => 10);
     expect(run(wins(29), 30)).toEqual({ ok: false, problem: "too_few_trades" });
@@ -297,15 +303,106 @@ describe("the feed's health", () => {
         { now: NOW, minTrades: 1, start: iso(T - 2 * HOUR) },
       ),
     );
+    const pair = [snap(iso(T), 10_000), snap(iso(T + HOUR), 10_000)];
+    note(
+      computePerformance(pair, [anchor(T - HOUR)], {
+        now: NOW,
+        minTrades: 1,
+        start: "not a date",
+      }),
+    );
+    note(
+      computePerformance([snap(iso(T), NaN), pair[1]], [anchor(T - HOUR)], {
+        now: NOW,
+        minTrades: 1,
+      }),
+    );
+    note(
+      computePerformance(
+        [snap(iso(T), 0), snap(iso(T + HOUR), 0)],
+        [anchor(T - HOUR)],
+        { now: NOW, minTrades: 1, start: iso(T - 2 * HOUR) },
+      ),
+    );
+    note(
+      computePerformance(
+        [snap(iso(NOW - HOUR), 10_000), snap(iso(NOW + HOUR), 10_000)],
+        [anchor(NOW - 90 * 60_000), trade({ close_ts: iso(NOW + 30 * 60_000) })],
+        { now: NOW, minTrades: 1, start: iso(NOW - 2 * HOUR) },
+      ),
+    );
     expect([...problems].sort()).toEqual(
       [
         "cash_flow",
         "gap",
+        "invalid_data",
+        "invalid_start",
+        "non_positive_balance",
         "too_few_snapshots",
         "too_few_trades",
         "trade_after_snapshot",
+        "trade_in_future",
       ].sort(),
     );
+  });
+
+  it("says which unreadable thing it is, not that snapshots are missing", () => {
+    const snaps = [snap(iso(T), 10_000), snap(iso(T + HOUR), 10_000)];
+    const trades = [anchor(T - HOUR)];
+    expect(
+      computePerformance(snaps, trades, {
+        now: NOW,
+        minTrades: 1,
+        start: "not a date",
+      }),
+    ).toEqual({ ok: false, problem: "invalid_start" });
+    expect(
+      computePerformance([snap(iso(T), NaN), snap(iso(T + HOUR), 10_000)], trades, {
+        now: NOW,
+        minTrades: 1,
+      }),
+    ).toEqual({ ok: false, problem: "invalid_data" });
+  });
+
+  it("refuses an opening balance that is not above zero", () => {
+    const snaps = [snap(iso(T), 0), snap(iso(T + HOUR), 0)];
+    expect(
+      computePerformance(snaps, [anchor(T - HOUR)], {
+        now: NOW,
+        minTrades: 1,
+        start: iso(T - 2 * HOUR),
+      }),
+    ).toEqual({ ok: false, problem: "non_positive_balance" });
+  });
+
+  it("refuses a record whose realised balance reaches zero along the way", () => {
+    const snaps = [snap(iso(T), 10_000), snap(iso(T + 2 * HOUR), 0)];
+    const trades = [
+      anchor(T - HOUR),
+      trade({ close_ts: iso(T + HOUR), pnl: -10_000 }),
+    ];
+    expect(
+      computePerformance(snaps, trades, {
+        now: NOW,
+        minTrades: 1,
+        start: iso(T - 2 * HOUR),
+      }),
+    ).toEqual({ ok: false, problem: "non_positive_balance" });
+  });
+
+  it("refuses a trade that closed after the clock we were given", () => {
+    const snaps = [snap(iso(NOW - HOUR), 10_000), snap(iso(NOW + HOUR), 10_000)];
+    const trades = [
+      anchor(NOW - 90 * 60_000),
+      trade({ close_ts: iso(NOW + 30 * 60_000), pnl: 0 }),
+    ];
+    expect(
+      computePerformance(snaps, trades, {
+        now: NOW,
+        minTrades: 1,
+        start: iso(NOW - 2 * HOUR),
+      }),
+    ).toEqual({ ok: false, problem: "trade_in_future" });
   });
 });
 
