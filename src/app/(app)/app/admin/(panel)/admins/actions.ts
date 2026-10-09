@@ -3,18 +3,29 @@
 import { revalidatePath } from "next/cache";
 import { recordAdminAction, requirePermission } from "@/lib/admin";
 import { createServiceClient } from "@/lib/supabase/service";
+import { isEmailConfigured, sendEmail, staffInviteEmail } from "@/lib/email";
+import { envOr } from "@/lib/env";
+import {
+  generateInviteToken,
+  hashInviteToken,
+  inviteExpiry,
+  inviteUrl,
+} from "@/lib/staff-invite";
 
 export type AdminActionResult = { ok: true } | { ok: false; error: string };
 
 /**
  * A2 — managing who is an admin.
  *
- * ADDING IS PROMOTION, NOT CREATION. You cannot make an account for somebody
- * else here, on purpose. Creating one would mean choosing their password, and
- * the database now requires a verified email before any admin power works — a
- * verification only they can complete. So they sign up like anybody else, and
- * then they get promoted. The error says so plainly rather than failing with
- * "not found".
+ * INVITATION IS THE ONLY WAY IN. There is deliberately no way to make someone
+ * an admin directly: you enter their email, they receive a link, and THEY
+ * choose to accept it. Nobody acquires access to other people's money and a
+ * kill switch without an action of their own, and accepting the emailed link
+ * is also what proves they own the address.
+ *
+ * Being in-house does not make somebody an admin. Most colleagues never need
+ * to be one — a social media manager has no business in this panel — so there
+ * is no automatic promotion from "works here" to "is an admin".
  *
  * Every function refuses to act on YOUR OWN row. Not paternalism: an admin who
  * demotes or deletes themselves has locked themselves out of the page that
@@ -67,72 +78,6 @@ async function findUserByEmail(email: string) {
     if (users.length < 200) break;
   }
   return null;
-}
-
-export async function addAdmin(
-  email: string,
-  role: string,
-): Promise<AdminActionResult> {
-  const actor = await requirePermission("admins.manage");
-  if (!actor) return { ok: false, error: "forbidden" };
-
-  const service = createServiceClient();
-
-  // Only a super admin may create another one. Otherwise anyone holding
-  // admins.manage could mint an account that outranks them and cannot be
-  // disabled or deleted afterwards.
-  const { data: roleRow } = await service
-    .from("admin_roles")
-    .select("name, is_super")
-    .eq("name", role)
-    .maybeSingle();
-
-  if (!roleRow) return { ok: false, error: "unknown_role" };
-  if (roleRow.is_super && !actor.isSuper) {
-    return { ok: false, error: "super_only" };
-  }
-
-  const user = await findUserByEmail(email);
-  if (!user) return { ok: false, error: "no_account" };
-
-  const { data: investor } = await service
-    .from("investors")
-    .select("email_verified_at")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  // Said here rather than letting them be added and then silently refused by
-  // is_admin(). "I made them an admin and nothing works" is a worse half-hour
-  // than "they need to verify first".
-  if (!investor?.email_verified_at) {
-    return { ok: false, error: "not_verified" };
-  }
-
-  const { error } = await service.from("app_admins").insert({
-    user_id: user.id,
-    role,
-    // FALSE, deliberately. must_change_password exists for a password WE set —
-    // a seeded or invited account whose password is known to someone else.
-    // This person chose their own and we have never seen it, so forcing a
-    // change is friction that buys nothing.
-    must_change_password: false,
-    created_by: actor.userId,
-  });
-
-  if (error) {
-    // The unique constraint on user_id is the real check for "already an
-    // admin"; reading first and then inserting would race.
-    console.error("[admin/admins] add failed:", error.message);
-    return { ok: false, error: "already_admin" };
-  }
-
-  await recordAdminAction("admin.added", { type: "admin", id: user.id }, {
-    email: user.email,
-    role,
-  });
-
-  revalidatePath("/app/admin/admins");
-  return { ok: true };
 }
 
 export async function setAdminRole(
@@ -246,6 +191,129 @@ export async function removeAdmin(userId: string): Promise<AdminActionResult> {
   }
 
   await recordAdminAction("admin.removed", { type: "admin", id: userId });
+
+  revalidatePath("/app/admin/admins");
+  return { ok: true };
+}
+
+/**
+ * Invite someone to be staff.
+ *
+ * Replaces the old "promote an existing account" flow as the primary route in.
+ * The difference matters: promotion required the person to already be a
+ * CUSTOMER, because staff used to need an investors row. They no longer do, so
+ * an invitation can reach somebody who has never signed up — which is what
+ * inviting a colleague actually looks like.
+ *
+ * Nobody becomes staff by registering. The invite names the role, expires, and
+ * is the only thing that can create the app_admins row.
+ */
+export async function inviteStaff(
+  email: string,
+  role: string,
+): Promise<AdminActionResult> {
+  const actor = await requirePermission("admins.manage");
+  if (!actor) return { ok: false, error: "forbidden" };
+
+  if (!isEmailConfigured()) return { ok: false, error: "email_not_configured" };
+
+  const address = email.trim().toLowerCase();
+  if (!address.includes("@")) return { ok: false, error: "bad_email" };
+
+  const service = createServiceClient();
+
+  const { data: roleRow } = await service
+    .from("admin_roles")
+    .select("name, label, is_super")
+    .eq("name", role)
+    .maybeSingle();
+
+  if (!roleRow) return { ok: false, error: "unknown_role" };
+  if (roleRow.is_super && !actor.isSuper) {
+    return { ok: false, error: "super_only" };
+  }
+
+  // Already staff? Then this is a role change, not an invitation, and sending
+  // one would imply their access depends on clicking it.
+  const existing = await findUserByEmail(address);
+  if (existing) {
+    const { data: already } = await service
+      .from("app_admins")
+      .select("user_id")
+      .eq("user_id", existing.id)
+      .maybeSingle();
+    if (already) return { ok: false, error: "already_admin" };
+  }
+
+  const token = generateInviteToken();
+  const expiresAt = inviteExpiry();
+
+  const { error } = await service.from("admin_invitations").insert({
+    email: address,
+    role,
+    token_hash: hashInviteToken(token),
+    invited_by: actor.userId,
+    expires_at: expiresAt.toISOString(),
+  });
+
+  if (error) {
+    // The partial unique index allows one LIVE invitation per address, so a
+    // conflict here means one is already outstanding. Revoke it to reissue —
+    // otherwise two valid links with different roles could both be clicked.
+    console.error("[admin/admins] invite failed:", error.message);
+    return { ok: false, error: "invite_exists" };
+  }
+
+  try {
+    await sendEmail({
+      to: address,
+      ...staffInviteEmail({
+        invitedBy: actor.email ?? "An administrator",
+        roleLabel: roleRow.label as string,
+        acceptUrl: inviteUrl(
+          envOr(process.env.NEXT_PUBLIC_SITE_URL, "https://highzcore.com"),
+          token,
+        ),
+        expiresAt,
+      }),
+    });
+  } catch (err) {
+    // The row exists but the mail did not go. Revoke it rather than leave an
+    // invitation nobody can see but which blocks reissuing to this address.
+    console.error("[admin/admins] invite email failed:", err);
+    await service
+      .from("admin_invitations")
+      .update({ revoked_at: new Date().toISOString() })
+      .eq("token_hash", hashInviteToken(token));
+    return { ok: false, error: "email_failed" };
+  }
+
+  await recordAdminAction("admin.invited", { type: "admin" }, {
+    email: address,
+    role,
+  });
+
+  revalidatePath("/app/admin/admins");
+  return { ok: true };
+}
+
+/** Withdraw an invitation that has not been accepted. */
+export async function revokeInvite(id: string): Promise<AdminActionResult> {
+  const actor = await requirePermission("admins.manage");
+  if (!actor) return { ok: false, error: "forbidden" };
+
+  const { error } = await createServiceClient()
+    .from("admin_invitations")
+    .update({ revoked_at: new Date().toISOString() })
+    .eq("id", id)
+    .is("accepted_at", null);
+
+  if (error) {
+    console.error("[admin/admins] revoke failed:", error.message);
+    return { ok: false, error: "generic" };
+  }
+
+  await recordAdminAction("admin.invite_revoked", { type: "admin", id });
 
   revalidatePath("/app/admin/admins");
   return { ok: true };

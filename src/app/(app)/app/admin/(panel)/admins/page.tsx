@@ -3,7 +3,12 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { getAdmin, requirePermission } from "@/lib/admin";
 import { createServiceClient } from "@/lib/supabase/service";
-import { AddAdminForm, AdminRow } from "@/components/admin/admin-controls";
+import {
+  AdminRow,
+  InviteRow,
+  InviteStaffForm,
+} from "@/components/admin/admin-controls";
+import type { AdminInvitation } from "@/lib/supabase/types";
 
 export const metadata: Metadata = { title: "Admins", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -16,13 +21,26 @@ export default async function AdminsPage() {
   const me = await getAdmin();
   const service = createServiceClient();
 
-  const [{ data: rows }, { data: roles }] = await Promise.all([
-    service
-      .from("app_admins")
-      .select("user_id, role, disabled_at, must_change_password, created_at")
-      .order("created_at", { ascending: true }),
-    service.from("admin_roles").select("name, label, permissions, is_super"),
-  ]);
+  const [{ data: rows }, { data: roles }, { data: inviteRows }] =
+    await Promise.all([
+      service
+        .from("app_admins")
+        .select(
+          "user_id, role, disabled_at, must_change_password, created_at, last_login_at, login_count, accepted_at",
+        )
+        .order("created_at", { ascending: true }),
+      service.from("admin_roles").select("name, label, permissions, is_super"),
+      // Outstanding invitations only. Accepted ones are in the staff list
+      // below, and revoked ones are not waiting on anybody.
+      service
+        .from("admin_invitations")
+        .select("*")
+        .is("accepted_at", null)
+        .is("revoked_at", null)
+        .order("created_at", { ascending: false }),
+    ]);
+
+  const invitations = (inviteRows ?? []) as AdminInvitation[];
 
   // Emails live in auth.users, which PostgREST cannot join, so they are
   // fetched and matched here. Same approach as the user list.
@@ -36,6 +54,8 @@ export default async function AdminsPage() {
         role: row.role,
         disabled: Boolean(row.disabled_at),
         mustChangePassword: row.must_change_password,
+        lastLoginAt: row.last_login_at,
+        loginCount: row.login_count ?? 0,
       };
     }),
   );
@@ -54,12 +74,55 @@ export default async function AdminsPage() {
         {t("intro")}
       </p>
 
+      {/* INVITE FIRST. Staff no longer need a customer account, so an
+          invitation can reach somebody who has never signed up — which is what
+          inviting a colleague actually looks like. Promoting an existing
+          account is kept below for the case where they are already here. */}
       <section className="mt-10">
-        <h2 className="text-lg font-semibold">{t("add.title")}</h2>
+        <h2 className="text-lg font-semibold">{t("invite.title")}</h2>
         <div className="mt-4">
-          <AddAdminForm roles={roleOptions} canCreateSuper={me?.isSuper ?? false} />
+          <InviteStaffForm
+            roles={roleOptions}
+            canCreateSuper={me?.isSuper ?? false}
+          />
         </div>
       </section>
+
+      {invitations.length > 0 && (
+        <section className="mt-10">
+          <h2 className="text-lg font-semibold">{t("pending.title")}</h2>
+          <p className="mt-2 max-w-2xl text-sm text-fg-muted">
+            {t("pending.intro")}
+          </p>
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[36rem] border-collapse text-left text-sm">
+              <thead>
+                <tr className="border-b border-border text-xs uppercase tracking-wide text-fg-muted">
+                  <th scope="col" className="py-2 pr-4 font-medium">{t("cols.person")}</th>
+                  <th scope="col" className="py-2 pr-4 font-medium">{t("cols.role")}</th>
+                  <th scope="col" className="py-2 pr-4 font-medium">{t("cols.expires")}</th>
+                  <th scope="col" className="py-2 font-medium" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {invitations.map((invite) => (
+                  <InviteRow
+                    key={invite.id}
+                    invite={{
+                      id: invite.id,
+                      email: invite.email,
+                      role:
+                        roleOptions.find((r) => r.name === invite.role)?.label ??
+                        invite.role,
+                      expiresAt: invite.expires_at,
+                    }}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
       <section className="mt-12">
         <h2 className="text-lg font-semibold">{t("list.title")}</h2>
@@ -70,6 +133,7 @@ export default async function AdminsPage() {
                 <th scope="col" className="py-2 pr-4 font-medium">{t("cols.person")}</th>
                 <th scope="col" className="py-2 pr-4 font-medium">{t("cols.role")}</th>
                 <th scope="col" className="py-2 pr-4 font-medium">{t("cols.state")}</th>
+                <th scope="col" className="py-2 pr-4 font-medium">{t("cols.activity")}</th>
                 <th scope="col" className="py-2 font-medium" />
               </tr>
             </thead>

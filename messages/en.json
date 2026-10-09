@@ -609,7 +609,8 @@
       "admin": "Admin",
       "adminUsers": "Users",
       "adminBot": "Bot",
-      "adminAdmins": "Admins"
+      "adminAdmins": "Admins",
+      "adminTrading": "Trading P&L"
     },
     "account": {
       "title": "My account",
@@ -944,7 +945,13 @@
     "payments": "Payments",
     "paymentsPartial": "Card and transfer configured. Crypto on TESTNET — not real money.",
     "paymentsOff": "Not configured.",
-    "paymentsUp": "Card, transfer and crypto all live."
+    "paymentsUp": "Card, transfer and crypto all live.",
+    "liquidity": "Available liquidity",
+    "collectedTotal": "Collected, all time",
+    "inNgn": "Naira rails",
+    "inUsdt": "USDT rail",
+    "liquidityNote": "What we have recorded as collected from subscriptions, per rail, net of refunds. This is not a bank balance — it does not know about withdrawals, provider fees or anything moved by hand.",
+    "moneyNote": "Subscription income only. Trading profit and loss belongs to the investors whose accounts produced it and is never counted here — see Trading P&L."
   },
   "admin": {
     "changePassword": {
@@ -1055,7 +1062,14 @@
       "bad_date": "That is not a valid date.",
       "not_confirmed": "Only a confirmed payment has a term to move.",
       "generic": "That did not work. Try again."
-    }
+    },
+    "filters": {
+      "audience": "Who"
+    },
+    "audienceAll": "Everyone",
+    "audienceCustomers": "Customers only",
+    "adminBadge": "Admin",
+    "audienceAdmins": "Admins only"
   },
   "adminBot": {
     "title": "Bot",
@@ -1119,22 +1133,16 @@
   },
   "adminAdmins": {
     "title": "Admins",
-    "intro": "Who can get into this panel, and what each of them can do. Every change here is recorded against you.",
-    "add": {
-      "title": "Add an admin",
-      "note": "They must already have a Highzcore account with a verified email. We cannot create one for them — that would mean choosing someone else's password, and verifying an address only they can verify.",
-      "email": "Their email address",
-      "submit": "Make admin",
-      "adding": "Adding…",
-      "done": "They are now an admin."
-    },
+    "intro": "Who can get into this panel, what each of them can do, and when they last signed in. Admins are in-house people — being a colleague does not make somebody an admin, and most will never need to be one. Every change here is recorded against you.",
     "list": {
       "title": "Current admins"
     },
     "cols": {
       "person": "Person",
       "role": "Role",
-      "state": "State"
+      "state": "State",
+      "expires": "Expires",
+      "activity": "Last sign-in"
     },
     "roles": {
       "title": "What each role can do",
@@ -1159,14 +1167,64 @@
     "confirmRemove": "Remove admin rights from {email}? They keep their account and subscription — they just lose this panel.",
     "errors": {
       "forbidden": "You do not have permission to manage admins.",
-      "no_account": "Nobody has signed up with that email yet. Ask them to create an account first, then add them here.",
-      "not_verified": "That account has not verified its email yet. Admin access does not work until it has.",
       "already_admin": "They are already an admin.",
       "unknown_role": "That role does not exist.",
       "super_only": "Only a super admin can do that.",
       "not_yourself": "You cannot change your own admin record. Ask another admin.",
       "refused": "The database refused that. A super admin cannot be disabled or removed — change their role first.",
-      "generic": "That did not work. Try again."
+      "generic": "That did not work. Try again.",
+      "bad_email": "That does not look like an email address.",
+      "invite_exists": "There is already an invitation waiting for that address. Revoke it first to send a new one.",
+      "email_configured": "Email is not configured, so no invitation can be sent.",
+      "email_not_configured": "Email is not configured, so no invitation can be sent.",
+      "email_failed": "The invitation could not be emailed, so it has been cancelled. Check the mail settings and try again."
+    },
+    "invite": {
+      "title": "Invite someone to the admin panel",
+      "note": "Enter their email and they will be sent a link to accept. They do not need a Highzcore account yet. The link expires in 7 days and only works for the address it was sent to. Once they accept, they see the admin panel the next time they sign in.",
+      "email": "Their email address",
+      "submit": "Send invitation",
+      "sending": "Sending…",
+      "sent": "Invitation sent.",
+      "revoke": "Revoke",
+      "revoked": "Invitation revoked."
+    },
+    "pending": {
+      "title": "Waiting to be accepted",
+      "intro": "Invitations that have been sent but not opened. Revoking one makes the link stop working."
+    },
+    "logins": "{count, plural, one {# sign-in} other {# sign-ins}}"
+  },
+  "adminTrading": {
+    "title": "Trading P&L",
+    "intro": "What the bot has made and lost on the master account, by date. Net of commission and swap.",
+    "notRevenue": "This is NOT company revenue. It is the master account's trading result, which belongs to the investors mirroring it. Our income is the $20 subscription, and the performance fee is configured in Vantage's MAM panel and paid out by Vantage — it never passes through us. Never add this to the revenue figures.",
+    "notConnected": "The bot's project is not reachable from here, so there is nothing to show. This is a connection problem, not a quiet bot.",
+    "noTrades": "No closed trades yet.",
+    "net": "Net result",
+    "netNote": "After commission and swap.",
+    "trades": "Closed trades",
+    "winLoss": "{wins} won · {losses} lost",
+    "profitFactor": "Profit factor",
+    "noLosses": "—",
+    "bestWorst": "Best and worst day",
+    "overTrades": "over {count} trades",
+    "cols": {
+      "date": "Date",
+      "result": "Result",
+      "trades": "Trades",
+      "wl": "W/L"
     }
+  },
+  "staffInvite": {
+    "invalid": "This invitation is not valid",
+    "invalidBody": "The link may have been revoked, already used, or copied incompletely. Ask whoever invited you to send a new one.",
+    "expired": "This invitation has expired",
+    "expiredBody": "Invitations last 7 days. Ask whoever invited you to send another.",
+    "wrongAccount": "You are signed in as somebody else",
+    "wrongAccountBody": "This invitation was sent to {email}. Sign out, then sign in with that address and open the link again.",
+    "failed": "That did not work",
+    "failedBody": "The invitation is still valid, so you can try the link again. If it keeps failing, tell whoever invited you.",
+    "toDashboard": "Go to your dashboard"
   }
 }

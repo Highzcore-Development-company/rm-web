@@ -5,6 +5,8 @@ import { AlertCircle, ArrowRight, CheckCircle2 } from "lucide-react";
 import { Card } from "@/components/ui";
 import { createServiceClient } from "@/lib/supabase/service";
 import { createRmServerClient } from "@/lib/supabase/rm-server";
+import { liquidityFrom } from "@/lib/admin/liquidity";
+import { formatNgn, formatUsdt } from "@/lib/money";
 import { summarise } from "@/lib/billing-summary";
 import { isAlatPayConfigured } from "@/lib/alatpay";
 import { formatUsd } from "@/lib/pricing";
@@ -110,15 +112,23 @@ export default async function AdminHomePage() {
   const investors = (investorsResult.data ?? []) as Investor[];
   const subscriptions = (subsResult.data ?? []) as Subscription[];
   const summary = summarise(subscriptions);
+  const liquidity = liquidityFrom(subscriptions);
+
+  // Admins are in-house, not customers. An admin may also hold a customer
+  // account, and counting them as one inflates the headcount read as "the
+  // book" — so they come out of it here.
+  const { data: adminRows } = await service.from("app_admins").select("user_id");
+  const adminIds = new Set((adminRows ?? []).map((r) => r.user_id as string));
+  const customers = investors.filter((i) => !adminIds.has(i.user_id));
 
   // Claimed a login, nobody has checked it yet. This is the queue that holds
   // an investor up, so it leads the page.
-  const claimsWaiting = investors.filter(
+  const claimsWaiting = customers.filter(
     (i) => i.vantage_account_id && !i.linked_at,
   ).length;
 
-  const linked = investors.filter((i) => i.linked_at).length;
-  const trading = investors.filter((i) => i.status === "active").length;
+  const linked = customers.filter((i) => i.linked_at).length;
+  const trading = customers.filter((i) => i.status === "active").length;
 
   const botConnected = createRmServerClient() !== null;
   const cryptoTestnet = envOr(process.env.TRON_API_URL, "").includes("nile");
@@ -148,10 +158,43 @@ export default async function AdminHomePage() {
         </div>
       </section>
 
+      {/* LIQUIDITY FIRST. "How much have we got, and where is it" is the
+          question an owner opens this page with. Split by rail and shown in
+          the currency each rail actually holds, because "$4,000" is no use
+          when some of it is naira in a bank and some is USDT on a chain. */}
+      <section className="mt-10">
+        <h2 className="text-xs uppercase tracking-wide text-fg-muted">
+          {t("liquidity")}
+        </h2>
+        <dl className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <Stat
+            label={t("collectedTotal")}
+            value={formatUsd(liquidity.totalUsdCents)}
+          />
+          <Stat
+            label={t("inNgn")}
+            value={formatNgn(liquidity.ngnKobo.amount)}
+          />
+          <Stat
+            label={t("inUsdt")}
+            value={formatUsdt(liquidity.usdtMicro.amount)}
+          />
+        </dl>
+        {/* Said plainly: this is what we have TAKEN, not a bank balance. The
+            two drift the first time somebody spends any of it. */}
+        <p className="mt-3 max-w-2xl text-xs leading-relaxed text-fg-muted">
+          {t("liquidityNote")}
+        </p>
+      </section>
+
       <section className="mt-10">
         <h2 className="text-xs uppercase tracking-wide text-fg-muted">
           {t("money")}
         </h2>
+        {/* The separation the whole dashboard turns on. */}
+        <p className="mt-2 max-w-2xl text-xs leading-relaxed text-fg-muted">
+          {t("moneyNote")}
+        </p>
         <dl className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Stat label={t("revenue")} value={formatUsd(summary.revenueThisMonthUsd)} />
           <Stat label={t("paidUp")} value={String(summary.paidUp)} />
@@ -165,7 +208,7 @@ export default async function AdminHomePage() {
           {t("people")}
         </h2>
         <dl className="mt-3 grid gap-4 sm:grid-cols-3">
-          <Stat label={t("investors")} value={String(investors.length)} />
+          <Stat label={t("investors")} value={String(customers.length)} />
           <Stat label={t("linked")} value={String(linked)} />
           <Stat label={t("trading")} value={String(trading)} />
         </dl>

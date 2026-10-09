@@ -13,6 +13,7 @@ import {
   Receipt,
   Send,
   Settings2,
+  ShieldCheck,
   Sparkles,
   X,
 } from "lucide-react";
@@ -74,6 +75,7 @@ export function Desk({
   settings,
   connected,
   user,
+  isAdmin = false,
   showChart = true,
   centre = null,
   embedded = false,
@@ -84,6 +86,15 @@ export function Desk({
   /** rm-server reachable. False means unconfigured, not "the bot did nothing". */
   connected: boolean;
   user: { name: string; initials: string };
+  /**
+   * Shows the way into the admin panel.
+   *
+   * Without it an admin lands here after signing in with no route in but
+   * typing the URL — which is the whole of "then they see the admin panel".
+   * Hidden for everyone else, though the hiding is a courtesy: the panel
+   * refuses non-admins on the server regardless.
+   */
+  isAdmin?: boolean;
   /**
    * A8 renders this same desk without the chart. A prop rather than a fork:
    * the investor desk and the admin desk must show the same Live, Activities
@@ -172,7 +183,7 @@ export function Desk({
               )}
             </button>
             <div className="hidden lg:block">
-              <ProfileMenu user={user} />
+              <ProfileMenu user={user} isAdmin={isAdmin} />
             </div>
           </div>
         </header>
@@ -475,7 +486,13 @@ function HistoryTab({ rows }: { rows: BotTrade[] }) {
 
 /* --------------------------------------------------------- Profile */
 
-function ProfileMenu({ user }: { user: { name: string; initials: string } }) {
+function ProfileMenu({
+  user,
+  isAdmin = false,
+}: {
+  user: { name: string; initials: string };
+  isAdmin?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   return (
     <div className="relative">
@@ -509,6 +526,11 @@ function ProfileMenu({ user }: { user: { name: string; initials: string } }) {
           >
             <p className="truncate px-3.5 py-2 text-xs text-fg-subtle">{user.name}</p>
             <div className="my-1 border-t border-border" />
+            {isAdmin && (
+              <MenuLink href="/app/admin" Icon={ShieldCheck}>
+                Admin panel
+              </MenuLink>
+            )}
             <MenuLink href="/app/account" Icon={Settings2}>
               Settings
             </MenuLink>

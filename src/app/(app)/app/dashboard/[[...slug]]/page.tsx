@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Desk } from "@/components/workspace/desk";
 import { BotTradeBanner } from "@/components/workspace/bot-trade-banner";
 import { getWorkspaceData } from "@/lib/workspace/data";
+import { getAdmin } from "@/lib/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getInvestor } from "@/lib/investors";
 
@@ -39,6 +40,8 @@ export default async function WorkspacePage() {
 
   const investor = await getInvestor(supabase);
   const data = await getWorkspaceData();
+  // Null for everybody who is not an admin, which is almost everybody.
+  const admin = await getAdmin();
 
   // The route is no longer read. The desk has three tabs held in component
   // state, not eleven sections addressed by URL, so there is nothing left for
@@ -62,6 +65,9 @@ export default async function WorkspacePage() {
           settings={data.settings}
           connected={data.connected}
           user={{ name, initials: initialsOf(name) }}
+          // "Then when the person logs in, he sees the admin panel." This is
+          // that: the way in, for admins only.
+          isAdmin={Boolean(admin)}
         />
       </div>
     </div>
