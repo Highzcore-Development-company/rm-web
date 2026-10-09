@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Bot,
+  ShieldCheck,
   CreditCard,
   LayoutDashboard,
   Link2,
@@ -17,12 +18,13 @@ const ICONS: Record<string, LucideIcon> = {
   billing: CreditCard,
   users: Users,
   bot: Bot,
+  admins: ShieldCheck,
 };
 
 export type AdminNavItem = {
   href: string;
   label: string;
-  icon: "overview" | "links" | "billing" | "users" | "bot";
+  icon: "overview" | "links" | "billing" | "users" | "bot" | "admins";
 };
 
 /**

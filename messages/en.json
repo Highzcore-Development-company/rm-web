@@ -608,7 +608,8 @@
       "adminOverview": "Overview",
       "admin": "Admin",
       "adminUsers": "Users",
-      "adminBot": "Bot"
+      "adminBot": "Bot",
+      "adminAdmins": "Admins"
     },
     "account": {
       "title": "My account",
@@ -1114,6 +1115,58 @@
         "bad_credentials": "Those rm-server credentials were not accepted.",
         "generic": "That did not work. Try again."
       }
+    }
+  },
+  "adminAdmins": {
+    "title": "Admins",
+    "intro": "Who can get into this panel, and what each of them can do. Every change here is recorded against you.",
+    "add": {
+      "title": "Add an admin",
+      "note": "They must already have a Highzcore account with a verified email. We cannot create one for them — that would mean choosing someone else's password, and verifying an address only they can verify.",
+      "email": "Their email address",
+      "submit": "Make admin",
+      "adding": "Adding…",
+      "done": "They are now an admin."
+    },
+    "list": {
+      "title": "Current admins"
+    },
+    "cols": {
+      "person": "Person",
+      "role": "Role",
+      "state": "State"
+    },
+    "roles": {
+      "title": "What each role can do",
+      "superNote": "Everything, including managing admins. Cannot be disabled or deleted — step the role down first.",
+      "none": "No permissions."
+    },
+    "state": {
+      "active": "Active",
+      "disabled": "Disabled",
+      "mustChange": "Must change password"
+    },
+    "lastSeen": "Last signed in {when}",
+    "neverSignedIn": "Has never signed in",
+    "thatsYou": "This is you",
+    "enable": "Enable",
+    "disable": "Disable",
+    "remove": "Remove",
+    "enabled": "Admin enabled.",
+    "disabled": "Admin disabled.",
+    "removed": "Admin rights removed. Their account is untouched.",
+    "roleChanged": "Role changed.",
+    "confirmRemove": "Remove admin rights from {email}? They keep their account and subscription — they just lose this panel.",
+    "errors": {
+      "forbidden": "You do not have permission to manage admins.",
+      "no_account": "Nobody has signed up with that email yet. Ask them to create an account first, then add them here.",
+      "not_verified": "That account has not verified its email yet. Admin access does not work until it has.",
+      "already_admin": "They are already an admin.",
+      "unknown_role": "That role does not exist.",
+      "super_only": "Only a super admin can do that.",
+      "not_yourself": "You cannot change your own admin record. Ask another admin.",
+      "refused": "The database refused that. A super admin cannot be disabled or removed — change their role first.",
+      "generic": "That did not work. Try again."
     }
   }
 }
