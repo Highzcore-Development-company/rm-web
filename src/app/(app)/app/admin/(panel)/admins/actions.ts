@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { recordAdminAction, requirePermission } from "@/lib/admin";
 import { createServiceClient } from "@/lib/supabase/service";
 import { isEmailConfigured, sendEmail, staffInviteEmail } from "@/lib/email";
-import { envOr } from "@/lib/env";
+import { siteUrl } from "@/lib/site";
 import {
   generateInviteToken,
   hashInviteToken,
@@ -271,7 +271,7 @@ export async function inviteStaff(
         invitedBy: actor.email ?? "An administrator",
         roleLabel: roleRow.label as string,
         acceptUrl: inviteUrl(
-          envOr(process.env.NEXT_PUBLIC_SITE_URL, "https://highzcore.com"),
+          siteUrl(),
           token,
         ),
         expiresAt,

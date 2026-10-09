@@ -6,7 +6,7 @@ import { isAdmin } from "@/lib/admin";
 import { accountLinkedEmail, sendEmail } from "@/lib/email";
 import { entitlementFrom } from "@/lib/entitlement";
 import type { Subscription } from "@/lib/supabase/types";
-import { envOr } from "@/lib/env";
+import { siteUrl } from "@/lib/site";
 
 export type AdminResult = { ok: true } | { ok: false; error: string };
 
@@ -85,7 +85,7 @@ async function notifyLinked(investorId: string, vantageAccountId: string) {
       .eq("investor_id", investorId);
 
     const entitlement = entitlementFrom((subs ?? []) as Subscription[]);
-    const site = envOr(process.env.NEXT_PUBLIC_SITE_URL, "https://highzcore.com");
+    const site = siteUrl();
 
     const message = accountLinkedEmail({
       vantageAccountId,

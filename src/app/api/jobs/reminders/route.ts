@@ -4,7 +4,7 @@ import { isAuthorisedJob } from "@/lib/job-auth";
 import { isEmailConfigured, renewalReminder, sendEmail } from "@/lib/email";
 import { entitlementFrom } from "@/lib/entitlement";
 import type { Subscription } from "@/lib/supabase/types";
-import { envOr } from "@/lib/env";
+import { siteUrl } from "@/lib/site";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
   }
 
   const service = createServiceClient();
-  const siteUrl = envOr(process.env.NEXT_PUBLIC_SITE_URL, "https://highzcore.com");
+  const origin = siteUrl();
 
   const { data: rows, error } = await service
     .from("subscriptions")
@@ -111,7 +111,7 @@ export async function POST(request: Request) {
     const message = renewalReminder({
       daysLeft: milestone,
       expiresAt: entitlement.expiresAt,
-      renewUrl: `${siteUrl}/app/checkout`,
+      renewUrl: `${origin}/app/checkout`,
     });
 
     const result = await sendEmail({ to: email, ...message });

@@ -20,7 +20,17 @@
 
 [context.deploy-preview]
   [context.deploy-preview.environment]
-    NEXT_PUBLIC_SITE_URL = "https://deploy-preview.highzcore.com"
+    # Deliberately unset. Netlify provides DEPLOY_PRIME_URL / URL for the
+    # real address of this deploy, and siteUrl() reads them. Hardcoding a
+    # domain here overrode that and sent every preview's emails to the
+    # production hostname.
 
 [context.production.environment]
-  NEXT_PUBLIC_SITE_URL = "https://highzcore.com"
+  # Deliberately unset until highzcore.com actually resolves. Netlify's own
+  # URL variable is the live address of the site either way, so links work
+  # before the custom domain is attached and keep working afterwards.
+  #
+  # This was not hypothetical: with the domain hardcoded and the DNS not yet
+  # pointed, every email the system sends — invitations, receipts,
+  # verification codes, renewal reminders — carried a link to a hostname that
+  # does not exist.
