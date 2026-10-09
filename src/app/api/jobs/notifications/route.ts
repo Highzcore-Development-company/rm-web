@@ -10,7 +10,7 @@ import {
   tradeOpenedEmail,
 } from "@/lib/email";
 import { entitlementFrom } from "@/lib/entitlement";
-import { envOr } from "@/lib/env";
+import { siteUrl } from "@/lib/site";
 import { instrumentMovePercent } from "@/lib/trade-move";
 import type { Subscription } from "@/lib/supabase/types";
 import type { BotTrade } from "@/lib/workspace/types";
@@ -90,8 +90,8 @@ export async function POST(request: Request) {
   }
 
   const service = createServiceClient();
-  const siteUrl = envOr(process.env.NEXT_PUBLIC_SITE_URL, "https://highzcore.com");
-  const dashboardUrl = `${siteUrl}/app/dashboard`;
+  const origin = siteUrl();
+  const dashboardUrl = `${origin}/app/dashboard`;
   const since = new Date(Date.now() - LOOKBACK_MS).toISOString();
 
   // ---- who is entitled to hear about it ----------------------------------

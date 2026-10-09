@@ -4,7 +4,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { receiptEmail, sendEmail } from "@/lib/email";
 import { formatUsd } from "@/lib/pricing";
 import type { Subscription } from "@/lib/supabase/types";
-import { envOr } from "@/lib/env";
+import { siteUrl } from "@/lib/site";
 
 /**
  * P2-312 — email the receipt once a payment is banked.
@@ -45,7 +45,7 @@ export async function sendReceiptFor(subscriptionId: string): Promise<void> {
       Receipt({ subscription: subscription as Subscription, email }),
     );
 
-    const site = envOr(process.env.NEXT_PUBLIC_SITE_URL, "https://highzcore.com");
+    const site = siteUrl();
     const expires = subscription.expires_at
       ? new Date(subscription.expires_at).toLocaleDateString("en-GB", {
           day: "numeric",

@@ -1,3 +1,4 @@
+import { siteUrl } from "@/lib/site";
 import nodemailer from "nodemailer";
 import { envNumberOr, envOr } from "@/lib/env";
 
@@ -80,7 +81,7 @@ export async function sendEmail(input: {
  * the many clients that block images by default.
  */
 function layout(body: string): string {
-  const site = envOr(process.env.NEXT_PUBLIC_SITE_URL, "https://highzcore.com");
+  const site = siteUrl();
 
   return `<!doctype html><html><body style="margin:0;padding:24px;background:#f6f6f6;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#111">
 <table role="presentation" style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;padding:32px">
