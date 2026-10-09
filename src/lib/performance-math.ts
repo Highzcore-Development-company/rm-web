@@ -60,7 +60,7 @@ export type RawTrade = {
  *   the trade results.
  * - `cash_flow`: a balance moved with no trade to explain it, so money was
  *   probably put in or taken out. Check for a deposit or withdrawal.
- * - `gap`: a day or more without snapshots while trades kept closing. Check
+ * - `gap`: more than a day without snapshots while trades kept closing. Check
  *   that the bot was running.
  * - `trade_after_snapshot`: a trade closed more than an hour after the last
  *   snapshot. Check whether the bot stopped writing snapshots.

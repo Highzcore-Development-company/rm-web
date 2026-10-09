@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 /* eslint-disable react-hooks/purity, react-hooks/refs, react-hooks/set-state-in-effect, react-hooks/exhaustive-deps --
  * VERBATIM PORT from highzcore (`components/admin/bot/MarketChart.tsx`), where
@@ -1714,12 +1714,18 @@ export function MarketChart({
     el?.addEventListener('pointermove', onMove);
     el?.addEventListener('pointerup', endDrag);
     el?.addEventListener('pointercancel', endDrag);
+    // While a drawing is being dragged the library stops cancelling touch
+    // moves (handleScroll is off), so without this the page pans and the
+    // browser fires pointercancel a few px into the drag.
+    const onTouchMove = (e: TouchEvent) => { if (drag.current) e.preventDefault(); };
+    el?.addEventListener('touchmove', onTouchMove, { passive: false });
 
     return () => {
       el?.removeEventListener('pointerdown', onDown);
       el?.removeEventListener('pointermove', onMove);
       el?.removeEventListener('pointerup', endDrag);
       el?.removeEventListener('pointercancel', endDrag);
+      el?.removeEventListener('touchmove', onTouchMove);
       chart.remove(); chartRef.current = null; seriesRef.current = null;
     };
   }, []);
