@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 /* eslint-disable react-hooks/purity, react-hooks/refs, react-hooks/set-state-in-effect, react-hooks/exhaustive-deps --
  * VERBATIM PORT from highzcore (`components/admin/bot/MarketChart.tsx`), where
@@ -1950,7 +1950,7 @@ export function MarketChart({
         <div
           ref={wrapRef}
           className={`h-full w-full transition-opacity ${showEmpty ? 'opacity-0' : 'opacity-100'}`}
-          style={tool !== 'cursor' ? { cursor: 'crosshair', touchAction: 'none' } : { touchAction: 'none' }}
+          style={tool !== 'cursor' ? { cursor: 'crosshair', touchAction: 'none' } : undefined}
         />
 
         {/* Diagonals and their handles. Clipped by the SVG viewport, which is
