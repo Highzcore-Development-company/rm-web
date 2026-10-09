@@ -318,6 +318,20 @@ body {
     box-shadow 0.15s ease;
 }
 
+/* The option LIST is painted by the browser, not by us, and on Windows it
+   falls back to a light popup against the dark field it dropped out of. The
+   element needs its own colour-scheme — inheriting it from :root is not
+   enough for the native popup — and the options need explicit colours for the
+   browsers that paint them from the option rather than the select. */
+select.field-input {
+  color-scheme: inherit;
+}
+
+select.field-input option {
+  background-color: var(--surface);
+  color: var(--fg);
+}
+
 .field-input:hover {
   border-color: color-mix(in oklab, var(--fg-muted) 50%, var(--border));
 }

@@ -60,12 +60,23 @@ export default async function AdminsPage() {
     }),
   );
 
-  const roleOptions = (roles ?? []).map((r) => ({
-    name: r.name as string,
-    label: r.label as string,
-    isSuper: Boolean(r.is_super),
-    permissions: (r.permissions ?? []) as string[],
-  }));
+  // Least powerful first, super admin last.
+  //
+  // The table returns them in insertion order, which put Super admin at the
+  // top of every dropdown — the most dangerous role sitting exactly where a
+  // mis-click lands, and the one that cannot then be disabled or deleted. The
+  // ordering is the guard rail: you have to travel to reach it.
+  const roleOptions = (roles ?? [])
+    .map((r) => ({
+      name: r.name as string,
+      label: r.label as string,
+      isSuper: Boolean(r.is_super),
+      permissions: (r.permissions ?? []) as string[],
+    }))
+    .sort((a, b) => {
+      if (a.isSuper !== b.isSuper) return a.isSuper ? 1 : -1;
+      return a.permissions.length - b.permissions.length;
+    });
 
   return (
     <div>

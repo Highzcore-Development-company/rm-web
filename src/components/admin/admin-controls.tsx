@@ -189,10 +189,16 @@ export function InviteStaffForm({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [email, setEmail] = useState("");
+  // The LEAST powerful role, because `roles` arrives ordered that way. Least
+  // privilege by default: handing someone more than they need should take a
+  // deliberate choice, not an unchanged dropdown.
   const [role, setRole] = useState(
     roles.find((r) => !r.isSuper)?.name ?? "support",
   );
 
+  // Only a super admin may create another. Otherwise anyone holding
+  // admins.manage could mint an account that outranks them and that nobody can
+  // then disable or delete.
   const selectable = roles.filter((r) => canCreateSuper || !r.isSuper);
 
   return (
