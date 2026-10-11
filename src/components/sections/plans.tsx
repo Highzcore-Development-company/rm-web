@@ -75,12 +75,31 @@ export function Plans() {
                     : t("months", { count: plan.months })}
                 </p>
 
+                {/* THE MONTHLY RATE IS THE HEADLINE, not the term total.
+                    Victor: "still show it monthly ... show how much we charge
+                    per month for the 3 months plan."
+
+                    It read $20 / $57 / $114 / $228 across the four cards,
+                    which makes the longer terms look progressively more
+                    expensive — the opposite of the offer. Four per-month
+                    figures are directly comparable, so the discount is the
+                    thing you see.
+
+                    What they are actually billed stays underneath. It is the
+                    amount that will leave their account, and a price that
+                    only appears at checkout is the kind of surprise that
+                    loses the sale it just made. */}
                 <p className="mt-3 text-3xl font-semibold tabular-nums">
-                  {formatUsd(plan.totalCents)}
+                  {t("perMonth", { price: formatUsd(plan.perMonthCents) })}
                 </p>
 
                 <p className="mt-1 text-sm text-fg-muted tabular-nums">
-                  {t("perMonth", { price: formatUsd(plan.perMonthCents) })}
+                  {plan.months === 1
+                    ? t("billedMonthly")
+                    : t("billedTerm", {
+                        price: formatUsd(plan.totalCents),
+                        months: plan.months,
+                      })}
                 </p>
 
                 {saves ? (

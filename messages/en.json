@@ -117,7 +117,9 @@
       "perMonth": "{price}/mo",
       "save": "Save {percent}",
       "cta": "Get started",
-      "note": "Cancel any time. API keys are included — there is nothing else to buy."
+      "note": "Cancel any time. API keys are included — there is nothing else to buy.",
+      "billedMonthly": "Billed monthly",
+      "billedTerm": "{price} billed every {months} months"
     },
     "cta": {
       "title": "Start reading the market properly.",
