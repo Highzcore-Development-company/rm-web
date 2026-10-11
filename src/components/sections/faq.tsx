@@ -6,7 +6,16 @@ import { useState } from "react";
 import { Container } from "@/components/ui";
 import { EASE, VIEWPORT } from "@/lib/motion";
 
-const KEYS = ["custody", "stop", "cost", "losses", "broker"] as const;
+/**
+ * Ordered by what a visitor asks in the order they ask it: what is this, is it
+ * telling me what to do, what does it cost, can I build on it, can you just do
+ * it for me — then the risk warning, which stays last and stays blunt.
+ *
+ * These were five questions about custody, disconnecting and why Vantage.
+ * Correct when the homepage sold the bot; wrong now that it sells Scora, and
+ * they are answered on /investors where the people asking them are.
+ */
+const KEYS = ["what", "advice", "cost", "api", "managed", "losses"] as const;
 
 /**
  * FAQ as an accordion rather than a wall of open text.

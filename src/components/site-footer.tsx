@@ -37,6 +37,16 @@ export function SiteFooter() {
                   {nav("performance")}
                 </Link>
               </li>
+              <li>
+                <Link href="/api-docs" className="hover:text-fg">
+                  {nav("developers")}
+                </Link>
+              </li>
+              <li>
+                <Link href="/investors" className="hover:text-fg">
+                  {nav("investors")}
+                </Link>
+              </li>
             </ul>
           </nav>
 

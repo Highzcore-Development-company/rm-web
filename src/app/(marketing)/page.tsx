@@ -5,7 +5,6 @@ import { Hero } from "@/components/hero";
 import { PerformanceStrip } from "@/components/performance-strip";
 import { Analysis } from "@/components/sections/analysis";
 import { CtaBand } from "@/components/sections/cta-band";
-import { Custody } from "@/components/sections/custody";
 import { Faq } from "@/components/sections/faq";
 import { Managed } from "@/components/sections/managed";
 import { Plans } from "@/components/sections/plans";
@@ -44,15 +43,20 @@ export const metadata: Metadata = {
 /**
  * Two products, one page, in the order an unconvinced trader needs them:
  *
- *   Hero         the analysis tool — the thing we are selling
+ *   Hero         Scora — the thing we are selling
  *   Performance  proof, before any claims
  *   Analysis     what it actually reads, as four questions
- *   Managed      the second product, as an alternative not a second pitch
- *   Custody      the objection that stops people — answered before pricing
- *   Steps        what you have to do
+ *   Steps        how you use it
  *   Plans        what it costs
+ *   Managed      the second product, as an alternative not a second pitch
  *   FAQ          everything else
  *   CTA          somewhere to go after reading it all
+ *
+ * Managed sits AFTER pricing now. It used to come third, followed by a full
+ * custody section, which read as though the bot were the main product and
+ * Scora the sideline — the opposite of how this is sold. Scora is self-serve
+ * and closes on the page; managed trading closes on a call, so its only job
+ * here is to send the right visitor to /investors.
  */
 export default async function HomePage() {
   // A signed-in visitor landing on the pitch has to find their own way in.
@@ -67,10 +71,17 @@ export default async function HomePage() {
       <Hero />
       <PerformanceStrip />
       <Analysis />
-      <Managed />
-      <Custody />
+      {/* Scora's own three steps, then its price. The managed service comes
+          after both, as the alternative it is — the homepage sells Scora.
+
+          Custody used to sit here, a full section on why we cannot touch your
+          money. That answers a question only a managed-trading prospect is
+          asking, and asking it on the front page implied the bot was the main
+          product. It now lives on /investors, where the people who need it
+          are. */}
       <Steps />
       <Plans />
+      <Managed />
       <Faq />
       <CtaBand />
     </>

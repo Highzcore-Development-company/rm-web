@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { useTranslations } from "next-intl";
 import { Plans } from "@/components/sections/plans";
-import { Card, Container } from "@/components/ui";
+import { ButtonLink, Card, Container } from "@/components/ui";
 
 export const metadata: Metadata = {
   title: "Pricing",
   description:
-    "$20 per month for the software. 5% off any term longer than one month.",
+    "$20 a month for Scora — all 30 markets, API keys included. 5% off longer terms.",
 };
 
 /**
@@ -30,13 +30,15 @@ export default function PricingPage() {
 
       <Container className="pb-20 sm:pb-28">
         <div className="grid max-w-4xl gap-6 md:grid-cols-2">
-          {/* The performance fee is disclosed on the pricing page, not buried.
-              It is charged by Vantage, but it is still money the investor
-              pays, and finding it later feels like finding it hidden. */}
+          {/* What they are buying, stated before what they are not. The old
+              first card here disclosed Vantage's performance fee — correct
+              when this page sold the bot, misleading now that it sells Scora,
+              because that fee only exists for managed clients and they never
+              buy through this page. It moved to the managed card below. */}
           <Card>
-            <h2 className="text-lg font-semibold">{t("performanceFee.title")}</h2>
+            <h2 className="text-lg font-semibold">{t("included.title")}</h2>
             <p className="mt-2 text-sm leading-relaxed text-fg-muted">
-              {t("performanceFee.body")}
+              {t("included.body")}
             </p>
           </Card>
           <Card>
@@ -46,6 +48,19 @@ export default function PricingPage() {
             </p>
           </Card>
         </div>
+
+        {/* The one thing this price does NOT buy, with the way to get it.
+            Somebody on the pricing page who wanted managed trading should not
+            have to go back to the homepage to find out it is sold elsewhere. */}
+        <Card className="mt-6 max-w-4xl">
+          <h2 className="text-lg font-semibold">{t("managed.title")}</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-fg-muted">
+            {t("managed.body")}
+          </p>
+          <ButtonLink href="/investors" variant="secondary" className="mt-5">
+            {t("managed.cta")}
+          </ButtonLink>
+        </Card>
       </Container>
     </>
   );

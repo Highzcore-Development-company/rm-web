@@ -45,7 +45,9 @@ export function Managed() {
             </p>
           </div>
 
-          <ButtonLink href="/how-it-works" variant="secondary" className="shrink-0">
+          {/* The form, not an explainer. Managed clients are closed on a
+              call, so the only useful next step is telling us who they are. */}
+          <ButtonLink href="/investors" variant="secondary" className="shrink-0">
             {t("cta")}
           </ButtonLink>
         </motion.div>

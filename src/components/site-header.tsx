@@ -11,10 +11,22 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { ButtonLink, Container } from "@/components/ui";
 import { DURATION, EASE } from "@/lib/motion";
 
+/**
+ * Order follows what the business actually sells.
+ *
+ * Scora first — how it works, what it costs, the record behind it. Then the
+ * two doors off the main path: Developers, for people who want the same
+ * analysis through the API their paid account already includes, and For
+ * investors, for the businesses who want it traded for them. That last one
+ * does not self-serve: it goes to a form, because those clients are closed on
+ * a call, not at a checkout.
+ */
 const LINKS = [
   { href: "/how-it-works", key: "howItWorks" },
   { href: "/pricing", key: "pricing" },
   { href: "/performance", key: "performance" },
+  { href: "/api-docs", key: "developers" },
+  { href: "/investors", key: "investors" },
 ] as const;
 
 /**

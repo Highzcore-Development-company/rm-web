@@ -387,3 +387,55 @@ export function staffInviteEmail(input: {
     ),
   };
 }
+
+/**
+ * A managed-trading enquiry from /investors, sent to us rather than to a
+ * client.
+ *
+ * Every value in it was typed by a stranger and is interpolated into HTML, so
+ * all of it is escaped. The other builders in this file compose text we wrote
+ * ourselves; this is the only one handling input from the open internet.
+ */
+export function investorEnquiryEmail(input: {
+  name: string;
+  email: string;
+  company: string;
+  phone: string;
+  message: string;
+}) {
+  const rows: [string, string][] = [
+    ["Name", input.name],
+    ["Email", input.email],
+    ["Business", input.company || "—"],
+    ["Phone", input.phone || "—"],
+  ];
+
+  const who = `${input.name}${input.company ? ` (${input.company})` : ""}`;
+
+  return {
+    // The name is in the subject so the inbox is scannable without opening
+    // anything, and replying goes straight to them via replyTo below.
+    subject: `Investor enquiry — ${who}`,
+    text: [...rows.map(([k, v]) => `${k}: ${v}`), "", input.message].join("\n"),
+    html: layout(
+      `<p style="margin:0 0 16px;font-size:16px;line-height:1.5">New managed-trading enquiry.</p>
+<table role="presentation" style="border-collapse:collapse;font-size:14px;margin:0 0 20px">
+${rows
+  .map(
+    ([k, v]) =>
+      `<tr><td style="padding:4px 16px 4px 0;color:#666">${k}</td><td style="padding:4px 0"><strong>${escapeHtml(v)}</strong></td></tr>`,
+  )
+  .join("")}
+</table>
+<p style="margin:0;font-size:14px;line-height:1.6;color:#444;white-space:pre-wrap">${escapeHtml(input.message)}</p>`,
+    ),
+  };
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
