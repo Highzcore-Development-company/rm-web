@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { Check, X } from "lucide-react";
 import { confirmLink, rejectLink } from "@/app/(app)/app/admin/(panel)/links/actions";
-import { useToast } from "@/components/toast";
+import { useToast } from "@/stores";
 
 export function LinkActions({ investorId }: { investorId: string }) {
   const t = useTranslations("adminLinks");

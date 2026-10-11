@@ -1,87 +1,25 @@
 "use client";
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { AlertCircle, CheckCircle2, X } from "lucide-react";
 import { DURATION, EASE } from "@/lib/motion";
+import { useDismissToast, useToasts } from "@/stores";
 
 /**
- * Toasts, for the moments where a result would otherwise appear as a line of
- * text somebody has already looked away from.
+ * Where toasts are drawn. The state behind them lives in the store's toast
+ * slice (src/stores/slices/toast-slice.ts).
  *
- * Deliberately small: a confirmation and an error, no queueing policy, no
- * actions inside them. Anything that needs a decision belongs on the page, not
- * in something that disappears after four seconds.
+ * This file used to own both. Splitting them is the point of the store: the
+ * 14 components that raise a toast now depend on `useToast()` from "@/stores"
+ * and not on this component existing anywhere near them, and this file is a
+ * viewport with no state of its own.
+ *
+ * `useToast` moved to "@/stores" with the same shape it always had —
+ * success(message) / error(message) — so no call site changed.
  */
-
-type Toast = { id: number; message: string; tone: "success" | "error" };
-
-type ToastContext = {
-  success: (message: string) => void;
-  error: (message: string) => void;
-};
-
-const Ctx = createContext<ToastContext | null>(null);
-
-/** Long enough to read a sentence, short enough not to sit in the way. */
-const DISMISS_AFTER_MS = 4500;
-
-export function ToastProvider({ children }: { children: ReactNode }) {
-  const [toasts, setToasts] = useState<Toast[]>([]);
-  const nextId = useRef(0);
-
-  const remove = useCallback((id: number) => {
-    setToasts((current) => current.filter((t) => t.id !== id));
-  }, []);
-
-  const push = useCallback(
-    (message: string, tone: Toast["tone"]) => {
-      const id = nextId.current++;
-      setToasts((current) => [...current, { id, message, tone }]);
-      window.setTimeout(() => remove(id), DISMISS_AFTER_MS);
-    },
-    [remove],
-  );
-
-  const value = useMemo<ToastContext>(
-    () => ({
-      success: (message) => push(message, "success"),
-      error: (message) => push(message, "error"),
-    }),
-    [push],
-  );
-
-  return (
-    <Ctx.Provider value={value}>
-      {children}
-      <ToastViewport toasts={toasts} onDismiss={remove} />
-    </Ctx.Provider>
-  );
-}
-
-export function useToast(): ToastContext {
-  const ctx = useContext(Ctx);
-  if (!ctx) {
-    throw new Error("useToast must be used inside <ToastProvider>");
-  }
-  return ctx;
-}
-
-function ToastViewport({
-  toasts,
-  onDismiss,
-}: {
-  toasts: Toast[];
-  onDismiss: (id: number) => void;
-}) {
+export function ToastViewport() {
+  const toasts = useToasts();
+  const dismiss = useDismissToast();
   const reduced = useReducedMotion();
 
   return (
@@ -123,7 +61,7 @@ function ToastViewport({
                 speed and someone may want it gone now. */}
             <button
               type="button"
-              onClick={() => onDismiss(toast.id)}
+              onClick={() => dismiss(toast.id)}
               aria-label="Dismiss"
               className="-m-1 shrink-0 rounded p-1 text-fg-muted transition-colors hover:text-fg"
             >

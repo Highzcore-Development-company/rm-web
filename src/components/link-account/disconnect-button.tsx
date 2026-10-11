@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
-import { useToast } from "@/components/toast";
+import { useToast } from "@/stores";
 import { requestDisconnect } from "@/app/(app)/app/link-account/actions";
 
 export function DisconnectButton() {

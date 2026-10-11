@@ -8,7 +8,7 @@ import {
   verifyCode,
 } from "@/app/(app)/app/verify-email/actions";
 import { FormError, inputClass, submitClass } from "@/components/auth/form-bits";
-import { useToast } from "@/components/toast";
+import { useToast } from "@/stores";
 
 const CODE_LENGTH = 6;
 

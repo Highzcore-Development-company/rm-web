@@ -10,7 +10,7 @@ import {
   getPaymentStatus,
   type PaymentStatus,
 } from "@/app/(app)/app/checkout/status";
-import { useToast } from "@/components/toast";
+import { useToast } from "@/stores";
 
 /** Often enough to feel live, rarely enough not to hammer TronGrid. */
 const POLL_MS = 8000;

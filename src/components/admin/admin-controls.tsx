@@ -11,7 +11,7 @@ import {
   setAdminDisabled,
   setAdminRole,
 } from "@/app/(app)/app/admin/(panel)/admins/actions";
-import { useToast } from "@/components/toast";
+import { useToast } from "@/stores";
 
 export type RoleOption = {
   name: string;

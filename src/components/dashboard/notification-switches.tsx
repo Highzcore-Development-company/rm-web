@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { useTranslations } from "next-intl";
-import { useToast } from "@/components/toast";
+import { useToast } from "@/stores";
 import {
   saveNotificationPreferences,
   type SwitchKey,
