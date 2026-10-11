@@ -15,7 +15,7 @@ import { EASE, VIEWPORT } from "@/lib/motion";
  * Correct when the homepage sold the bot; wrong now that it sells Scora, and
  * they are answered on /investors where the people asking them are.
  */
-const KEYS = ["what", "advice", "cost", "api", "managed", "losses"] as const;
+const KEYS = ["what", "decide", "cost", "api", "managed", "losses"] as const;
 
 /**
  * FAQ as an accordion rather than a wall of open text.

@@ -58,9 +58,9 @@
           "q": "What does Scora actually give me?",
           "a": "The condition of the market you are about to trade: how volatile it is against its own normal range, whether it is trending or going nowhere, where the levels sit, and what the round trip costs in spread and commission. Not signals, and not a prediction of where price is going — nobody can do that honestly."
         },
-        "advice": {
-          "q": "Is this financial advice?",
-          "a": "No. Scora is a research tool. It does not know your circumstances, it can be wrong, and nothing it says is a recommendation. Every position you open is your own decision and your own risk."
+        "decide": {
+          "q": "Does Scora tell me what to buy?",
+          "a": "No, and that is deliberate. It gives you the condition of the market you are about to trade — volatility, trend, levels, cost — so the decision is yours and better informed. You know your own circumstances and your own risk; Scora does not."
         },
         "cost": {
           "q": "What does it cost?",
@@ -147,7 +147,7 @@
           "body": "Spread, commission and overnight cost per market, so the cost of being right is visible before you are."
         }
       ],
-      "disclaimer": "Analysis, not advice. AI can make mistakes, and you are responsible for your own trades."
+      "disclaimer": "Scora analyses the market. You make the call. AI can make mistakes, so weigh what it shows you against what you see."
     },
     "managed": {
       "eyebrow": "Or let it trade for you",
@@ -182,8 +182,8 @@
       }
     },
     "limits": {
-      "title": "Analysis, not advice",
-      "body": "Scora is a research tool. It can be wrong, it does not know your circumstances, and nothing it says is financial advice or a recommendation. Every position you open is your own decision and your own risk."
+      "title": "You make the call",
+      "body": "Scora shows you the condition of the market — how volatile it is, where it is going, the levels that matter and what the trade costs — so you decide with the full picture instead of a hunch. It analyses; you trade. AI can make mistakes, so weigh what it shows you against what you see, and only trade money you can afford to lose."
     },
     "managed": {
       "title": "Want it traded for you instead?",
@@ -543,7 +543,7 @@
     "terms": "Terms of service",
     "privacy": "Privacy policy",
     "rights": "© {year} Highzcore. All rights reserved.",
-    "disclaimer": "Scora gives analysis, not advice, and AI can make mistakes — every trade you place is your own decision. Trading carries risk of loss and past performance does not predict future results. For managed clients: we never hold your funds. Your account is held with Vantage in your own name, and we are granted permission to trade it only, never to withdraw."
+    "disclaimer": "Scora helps you analyse the market — every trading decision is your own. AI can make mistakes. Trading carries risk of loss and past performance does not predict future results. For managed clients: we never hold your funds. Your account is held with Vantage in your own name, and we are granted permission to trade it only, never to withdraw."
   },
   "performance": {
     "title": "The record",
