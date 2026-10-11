@@ -48,7 +48,7 @@
     },
     "pricing": {
       "title": "{price} a month",
-      "body": "A flat software subscription. Pay for longer and save 5%.",
+      "body": "From $20 a month. Commit for longer and it drops to $8.",
       "cta": "See pricing"
     },
     "faq": {
@@ -64,7 +64,7 @@
         },
         "cost": {
           "q": "What does it cost?",
-          "a": "$20 per month for Scora across all 30 markets, with 5% off any term longer than a month. API keys are included on the same account — there is no separate developer plan and no per-call charge."
+          "a": "From $20 a month for Scora across all 30 markets. Longer terms cost much less per month — a year works out at $8. API keys are included on the same account: no separate developer plan, no per-call charge."
         },
         "api": {
           "q": "Can I use it in my own code?",
@@ -196,7 +196,7 @@
   },
   "pricing": {
     "title": "Pricing",
-    "intro": "One price for Scora — every market it reads, and the API keys to use the same analysis in your own code. 5% off any term longer than one month.",
+    "intro": "One subscription for Scora — every market it reads, and the API keys to use the same analysis in your own code. The longer the term, the less you pay each month.",
     "table": {
       "term": "Term",
       "price": "Price",

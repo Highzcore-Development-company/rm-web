@@ -6,7 +6,7 @@ import { ButtonLink, Card, Container } from "@/components/ui";
 export const metadata: Metadata = {
   title: "Pricing",
   description:
-    "$20 a month for Scora — all 30 markets, API keys included. 5% off longer terms.",
+    "Scora from $20 a month, or $8 on a yearly term. All 30 markets, API keys included.",
 };
 
 /**
