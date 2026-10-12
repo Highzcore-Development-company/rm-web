@@ -23,6 +23,7 @@ import type { ReactNode } from "react";
 import { MarketChart } from "@/components/workspace/market-chart";
 import { useLiveMarkets } from "@/components/workspace/use-live-markets";
 import { LogoLink } from "@/components/logo";
+import { CloseTradeButton } from "@/components/workspace/close-trade";
 import type { BotMarket, BotSettings, BotTrade } from "@/lib/workspace/types";
 
 /**
@@ -313,7 +314,7 @@ export function Desk({
           {!connected ? (
             <Empty text="rm-server is not configured, so the bot cannot be read from here." />
           ) : tab === "live" ? (
-            <LiveTab rows={live} />
+            <LiveTab rows={live} isAdmin={isAdmin} />
           ) : tab === "activities" ? (
             <ActivitiesTab rows={markets} settings={settings} />
           ) : (
@@ -366,7 +367,7 @@ function Empty({ text }: { text: string }) {
  * this tab answers "what is my money in right now", and nothing else belongs
  * in that answer.
  */
-function LiveTab({ rows }: { rows: BotMarket[] }) {
+function LiveTab({ rows, isAdmin }: { rows: BotMarket[]; isAdmin: boolean }) {
   if (!rows.length) {
     return <Empty text="No open trades. The bot is watching; Activities shows what it sees." />;
   }
@@ -393,6 +394,19 @@ function LiveTab({ rows }: { rows: BotMarket[] }) {
             <p className="mt-2 text-xs text-fg-subtle">
               open <Ago iso={m.opened_at} suffix={false} /> · {m.strategy ?? "—"}
             </p>
+
+            {/* Admins only, and only with a ticket to name. pending_ticket is
+                null on a flat market and on anything predating migration 007 —
+                a close request with no ticket has nothing to act on. */}
+            {isAdmin && m.pending_ticket != null && (
+              <div className="mt-2">
+                <CloseTradeButton
+                  symbol={m.symbol}
+                  ticket={m.pending_ticket}
+                  alias={m.alias || m.symbol}
+                />
+              </div>
+            )}
           </li>
         );
       })}

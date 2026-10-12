@@ -16,11 +16,7 @@ import {
   type PendingProposal,
 } from "@/components/admin/proposal-queue";
 import { createRmServerClient } from "@/lib/supabase/rm-server";
-import {
-  hasBotSession,
-  hasServiceAccess,
-  isBotReachable,
-} from "@/lib/supabase/rm-server-session";
+import { hasBotSession, isBotReachable } from "@/lib/supabase/rm-server-session";
 import type { BotConfig } from "@/lib/workspace/types";
 
 export const metadata: Metadata = { title: "Bot", robots: { index: false } };
@@ -50,11 +46,7 @@ export default async function AdminBotPage() {
   // Three separate conditions, because they fail for different reasons and an
   // admin needs to know which: no permission, rm-server not configured, or
   // configured but this admin has not signed in to it yet.
-  // Writes work one of two ways: a service key on the server, or this admin's
-  // own rm-server login. With the key there is nothing to sign in to, so the
-  // form is not shown at all — asking would be theatre.
-  const viaServiceKey = hasServiceAccess();
-  const connected = viaServiceKey || (await hasBotSession());
+  const connected = await hasBotSession();
   const configurable = canConfigure && isBotReachable() && connected;
 
   // Pending proposals. Read with the ordinary read client: deciding one needs
@@ -105,7 +97,7 @@ export default async function AdminBotPage() {
       )}
 
       {canConfigure ? (
-        viaServiceKey ? null : isBotReachable() ? (
+        isBotReachable() ? (
           <div className="mt-6">
             <BotConnect connected={connected} />
           </div>

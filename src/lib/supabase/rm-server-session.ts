@@ -116,42 +116,19 @@ export async function endBotSession(): Promise<void> {
 }
 
 /**
- * The way in that needs no second sign-in.
+ * NO SERVICE-KEY PATH, deliberately, and this is Victor's ruling with a
+ * better reason than the convenience I offered against it.
  *
- * Victor's objection to the sign-in was fair and he could not complete it
- * anyway — the per-admin rm-server accounts do not exist. If this key is set,
- * writes go through it and the connect form disappears entirely.
+ * I proposed giving rm-web rm-server's service key so nobody had to sign in
+ * twice. He refused, and the argument is about the AUDIT TRAIL rather than
+ * blast radius: today rm-server knows who made a change because that person
+ * signed in to it. With a service key, rm-web merely CLAIMS who made it. A
+ * compromise of rm-web would then make the trail lie while still looking
+ * complete, which is worse than having no trail at all.
  *
- * WHAT IT COSTS, stated plainly because it is his database: a service key
- * bypasses RLS, so a bug here could touch anything in rm-server rather than
- * only the four columns granted to `authenticated`. The per-admin session has
- * a far smaller blast radius, which is why it is still the default and why I
- * did not ask for this key first.
- *
- * WHAT IT DOES NOT COST: the audit trail. updated_by is still written with the
- * signed-in ADMIN's email, taken from their rm-web session — not "the service
- * account" — so every change still names a person. Every action is recorded in
- * admin_audit here as well.
- *
- * Server-only, and never prefixed NEXT_PUBLIC_.
+ * So the helper is gone rather than left dormant behind an unset variable —
+ * a path nobody intends to use is one somebody eventually enables.
  */
-function serviceClient(): SupabaseClient | null {
-  const url = envOr(process.env.RM_SERVER_SUPABASE_URL, "");
-  const key = envOr(process.env.RM_SERVER_SERVICE_ROLE_KEY, "");
-  if (!url || !key) return null;
-
-  return createClient(url, key, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-}
-
-/** Whether writes work without anybody signing in to the bot. */
-export function hasServiceAccess(): boolean {
-  return Boolean(
-    envOr(process.env.RM_SERVER_SUPABASE_URL, "") &&
-      envOr(process.env.RM_SERVER_SERVICE_ROLE_KEY, ""),
-  );
-}
 
 /** Whether this admin has a live rm-server session. Cheap — no network. */
 export async function hasBotSession(): Promise<boolean> {
@@ -168,11 +145,6 @@ export async function hasBotSession(): Promise<boolean> {
  * every time somebody touches a control.
  */
 export async function getBotWriteClient(): Promise<SupabaseClient | null> {
-  // The service key wins when it is configured: there is nothing for an admin
-  // to sign in to, so asking them to would be theatre.
-  const service = serviceClient();
-  if (service) return service;
-
   const jar = await cookies();
   const refreshToken = jar.get(COOKIE)?.value;
   if (!refreshToken) return null;

@@ -1093,7 +1093,7 @@
     "markets": "Markets",
     "noMarkets": "No markets configured.",
     "noProfitTarget": "none",
-    "lotNote": "The bot checks lot size against the broker and snaps a value outside the allowed range within about a minute. A number here is a request, not the final word.",
+    "lotNote": "The bot re-reads these settings about once a minute, so a change takes up to 60 seconds to take effect — it is not instant. Lot size is also checked against the broker and snapped if it falls outside the allowed range. Switching a market off stops NEW trades only; anything already open keeps its stop and target.",
     "switch": {
       "on": "The bot is trading",
       "off": "The bot is stopped",
@@ -1113,8 +1113,8 @@
     "saved": {
       "lot": "Lot size sent for {symbol}. The bot will confirm or snap it shortly.",
       "profit": "Profit target updated for {symbol}.",
-      "enabled": "{symbol} enabled.",
-      "disabled": "{symbol} disabled."
+      "enabled": "{symbol} switched on. Takes effect within about a minute.",
+      "disabled": "{symbol} switched off. No new trades there within about a minute; open positions are left alone."
     },
     "errors": {
       "forbidden": "You do not have permission to configure the bot.",

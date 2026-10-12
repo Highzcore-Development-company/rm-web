@@ -308,3 +308,90 @@ export async function decideProposal(
   revalidatePath("/app/admin/bot");
   return { ok: true };
 }
+
+export type CommandResult =
+  | { ok: true; id: string }
+  | { ok: false; error: string };
+
+/**
+ * Ask the bot to close a live trade.
+ *
+ * THE INSERT SUCCEEDING IS NOT THE TRADE CLOSING, and that distinction is the
+ * whole reason bot_commands exists. We write a row; the bot picks it up on its
+ * next loop, tries it against the broker, and writes back status done|failed
+ * with a note. A "closed" toast on a trade that is still open is the one
+ * failure this table was built to prevent — so this returns the row id and the
+ * caller watches it, rather than reporting success here.
+ *
+ * Writes only the columns migration 020 grants: command, symbol, ticket,
+ * payload, created_by. status, note and processed_at are the BOT's to write
+ * and are deliberately not touched — if we set status ourselves we would be
+ * answering our own question.
+ */
+export async function requestCloseTrade(
+  symbol: string,
+  ticket: number,
+): Promise<CommandResult> {
+  const admin = await requirePermission("bot.configure");
+  if (!admin) return { ok: false, error: "forbidden" };
+
+  if (!Number.isInteger(ticket) || ticket <= 0) {
+    return { ok: false, error: "bad_ticket" };
+  }
+
+  const client = await writeClient();
+  if (!client) return { ok: false, error: "not_connected" };
+
+  const { data, error } = await client
+    .from("bot_commands")
+    .insert({
+      command: "close",
+      symbol,
+      ticket,
+      payload: {},
+      // The ADMIN's email, not the rm-server account's. They may differ, and
+      // "who asked for this position to be closed" has to name a person.
+      created_by: admin.email,
+    })
+    .select("id")
+    .maybeSingle();
+
+  if (error || !data) {
+    console.error("[admin/bot] close command failed:", error?.message);
+    return { ok: false, error: "generic" };
+  }
+
+  await recordAdminAction("bot.close_requested", { type: "trade", id: String(ticket) }, {
+    symbol,
+  });
+
+  return { ok: true, id: data.id as string };
+}
+
+export type CommandState = {
+  status: string;
+  note: string | null;
+  processedAt: string | null;
+};
+
+/** Where a close request got to. Polled by the UI until it leaves `pending`. */
+export async function readCommand(id: string): Promise<CommandState | null> {
+  const admin = await requirePermission("bot.view");
+  if (!admin) return null;
+
+  const client = await writeClient();
+  if (!client) return null;
+
+  const { data } = await client
+    .from("bot_commands")
+    .select("status, note, processed_at")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (!data) return null;
+  return {
+    status: (data.status as string) ?? "pending",
+    note: (data.note as string | null) ?? null,
+    processedAt: (data.processed_at as string | null) ?? null,
+  };
+}
