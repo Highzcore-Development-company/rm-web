@@ -26,6 +26,7 @@ import {
   LogOut,
   Settings2,
   ShieldCheck,
+  Hourglass,
   Sparkles,
   TrendingUp,
   X,
@@ -34,6 +35,7 @@ import type { ReactNode } from "react";
 import { MarketChart } from "@/components/workspace/market-chart";
 import { useLiveMarkets } from "@/components/workspace/use-live-markets";
 import { LogoLink } from "@/components/logo";
+import { ScoraChat } from "@/components/workspace/scora-chat";
 import { CloseTradeButton } from "@/components/workspace/close-trade";
 import { tradingPnlFrom } from "@/lib/admin/trading-pnl";
 import type { BotMarket, BotSettings, BotTrade } from "@/lib/workspace/types";
@@ -77,6 +79,10 @@ type Tab = DeskTab;
 
 const TABS: { key: Tab; label: string; Icon: typeof Activity }[] = [
   { key: "market", label: "Market", Icon: Sparkles },
+  // Before a trade goes live. Sits next to Live on purpose: the two are the
+  // same question a minute apart — what is about to happen, and what is.
+  // An hourglass, not a shield: nothing here is waiting on a person.
+  { key: "pending", label: "Pending", Icon: Hourglass },
   { key: "live", label: "Live", Icon: Activity },
   { key: "history", label: "History", Icon: HistoryIcon },
   { key: "performance", label: "Performance", Icon: TrendingUp },
@@ -346,6 +352,8 @@ export function Desk({
         <div className="min-h-0 flex-1 overflow-y-auto">
           {!connected ? (
             <Empty text="rm-server is not configured, so the bot cannot be read from here." />
+          ) : tab === "pending" ? (
+            <PendingTab rows={markets} />
           ) : tab === "live" ? (
             <LiveTab rows={live} isAdmin={isAdmin} />
           ) : tab === "market" ? (
@@ -402,6 +410,60 @@ function Empty({ text }: { text: string }) {
  * this tab answers "what is my money in right now", and nothing else belongs
  * in that answer.
  */
+/**
+ * HS-BOT-v4 — what the bot is about to do.
+ *
+ * NOT AN APPROVAL QUEUE, deliberately. Esther: "we are not approving trades
+ * again but we can notify some pending trades. We are training the bot to
+ * work for us, not us baby sitting it." So nothing here asks for a decision —
+ * it is a window on what is coming, and the bot acts whether or not anybody
+ * is looking.
+ *
+ * A market is pending when the bot has found its level and is waiting for
+ * price to reach it: state "ready". That is a real trade a minute or an hour
+ * from now, and it is the only moment where seeing it early is worth anything.
+ *
+ * A resting order that has already been placed shows in Live, where it has a
+ * ticket. This tab is strictly the step before that.
+ */
+function PendingTab({ rows }: { rows: BotMarket[] }) {
+  const waiting = rows.filter((m) => m.state === "ready");
+
+  if (waiting.length === 0) {
+    return (
+      <Empty text="Nothing lined up. The bot is watching — Market shows what it sees on each instrument." />
+    );
+  }
+
+  return (
+    <ul className="divide-y divide-border">
+      {waiting.map((m) => (
+        <li key={m.symbol} className="px-5 py-4">
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="font-semibold">{m.alias}</span>
+            <span className="font-mono text-xs text-brand">waiting for level</span>
+          </div>
+
+          <p className="mt-1.5 text-sm text-fg-muted">{m.reason ?? "—"}</p>
+
+          <div className="mt-2 grid grid-cols-3 gap-2 font-mono text-xs text-fg-subtle">
+            {/* The level is the whole point: it is where this becomes a trade. */}
+            <Cell label="level" value={px(m.level)} />
+            <Cell label="now" value={px(m.price)} />
+            <Cell label="tf" value={m.timeframe ?? "—"} />
+          </div>
+
+          {m.latest_signal && (
+            <p className="mt-2 font-mono text-[11px] text-fg-subtle">
+              {m.latest_signal}
+            </p>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function LiveTab({ rows, isAdmin }: { rows: BotMarket[]; isAdmin: boolean }) {
   if (!rows.length) {
     return <Empty text="No open trades. The bot is watching; Activities shows what it sees." />;
@@ -785,56 +847,5 @@ function MenuLink({
       <Icon className="h-4 w-4" aria-hidden="true" />
       {children}
     </Link>
-  );
-}
-
-/* ----------------------------------------------------------- Scora */
-
-/** Lifted from the ported workspace so the chat is unchanged in place. */
-function ScoraChat({ name }: { name: string }) {
-  return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-6 text-center">
-        <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand text-brand-fg">
-          <Sparkles className="h-5 w-5" aria-hidden="true" />
-        </span>
-        <p className="mt-5 text-xl font-semibold">Welcome back.</p>
-        <p className="mt-0.5 text-xs text-fg-subtle">{name}</p>
-        <span className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-brand/15 px-2.5 py-1 font-mono text-xs font-semibold text-brand">
-          Scora v0.1
-        </span>
-        <p className="mt-4 text-sm text-fg-muted">What would you like to explore today?</p>
-
-        <div className="mt-6 w-full max-w-sm space-y-2.5">
-          {["Analyze my portfolio", "Find a setup"].map((s) => (
-            <button
-              key={s}
-              type="button"
-              disabled
-              className="w-full rounded-lg border border-border bg-bg-elevated px-4 py-3 text-left text-sm text-fg-muted disabled:opacity-60"
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="shrink-0 border-t border-border p-4">
-        <div className="flex items-center gap-2 rounded-xl border border-border bg-bg-elevated px-3 py-2.5">
-          <Plus className="h-4 w-4 shrink-0 text-fg-subtle" aria-hidden="true" />
-          <input
-            disabled
-            placeholder="Ask Scora…"
-            className="min-w-0 flex-1 bg-transparent text-sm placeholder:text-fg-subtle focus:outline-none"
-          />
-          <Send className="h-4 w-4 shrink-0 text-fg-subtle" aria-hidden="true" />
-        </div>
-        {/* Disabled, and it says why. An input that swallows questions in
-            silence is worse than one that admits it is not connected. */}
-        <p className="mt-2 text-center text-[11px] text-fg-subtle">
-          Scora answers once the model is connected. AI can make mistakes. Not financial advice.
-        </p>
-      </div>
-    </div>
   );
 }

@@ -44,6 +44,7 @@ export default async function WorkspacePage() {
   // Null for everybody who is not an admin, which is almost everybody.
   const admin = await getAdmin();
 
+
   // The route is no longer read. The desk has three tabs held in component
   // state, not eleven sections addressed by URL, so there is nothing left for
   // a slug to select. The catch-all stays so old links keep resolving here

@@ -221,7 +221,7 @@ async function readBundle(): Promise<PerformanceBundle | null> {
     start,
   });
   if (!result.ok) {
-    console.warn(`[performance] feed not publishable: ${result.problem}`);
+    console.warn(`[performance] record hidden: ${result.problem}`);
     return null;
   }
   return result.bundle;
