@@ -27,12 +27,15 @@ import {
   Settings2,
   ShieldCheck,
   Sparkles,
+  TrendingUp,
   X,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { MarketChart } from "@/components/workspace/market-chart";
 import { useLiveMarkets } from "@/components/workspace/use-live-markets";
 import { LogoLink } from "@/components/logo";
+import { CloseTradeButton } from "@/components/workspace/close-trade";
+import { tradingPnlFrom } from "@/lib/admin/trading-pnl";
 import type { BotMarket, BotSettings, BotTrade } from "@/lib/workspace/types";
 
 /**
@@ -57,14 +60,26 @@ import type { BotMarket, BotSettings, BotTrade } from "@/lib/workspace/types";
  * afterwards has the order backwards.
  */
 
-/** The store owns the tab, so it owns the type. Aliased to keep TABS below
- *  reading the way it did. */
+/**
+ * HS-BOT-v4 §2 — the six sections.
+ *
+ * Chart is the centre column and is always there, which is the brief's own
+ * description of it ("the live chart, this is the main screen"). Settings is
+ * in the profile menu where it already lived. The other four are these tabs.
+ *
+ * "Market" is what used to be called Activities. Same place in the product —
+ * every market and what the bot thinks of it — under the name the brief uses.
+ *
+ * The STORE owns the tab, so it owns the type — the four section names live
+ * in the desk slice, not here. Aliased so TABS below reads as it did.
+ */
 type Tab = DeskTab;
 
 const TABS: { key: Tab; label: string; Icon: typeof Activity }[] = [
+  { key: "market", label: "Market", Icon: Sparkles },
   { key: "live", label: "Live", Icon: Activity },
-  { key: "activities", label: "Activities", Icon: Sparkles },
   { key: "history", label: "History", Icon: HistoryIcon },
+  { key: "performance", label: "Performance", Icon: TrendingUp },
 ];
 
 const money = (n: number | null | undefined, dp = 2) =>
@@ -129,6 +144,7 @@ export function Desk({
   showChart = true,
   centre = null,
   embedded = false,
+  showScora = true,
 }: {
   /** Server-rendered snapshot; useLiveMarkets takes over once mounted. */
   markets: BotMarket[];
@@ -163,6 +179,14 @@ export function Desk({
    * admin is configuring the bot, not asking it questions.
    */
   embedded?: boolean;
+  /**
+   * HS-BOT-v4 §1. Scora is what a TRADER buys.
+   *
+   * An investor's dashboard is the chart, their trades and their performance:
+   * the bot does their analysis, so a panel offering to analyse markets for
+   * them is selling something they have already declined.
+   */
+  showScora?: boolean;
 }) {
   // Live, not the snapshot the page was rendered with. The feed's job is
   // showing what the bot is doing now; a frozen row is worse than no row,
@@ -200,7 +224,7 @@ export function Desk({
     >
       {/* ---- left: the Scora CHAT ----
           A drawer over the chart below lg, a column beside it above. */}
-      {!embedded && (
+      {!embedded && showScora && (
       <aside
         className={`fixed inset-y-0 left-0 z-40 flex w-full flex-col border-r border-border bg-bg transition-transform duration-200 sm:w-[360px] lg:relative lg:z-auto lg:translate-x-0 lg:transition-[width] ${
           scoraOpen ? "translate-x-0" : "-translate-x-full"
@@ -323,9 +347,11 @@ export function Desk({
           {!connected ? (
             <Empty text="rm-server is not configured, so the bot cannot be read from here." />
           ) : tab === "live" ? (
-            <LiveTab rows={live} />
-          ) : tab === "activities" ? (
-            <ActivitiesTab rows={markets} settings={settings} />
+            <LiveTab rows={live} isAdmin={isAdmin} />
+          ) : tab === "market" ? (
+            <ActivitiesTab rows={markets} settings={settings} isAdmin={isAdmin} />
+          ) : tab === "performance" ? (
+            <PerformanceTab rows={closedTrades} />
           ) : (
             <HistoryTab rows={closedTrades} />
           )}
@@ -376,7 +402,7 @@ function Empty({ text }: { text: string }) {
  * this tab answers "what is my money in right now", and nothing else belongs
  * in that answer.
  */
-function LiveTab({ rows }: { rows: BotMarket[] }) {
+function LiveTab({ rows, isAdmin }: { rows: BotMarket[]; isAdmin: boolean }) {
   if (!rows.length) {
     return <Empty text="No open trades. The bot is watching; Activities shows what it sees." />;
   }
@@ -403,6 +429,19 @@ function LiveTab({ rows }: { rows: BotMarket[] }) {
             <p className="mt-2 text-xs text-fg-subtle">
               open <Ago iso={m.opened_at} suffix={false} /> · {m.strategy ?? "—"}
             </p>
+
+            {/* Admins only, and only with a ticket to name. pending_ticket is
+                null on a flat market and on anything predating migration 007 —
+                a close request with no ticket has nothing to act on. */}
+            {isAdmin && m.pending_ticket != null && (
+              <div className="mt-2">
+                <CloseTradeButton
+                  symbol={m.symbol}
+                  ticket={m.pending_ticket}
+                  alias={m.alias || m.symbol}
+                />
+              </div>
+            )}
           </li>
         );
       })}
@@ -433,12 +472,108 @@ function Cell({ label, value }: { label: string; value: string }) {
  */
 const STATE_RANK: Record<string, number> = { active: 0, ready: 1, monitoring: 2 };
 
+/**
+ * HS-BOT-v4 §2 — Performance: return, drawdown, win rate, profit factor.
+ *
+ * Computed from the closed trades already on this page rather than fetched
+ * again, so it cannot disagree with the History tab sitting next to it.
+ *
+ * NET OF COSTS. tradingPnlFrom adds commission and swap, which are stored
+ * negative. They are 0.00 on every Deriv trade, so a gross figure looks right
+ * today and starts flattering us the moment the bot moves to Raw ECN — on the
+ * exact numbers an investor judges us by.
+ */
+function PerformanceTab({ rows }: { rows: BotTrade[] }) {
+  const pnl = tradingPnlFrom(rows);
+
+  if (pnl.trades === 0) {
+    return <Empty text="No closed trades yet. Figures appear once the bot has finished its first." />;
+  }
+
+  const winRate = (pnl.wins / pnl.trades) * 100;
+
+  return (
+    <div className="space-y-4 px-5 py-4">
+      <div>
+        <p className="text-xs uppercase tracking-wide text-fg-subtle">Net result</p>
+        <p
+          className={`mt-1 font-mono text-2xl font-semibold ${
+            pnl.net >= 0 ? "text-success" : "text-danger"
+          }`}
+        >
+          {/* The sign is written, not carried by colour alone: green and red
+              separate by ΔE 5.0 under deuteranopia on this palette. */}
+          {pnl.net >= 0 ? "+" : "−"}${Math.abs(pnl.net).toFixed(2)}
+        </p>
+        <p className="mt-1 text-xs text-fg-subtle">after commission and swap</p>
+      </div>
+
+      <dl className="grid grid-cols-2 gap-3 text-sm">
+        <div>
+          <dt className="text-xs uppercase tracking-wide text-fg-subtle">Win rate</dt>
+          <dd className="mt-0.5 font-mono">{winRate.toFixed(1)}%</dd>
+        </div>
+        <div>
+          <dt className="text-xs uppercase tracking-wide text-fg-subtle">Profit factor</dt>
+          <dd className="mt-0.5 font-mono">
+            {/* Null when nothing has lost yet — "∞" reads as a bug. */}
+            {pnl.profitFactor === null ? "—" : pnl.profitFactor.toFixed(2)}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-xs uppercase tracking-wide text-fg-subtle">Trades</dt>
+          <dd className="mt-0.5 font-mono">{pnl.trades}</dd>
+        </div>
+        <div>
+          <dt className="text-xs uppercase tracking-wide text-fg-subtle">Won / lost</dt>
+          <dd className="mt-0.5 font-mono">
+            {pnl.wins} / {pnl.losses}
+          </dd>
+        </div>
+      </dl>
+
+      {pnl.best && pnl.worst && (
+        <dl className="space-y-1 border-t border-border pt-3 text-xs">
+          <div className="flex justify-between gap-2">
+            <dt className="text-fg-subtle">Best day</dt>
+            <dd className="font-mono text-success">
+              +${pnl.best.net.toFixed(2)} · {pnl.best.date}
+            </dd>
+          </div>
+          <div className="flex justify-between gap-2">
+            <dt className="text-fg-subtle">Worst day</dt>
+            <dd className="font-mono text-danger">
+              −${Math.abs(pnl.worst.net).toFixed(2)} · {pnl.worst.date}
+            </dd>
+          </div>
+        </dl>
+      )}
+
+      <p className="border-t border-border pt-3 text-[11px] leading-relaxed text-fg-subtle">
+        Past performance does not predict future results. This is a record of{" "}
+        {pnl.trades} closed {pnl.trades === 1 ? "trade" : "trades"}. Trading
+        carries risk of loss.
+      </p>
+    </div>
+  );
+}
+
+/**
+ * HS-BOT-v4 §2 — Market: every market and what the bot thinks of it.
+ *
+ * Renamed from Activities, which is what the brief calls it; the content was
+ * already right. An admin additionally gets a way through to that market's
+ * controls — on the Bot page, where the inputs and their confirmations already
+ * live, rather than a second set here that could disagree with them.
+ */
 function ActivitiesTab({
   rows,
   settings,
+  isAdmin = false,
 }: {
   rows: BotMarket[];
   settings: BotSettings | null;
+  isAdmin?: boolean;
 }) {
   if (!rows.length) {
     return <Empty text="The bot has not published any market yet. Its first cycle takes about a minute." />;
@@ -485,6 +620,20 @@ function ActivitiesTab({
               <Chip>{m.strategy ?? "no strategy"}</Chip>
               {m.latest_signal && <Chip>{m.latest_signal}</Chip>}
               {m.level != null && <Chip>level {px(m.level)}</Chip>}
+
+              {/* "Open a market and set its controls" — the admin's half of
+                  this section. A link rather than inputs here: the controls
+                  and their confirmations live on the Bot page, and a second
+                  set would eventually disagree with the first. */}
+              {isAdmin && (
+                <Link
+                  href="/app/admin/bot"
+                  className="ml-auto inline-flex items-center gap-1 rounded border border-border px-1.5 py-0.5 text-[11px] text-fg-subtle transition-colors hover:text-fg"
+                >
+                  <Settings2 className="h-3 w-3" aria-hidden="true" />
+                  Controls
+                </Link>
+              )}
             </div>
           </li>
         ))}

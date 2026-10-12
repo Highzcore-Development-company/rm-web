@@ -27,9 +27,23 @@ export async function ensureInvestor(
 
   if (existing.data) return existing.data;
 
+  // HS-BOT-v4 §1. The choice is made at signup, before the row exists — the
+  // row is created here, after the address is verified — so it travels on the
+  // auth user's metadata and is read back off it.
+  //
+  // Defaults to 'investor' when absent, which covers an OAuth signup that
+  // never passed through our form and every account created before account
+  // types existed. 'investor' is the safe default: it grants nothing on its
+  // own, because an investor still cannot trade until an admin links their
+  // broker account by hand. Defaulting to 'trader' would hand somebody the
+  // paid product by accident.
+  const { data: auth } = await supabase.auth.getUser();
+  const chosen = auth.user?.user_metadata?.account_type;
+  const accountType = chosen === "trader" ? "trader" : "investor";
+
   const inserted = await supabase
     .from("investors")
-    .insert({ user_id: userId })
+    .insert({ user_id: userId, account_type: accountType })
     .select()
     .maybeSingle();
 

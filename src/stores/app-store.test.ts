@@ -53,7 +53,7 @@ describe("store isolation", () => {
     expect(b.getState().markets).toEqual([]);
     expect(b.getState().toasts).toEqual([]);
     expect(b.getState().hydrated).toBe(false);
-    expect(b.getState().deskTab).toBe("activities");
+    expect(b.getState().deskTab).toBe("market");
   });
 
   it("gives each store its own toast ids", () => {

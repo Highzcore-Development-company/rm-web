@@ -29,6 +29,20 @@ import { envOr } from "@/lib/env";
 
 const COOKIE = "rm_bot_session";
 
+/**
+ * How long a bot session lasts, in seconds.
+ *
+ * Without this it was a SESSION cookie — gone when the browser closed, so an
+ * operator re-entered their rm-server password several times a day. That is
+ * not security, it is friction that trains people to pick a shorter password.
+ *
+ * Thirty days, and the exposure is smaller than it looks: the cookie is
+ * httpOnly, scoped to /app/admin, and useless without an rm-web admin session
+ * to reach that path at all. The refresh token also rotates on every use, so a
+ * stale copy stops working as soon as the real one is used.
+ */
+const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
+
 /** Writable columns, as granted. Anything outside this list will be refused. */
 export const WRITABLE = {
   bot_symbol_config: [
@@ -90,6 +104,7 @@ export async function startBotSession(
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/app/admin",
+    maxAge: SESSION_MAX_AGE,
   });
 
   return { ok: true, email: data.user?.email ?? email };
@@ -99,6 +114,21 @@ export async function endBotSession(): Promise<void> {
   const jar = await cookies();
   jar.delete({ name: COOKIE, path: "/app/admin" });
 }
+
+/**
+ * NO SERVICE-KEY PATH, deliberately, and this is Victor's ruling with a
+ * better reason than the convenience I offered against it.
+ *
+ * I proposed giving rm-web rm-server's service key so nobody had to sign in
+ * twice. He refused, and the argument is about the AUDIT TRAIL rather than
+ * blast radius: today rm-server knows who made a change because that person
+ * signed in to it. With a service key, rm-web merely CLAIMS who made it. A
+ * compromise of rm-web would then make the trail lie while still looking
+ * complete, which is worse than having no trail at all.
+ *
+ * So the helper is gone rather than left dormant behind an unset variable —
+ * a path nobody intends to use is one somebody eventually enables.
+ */
 
 /** Whether this admin has a live rm-server session. Cheap — no network. */
 export async function hasBotSession(): Promise<boolean> {
@@ -136,6 +166,7 @@ export async function getBotWriteClient(): Promise<SupabaseClient | null> {
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/app/admin",
+    maxAge: SESSION_MAX_AGE,
   });
 
   return client;
@@ -147,4 +178,42 @@ export function isBotReachable(): boolean {
     envOr(process.env.RM_SERVER_SUPABASE_URL, "") &&
       envOr(process.env.RM_SERVER_SUPABASE_ANON_KEY, ""),
   );
+}
+
+/**
+ * Cut someone's access to the BOT, not just to our panel.
+ *
+ * The gap this closes: rm-web and rm-server revoke separately. Removing
+ * somebody as an admin here left their rm-server account working, so they lost
+ * the dashboard and kept the ability to close live trades and change lot
+ * sizes — until a human remembered to go and disable them in a different
+ * system. That is the kind of gap that surfaces on the worst possible day.
+ *
+ * Disabled, never deleted (migration 021 grants no delete at all): old
+ * bot_commands.created_by rows have to stay attributable to a real person.
+ *
+ * Returns false when it could not be done — no rm-server session, or the write
+ * was refused. The caller must NOT report a clean removal in that case: a
+ * revocation that looks complete and is not is worse than one that failed
+ * loudly.
+ */
+export async function revokeBotAdmin(email: string): Promise<boolean> {
+  const client = await getBotWriteClient();
+  if (!client) return false;
+
+  const { data, error } = await client
+    .from("bot_admins")
+    .update({ disabled_at: new Date().toISOString() })
+    .eq("email", email.toLowerCase())
+    .is("disabled_at", null)
+    .select("email");
+
+  if (error) {
+    console.error("[rm-server] revoke failed:", error.message);
+    return false;
+  }
+
+  // Zero rows is success here, unlike every other write: it means they were
+  // never a bot admin, or were already disabled. Either way they hold nothing.
+  return Array.isArray(data);
 }

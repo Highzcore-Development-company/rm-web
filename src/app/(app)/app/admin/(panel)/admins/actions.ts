@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { recordAdminAction, requirePermission } from "@/lib/admin";
 import { createServiceClient } from "@/lib/supabase/service";
+import { revokeBotAdmin } from "@/lib/supabase/rm-server-session";
 import { isEmailConfigured, sendEmail, staffInviteEmail } from "@/lib/email";
 import { siteUrl } from "@/lib/site";
 import {
@@ -180,7 +181,23 @@ export async function removeAdmin(userId: string): Promise<AdminActionResult> {
     return { ok: false, error: "super_only" };
   }
 
-  const { error } = await createServiceClient()
+  const service = createServiceClient();
+
+  // THE BOT FIRST, and the whole thing is abandoned if it fails.
+  //
+  // Two systems revoke separately: taking the panel away here leaves their
+  // rm-server account able to close live trades and change lot sizes. Bot
+  // access is the dangerous half, so it goes first — and if it cannot be cut,
+  // nothing is removed at all. Half-removing somebody and reporting success is
+  // how an ex-colleague keeps the controls while the list says they are gone.
+  const target = await service.auth.admin.getUserById(userId);
+  const targetEmail = target.data?.user?.email;
+
+  if (targetEmail && !(await revokeBotAdmin(targetEmail))) {
+    return { ok: false, error: "bot_revoke_failed" };
+  }
+
+  const { error } = await service
     .from("app_admins")
     .delete()
     .eq("user_id", userId);

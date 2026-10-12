@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Desk } from "@/components/workspace/desk";
+import { showsScora } from "@/lib/landing";
 import { BotTradeBanner } from "@/components/workspace/bot-trade-banner";
 import { getWorkspaceData } from "@/lib/workspace/data";
 import { getAdmin } from "@/lib/admin";
@@ -60,6 +61,7 @@ export default async function WorkspacePage() {
 
       <div className="min-h-0 flex-1">
         <Desk
+          showScora={showsScora(investor?.account_type ?? null)}
           markets={data.markets}
           closedTrades={data.closedTrades}
           settings={data.settings}

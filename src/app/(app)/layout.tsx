@@ -18,6 +18,38 @@ import { ensureInvestor, getInvestor } from "@/lib/investors";
  * true the moment an account exists and means nothing.
  */
 
+/**
+ * HS-BOT-v4 §1 — screens that only exist for an investor.
+ *
+ * A trader has no broker account with us and never should, so these are GONE
+ * for them, not greyed out. Hidden in the UI as well, but this is the lock:
+ * a link someone was sent, a bookmark, or a typed URL all arrive here.
+ *
+ * The database enforces it too — the claim and risk-acknowledgement policies
+ * both require account_type = 'investor'. A redirect is a courtesy; the
+ * policy is the permission.
+ */
+const INVESTOR_ONLY = [
+  "/app/link-account",
+  "/app/onboarding",
+  "/app/risk-acknowledgement",
+];
+
+/**
+ * Screens that only exist for a trader.
+ *
+ * Checkout is here because of the brief's rule that the investor path has NO
+ * checkout: an investor does not self-serve, so there is no page where they
+ * buy anything. They enquire, Victor meets them, and the account is set up
+ * with them.
+ *
+ * CONSEQUENCE, stated because it is not obvious: an existing investor with a
+ * live subscription can no longer reach the renewal page on their own.
+ * Renewal becomes something an admin does. The reminder emails still point at
+ * checkout and now need re-pointing — raised, not silently left.
+ */
+const TRADER_ONLY = ["/app/checkout"];
+
 /** Reachable while unverified: the gate itself, and the way back out. */
 const UNGATED = [
   "/app/verify-email",
@@ -96,7 +128,37 @@ export default async function AppLayout({
         .is("disabled_at", null)
         .maybeSingle();
 
-      if (!adminRow && investor && !investor.risk_acknowledged_at) {
+      // A trader is not having their money traded by us, so the broker
+      // screens do not apply to them. Sent to the desk rather than shown a
+      // 404: they have not done anything wrong, they are just somewhere that
+      // is not theirs.
+      if (
+        investor?.account_type === "trader" &&
+        INVESTOR_ONLY.some((p) => pathname.startsWith(p))
+      ) {
+        redirect("/app/dashboard");
+      }
+
+      // And the other way. An investor who finds checkout — from a bookmark,
+      // or a renewal email sent before this landed — is sent to the enquiry
+      // page, which is where their path actually continues.
+      if (
+        investor?.account_type === "investor" &&
+        TRADER_ONLY.some((p) => pathname.startsWith(p))
+      ) {
+        redirect("/app/enquiry");
+      }
+
+      // The risk acknowledgement is an INVESTOR's. Asking a trader to
+      // acknowledge the risk of us trading their money would be a record of
+      // something that never happens — and the RLS policy now refuses the
+      // write anyway, so the gate would be a loop they could not escape.
+      if (
+        !adminRow &&
+        investor &&
+        investor.account_type === "investor" &&
+        !investor.risk_acknowledged_at
+      ) {
         redirect("/app/risk-acknowledgement");
       }
     }

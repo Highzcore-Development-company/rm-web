@@ -16,7 +16,14 @@ import type { SliceCreator } from "../types";
  * revisit if the desk grows state that is genuinely expensive to re-choose.
  */
 
-export type DeskTab = "live" | "activities" | "history";
+/**
+ * HS-BOT-v4 §2 — the sections of the feed rail.
+ *
+ * "market" was called "activities": same content, the name the brief uses.
+ * "performance" is new. Chart is the centre column rather than a tab, and
+ * Settings lives in the profile menu, which is the other two of the six.
+ */
+export type DeskTab = "market" | "live" | "history" | "performance";
 
 export type DeskSlice = {
   scoraOpen: boolean;
@@ -38,7 +45,9 @@ export const createDeskSlice: SliceCreator<DeskSlice> = (set) => ({
   // the feed are visible at once. Collapsing is the exception.
   scoraOpen: true,
   feedOpen: true,
-  deskTab: "activities",
+  // Market, not Live: an empty Live list says nothing, where Market always
+  // has something to read even when the bot holds no position.
+  deskTab: "market",
 
   setScoraOpen: (open) => set({ scoraOpen: open }, false, "desk/scoraOpen"),
   setFeedOpen: (open) => set({ feedOpen: open }, false, "desk/feedOpen"),
