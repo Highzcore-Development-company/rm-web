@@ -53,6 +53,7 @@ import {
   type MouseEventParams, type Logical,
 } from 'lightweight-charts';
 import { inferBarSecs, timeToLogical, logicalToTime } from './bar-time';
+import { overlayNeedsRebuild } from './overlay-state';
 
 type Tool =
   | 'cursor' | 'hline' | 'trend' | 'text' | 'ray' | 'extended' | 'hray'
@@ -1108,6 +1109,7 @@ export function MarketChart({
   // hence the ref the loader also reads.
   const [overlaysOn, setOverlaysOn] = useState(true);
   const [reloadTick, setReloadTick] = useState(0);
+  const loadedView = useRef('');
   const toggleOverlays = () => {
     const next = !overlaysOn;
     setOverlaysOn(next);
@@ -1730,13 +1732,22 @@ export function MarketChart({
     let alive = true;
     setLoading(true);
     liveBar.current = null;
-    trendStart.current = null; forkPts.current = []; setDrawPending(false); clearPreview(); setSelected(null);
+    // A reload for a position opening or closing keeps the user's view: only a
+    // real symbol/timeframe change resets the draft, the selection and the zoom.
+    let loaded = false;
+    const viewChanged = loadedView.current !== `${symbol}|${tf}`;
+    loadedView.current = `${symbol}|${tf}`;
+    if (viewChanged) {
+      trendStart.current = null; forkPts.current = []; setDrawPending(false); clearPreview(); setSelected(null);
+    }
     // Detach the previous market's drawing objects (keep them saved), then switch
     // the storage key and load this market/timeframe's saved drawings. They are
     // rendered after the candles load (trend lines need the time axis).
     removeDrawingObjects();
     drawKeyRef.current = DRAW_KEY(symbol, tf);
     drawings.current = loadDrawings(symbol, tf);
+    // The drawing objects are rebuilt above, so a kept selection must point at the new copy.
+    if (!viewChanged) setSelected((s) => (s ? drawings.current.find((k) => k.id === s.id) ?? null : null));
 
     (async () => {
       // Read straight from Supabase (admin-gated by RLS) — no Netlify Function.
@@ -1793,7 +1804,7 @@ export function MarketChart({
 
       if (bars.length) {
         liveBar.current = bars[bars.length - 1];
-        chartRef.current?.timeScale().fitContent();
+        if (viewChanged) chartRef.current?.timeScale().fitContent();
 
         // If the timeframe is short enough, draw all historical trades as arrows on
         // the candles. (On H4/D1, zooming way out to see years of history means the
@@ -1862,10 +1873,12 @@ export function MarketChart({
         }
       }
 
+      loaded = true;
       setLoading(false);
     })();
 
-    return () => { alive = false; };
+    // A load cut short (strict-mode remount, quick switch) never fitted the view, so the next one must.
+    return () => { alive = false; if (!loaded) loadedView.current = ''; };
     // reloadTick: turning the trade overlays back on rebuilds them from the
     // same query that drew them in the first place.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1875,6 +1888,10 @@ export function MarketChart({
   useEffect(() => {
     if (!symbol) return;
     let alive = true;
+    // The market's state as of the previous tick. Undefined on the first tick
+    // after a symbol/timeframe change: the load effect has just drawn the
+    // overlays from fresh data, so that tick has nothing to rebuild.
+    let prevState: string | null | undefined;
 
     const tick = async () => {
       // Live quote + floating P&L, read directly from Supabase (no Netlify Function).
@@ -1893,6 +1910,8 @@ export function MarketChart({
         state: (msRes.data?.state as string) ?? null,
       };
       setQuote(q);
+      if (prevState !== undefined && overlayNeedsRebuild(prevState, q.state)) setReloadTick((t) => t + 1);
+      prevState = q.state;
       const price = q.bid;
       const series = seriesRef.current;
       // Only move the chart when the quote is genuinely fresh — a stale feed

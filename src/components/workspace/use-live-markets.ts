@@ -61,9 +61,12 @@ export function useLiveMarkets(initial: BotMarket[]): BotMarket[] {
       if (data?.length) setMarkets(data as BotMarket[]);
     };
     const id = setInterval(refetch, 30_000);
+    const onVisible = () => { if (document.visibilityState === "visible") void refetch(); };
+    document.addEventListener("visibilitychange", onVisible);
 
     return () => {
       clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
       supabase.removeChannel(channel);
     };
     // Store actions are stable for the life of the store, so this runs once —
