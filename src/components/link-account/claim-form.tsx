@@ -7,7 +7,7 @@ import {
   claimAccount,
   type ActionResult,
 } from "@/app/(app)/app/link-account/actions";
-import { useToast } from "@/components/toast";
+import { useToast } from "@/stores";
 import { Field, FormError, inputClass, submitClass } from "@/components/auth/form-bits";
 
 export function ClaimForm({ initialLogin }: { initialLogin: string | null }) {

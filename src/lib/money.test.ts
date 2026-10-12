@@ -9,15 +9,35 @@ import { entitlementFrom, shouldTrade } from "./entitlement";
 import type { Subscription } from "./supabase/types";
 
 describe("pricing", () => {
-  it("matches the table in the brief exactly", () => {
-    // 1mo $20, 3mo $57, 6mo $114, 12mo $228. If this fails, either the engine
-    // is wrong or someone has changed the published price without saying so.
+  it("matches the published table exactly", () => {
+    // Set by Victor, 11 Oct 2026: 1mo 0%, 3mo 15%, 6mo 35%, 12mo 60%.
+    // If this fails, either the engine is wrong or someone has changed the
+    // published price without saying so.
     expect(PLANS.map((p) => formatUsd(p.totalCents))).toEqual([
       "$20",
-      "$57",
-      "$114",
-      "$228",
+      "$51",
+      "$78",
+      "$96",
     ]);
+  });
+
+  it("works out at the per-month rate the cards advertise", () => {
+    // The cards lead with this figure, so it is the number a customer
+    // compares. $20 / $17 / $13 / $8.
+    expect(PLANS.map((p) => formatUsd(p.perMonthCents))).toEqual([
+      "$20",
+      "$17",
+      "$13",
+      "$8",
+    ]);
+  });
+
+  it("gets cheaper per month the longer the term", () => {
+    // The whole offer. A flat 5% used to make 3, 6 and 12 all $19/mo, so the
+    // page promised "pay longer, pay less" and gave no reason to.
+    const perMonth = PLANS.map((p) => p.perMonthCents);
+    expect(perMonth).toEqual([...perMonth].sort((a, b) => b - a));
+    expect(new Set(perMonth).size).toBe(perMonth.length);
   });
 
   it("charges no discount for a single month", () => {
@@ -25,11 +45,25 @@ describe("pricing", () => {
   });
 
   it("rounds the discount in the investor's favour", () => {
-    // 5% of an odd subtotal cannot land on a whole cent. The rounding must
-    // never take the fraction from them.
-    const p = priceFor(7); // 14000 cents, 5% = 700 exactly
-    expect(p.discountCents).toBe(Math.floor((p.subtotalCents * 500) / 10_000));
-    expect(p.totalCents).toBe(p.subtotalCents - p.discountCents);
+    // A percentage of a subtotal need not land on a whole cent, and the
+    // rounding must never take the fraction from them. Checked across the
+    // whole table rather than one term, because each now has its own rate.
+    for (const p of PLANS) {
+      expect(p.discountCents).toBe(
+        Math.floor((p.subtotalCents * p.discountBps) / 10_000),
+      );
+      expect(p.totalCents).toBe(p.subtotalCents - p.discountCents);
+    }
+  });
+
+  it("gives an unlisted term no discount rather than a guessed one", () => {
+    // priceFor is what checkout charges. Falling back to the nearest listed
+    // rate — or the old blanket "anything over a month" — would quietly
+    // invent a price for a term nobody agreed to sell.
+    const p = priceFor(7);
+    expect(p.discountBps).toBe(0);
+    expect(p.discountCents).toBe(0);
+    expect(p.totalCents).toBe(p.subtotalCents);
   });
 
   it("refuses a nonsense term", () => {

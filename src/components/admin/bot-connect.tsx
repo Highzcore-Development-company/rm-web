@@ -8,7 +8,7 @@ import {
   connectToBot,
   disconnectFromBot,
 } from "@/app/(app)/app/admin/(panel)/bot/actions";
-import { useToast } from "@/components/toast";
+import { useToast } from "@/stores";
 
 /**
  * Sign in to the bot's project as yourself.

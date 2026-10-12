@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { createRmServerBrowserClient } from "@/lib/supabase/rm-server-browser";
+import { useMarkets, useMergeMarket, useSetMarkets } from "@/stores";
 import type { BotMarket } from "@/lib/workspace/types";
 
 /**
@@ -27,23 +28,19 @@ import type { BotMarket } from "@/lib/workspace/types";
  * that silently stops updating looks exactly like a bot that stopped working.
  * Thirty seconds is too slow to be the main path and fast enough that the
  * screen is never badly wrong.
+ *
+ * THE ROWS LIVE IN THE STORE NOW, not in this hook's useState. The hook is
+ * still the only thing that subscribes — one socket, one place that owns the
+ * connection — but anything on the page can now read the live feed without
+ * opening a second subscription to the same table. The signature is unchanged
+ * so the desk did not have to care.
  */
 export function useLiveMarkets(initial: BotMarket[]): BotMarket[] {
-  const [markets, setMarkets] = useState(initial);
+  const setMarkets = useSetMarkets();
+  const mergeMarket = useMergeMarket();
 
   useEffect(() => {
     const supabase = createRmServerBrowserClient();
-
-    const merge = (row: BotMarket) =>
-      setMarkets((prev) => {
-        const next = prev.slice();
-        const i = next.findIndex((m) => m.symbol === row.symbol);
-        // Merge rather than replace: a realtime payload carries the columns
-        // that changed, and dropping the rest would blank half the row.
-        if (i === -1) next.push(row);
-        else next[i] = { ...next[i], ...row };
-        return next;
-      });
 
     const channel = supabase
       .channel("desk-market-state")
@@ -54,7 +51,7 @@ export function useLiveMarkets(initial: BotMarket[]): BotMarket[] {
         // unconfigured cannot carry the generic that would infer this.
         (payload: { new: unknown }) => {
           const row = payload.new as BotMarket | null;
-          if (row?.symbol) merge(row);
+          if (row?.symbol) mergeMarket(row);
         },
       )
       .subscribe();
@@ -69,7 +66,11 @@ export function useLiveMarkets(initial: BotMarket[]): BotMarket[] {
       clearInterval(id);
       supabase.removeChannel(channel);
     };
-  }, []);
+    // Store actions are stable for the life of the store, so this runs once —
+    // the socket must not be torn down and rebuilt on re-render.
+  }, [setMarkets, mergeMarket]);
 
-  return markets;
+  // Falls back to the server snapshot until the store has its own rows, so
+  // the first client render matches the server's HTML exactly.
+  return useMarkets(initial);
 }

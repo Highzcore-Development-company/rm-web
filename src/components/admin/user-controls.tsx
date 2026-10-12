@@ -10,7 +10,7 @@ import {
   enableUser,
   updateUser,
 } from "@/app/(app)/app/admin/(panel)/users/actions";
-import { useToast } from "@/components/toast";
+import { useToast } from "@/stores";
 import { Card } from "@/components/ui";
 import { inputClass } from "@/components/auth/form-bits";
 

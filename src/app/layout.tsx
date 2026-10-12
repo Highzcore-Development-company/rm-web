@@ -6,7 +6,8 @@ import { NextIntlClientProvider } from "next-intl";
 import "./globals.css";
 import { ExtensionNoise } from "@/components/extension-noise";
 import { MotionProvider } from "@/components/motion";
-import { ToastProvider } from "@/components/toast";
+import { ToastViewport } from "@/components/toast";
+import { StoreProvider } from "@/stores";
 import { RouteProgress } from "@/components/route-progress";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 
@@ -72,14 +73,18 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <ExtensionNoise />
         <NextIntlClientProvider>
           <MotionProvider>
-            <ToastProvider>
+            {/* One store per request, owned by this provider. It must wrap
+                everything that reads it — see src/stores/README.md for why it
+                is not a module-level singleton. */}
+            <StoreProvider>
               {/* useSearchParams needs a boundary, and this must never be the
                   thing that stops a page rendering. */}
               <Suspense fallback={null}>
                 <RouteProgress />
               </Suspense>
               {children}
-            </ToastProvider>
+              <ToastViewport />
+            </StoreProvider>
           </MotionProvider>
         </NextIntlClientProvider>
       </body>

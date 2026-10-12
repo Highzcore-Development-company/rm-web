@@ -5,7 +5,7 @@ import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { Undo2 } from "lucide-react";
 import { recordRefund } from "@/app/(app)/app/admin/(panel)/billing/actions";
-import { useToast } from "@/components/toast";
+import { useToast } from "@/stores";
 
 /**
  * Record a refund that has ALREADY been paid out by hand.

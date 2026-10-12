@@ -10,8 +10,27 @@
 /** $20.00 per month, before any discount. */
 export const MONTHLY_PRICE_CENTS = 2000;
 
-/** 5% off the total for any term longer than one month. */
-export const MULTI_MONTH_DISCOUNT_BPS = 500; // basis points
+/**
+ * Discount per term, in basis points. Set by Victor, 11 Oct 2026.
+ *
+ * It was a single 5% applied to every term over a month, which meant 3, 6 and
+ * 12 all worked out at $19/mo — the page said "pay longer, pay less" and then
+ * offered no reason to. The ladder is steep on purpose: a year commits before
+ * a track record exists, and that is what is being paid for.
+ *
+ *     1 month    0%     $20.00/mo
+ *     3 months  15%     $17.00/mo
+ *     6 months  35%     $13.00/mo
+ *    12 months  60%      $8.00/mo
+ *
+ * A term not listed here gets no discount rather than a guessed one.
+ */
+export const TERM_DISCOUNT_BPS: Record<number, number> = {
+  1: 0,
+  3: 1_500,
+  6: 3_500,
+  12: 6_000,
+};
 
 /** Terms offered at checkout. */
 export const PLAN_MONTHS = [1, 3, 6, 12] as const;
@@ -41,7 +60,9 @@ export function priceFor(months: number): Price {
   }
 
   const subtotalCents = MONTHLY_PRICE_CENTS * months;
-  const discountBps = months > 1 ? MULTI_MONTH_DISCOUNT_BPS : 0;
+  // Unknown term -> no discount. Falling back to the nearest listed rate
+  // would quietly invent a price, and this function is what checkout charges.
+  const discountBps = TERM_DISCOUNT_BPS[months] ?? 0;
 
   // Round the discount down so rounding never favours us over the investor.
   const discountCents = Math.floor((subtotalCents * discountBps) / 10_000);

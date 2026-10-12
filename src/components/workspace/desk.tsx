@@ -4,6 +4,16 @@ import Link from "next/link";
 import { useState, useSyncExternalStore } from "react";
 import { signOutAndGoHome } from "@/lib/sign-out";
 import {
+  useDeskTab,
+  useFeedOpen,
+  useScoraOpen,
+  useSetDeskTab,
+  useSetFeedOpen,
+  useToggleFeed,
+  useSetScoraOpen,
+  type DeskTab,
+} from "@/stores";
+import {
   Activity,
   ChevronDown,
   ChevronLeft,
@@ -58,10 +68,12 @@ import type { BotMarket, BotSettings, BotTrade } from "@/lib/workspace/types";
  * in the profile menu where it already lived. The other four are these tabs.
  *
  * "Market" is what used to be called Activities. Same place in the product —
- * every market and what the bot thinks of it — under the name the brief uses
- * and with the admin's per-market controls reachable from the row.
+ * every market and what the bot thinks of it — under the name the brief uses.
+ *
+ * The STORE owns the tab, so it owns the type — the four section names live
+ * in the desk slice, not here. Aliased so TABS below reads as it did.
  */
-type Tab = "market" | "live" | "history" | "performance";
+type Tab = DeskTab;
 
 const TABS: { key: Tab; label: string; Icon: typeof Activity }[] = [
   { key: "market", label: "Market", Icon: Sparkles },
@@ -182,9 +194,16 @@ export function Desk({
   const markets = useLiveMarkets(initialMarkets);
 
   // Desktop: both rails open. Mobile: both closed over the chart.
-  const [scoraOpen, setScoraOpen] = useState(true);
-  const [feedOpen, setFeedOpen] = useState(true);
-  const [tab, setTab] = useState<Tab>("market");
+  // Which rails are open and which feed tab is showing are session
+  // preferences, not page data — they were three useState calls here, so they
+  // reset on every navigation. They live in the store's desk slice now.
+  const scoraOpen = useScoraOpen();
+  const setScoraOpen = useSetScoraOpen();
+  const feedOpen = useFeedOpen();
+  const setFeedOpen = useSetFeedOpen();
+  const toggleFeed = useToggleFeed();
+  const tab = useDeskTab();
+  const setTab = useSetDeskTab();
 
   const live = markets.filter((m) => m.state === "active" && m.volume != null);
   // The chart follows whatever the bot is closest to acting on, so the page
@@ -238,7 +257,7 @@ export function Desk({
           <div className="ml-auto flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setFeedOpen((v) => !v)}
+              onClick={toggleFeed}
               aria-expanded={feedOpen}
               className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs text-fg-muted transition-colors hover:text-fg lg:hidden"
             >

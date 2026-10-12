@@ -5,7 +5,7 @@ import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { changeAdminPassword } from "@/app/(app)/app/admin/change-password/actions";
 import { Field, FormError, inputClass, submitClass } from "@/components/auth/form-bits";
-import { useToast } from "@/components/toast";
+import { useToast } from "@/stores";
 
 export function ChangePasswordForm() {
   const t = useTranslations("admin.changePassword");

@@ -13,14 +13,16 @@
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
     "menuTitle": "Menu",
-    "dashboard": "Dashboard"
+    "dashboard": "Dashboard",
+    "developers": "Developers",
+    "investors": "For investors"
   },
   "home": {
     "hero": {
       "eyebrow": "AI trading analysis for forex and crypto",
       "title": "Know what the market is doing before you trade it.",
       "body": "Our AI reads volatility, trend structure and risk across 30 forex and crypto markets, and tells you what it sees in plain English. You still make every call — it just means you make it with the analysis you would never have time to do yourself.",
-      "primaryCta": "Start free",
+      "primaryCta": "Get started",
       "secondaryCta": "See what it reads",
       "trust": {
         "custody": "Your money stays at Vantage, in your name",
@@ -32,27 +34,27 @@
     "steps": {
       "title": "Three steps",
       "one": {
-        "title": "Open your Vantage account",
-        "body": "In your own name, funded by you, held by Vantage. We never touch the money."
+        "title": "Create your account",
+        "body": "One subscription covers every market Scora reads, and the same account issues your API keys."
       },
       "two": {
-        "title": "Give trade permission",
-        "body": "Sign Vantage's limited power of attorney. It lets our bot place trades on your account. It does not let anyone withdraw."
+        "title": "Ask about a market",
+        "body": "Name the pair you are looking at. Scora gives you its volatility, trend state, the levels that matter and what the trade costs."
       },
       "three": {
-        "title": "Watch it trade",
-        "body": "Every position the bot opens on your account, live in your dashboard. Disconnect whenever you want."
+        "title": "Make your own call",
+        "body": "You decide and you place the trade. Scora is the analysis you would never have time to do yourself, not an instruction."
       }
     },
     "performance": {
-      "title": "The live record",
-      "body": "Every trade the bot has made, published in full.",
+      "title": "The analysis, acted on",
+      "body": "Scora’s reading of the market, traded live and published in full — every trade, including the losing ones, with the worst drawdown beside the return.",
       "cta": "See the full record",
       "unavailable": "Live figures are unavailable right now."
     },
     "pricing": {
       "title": "{price} a month",
-      "body": "A flat software subscription. Pay for longer and save 5%.",
+      "body": "From $20 a month. Commit for longer and it drops to $8.",
       "cta": "See pricing"
     },
     "faq": {
@@ -68,7 +70,7 @@
         },
         "cost": {
           "q": "What does it cost?",
-          "a": "$20 per month for the software. Longer terms are 5% cheaper. There is also a performance fee, which is configured inside Vantage's management panel and paid out by Vantage — it never passes through us."
+          "a": "From $20 a month for Scora across all 30 markets. Longer terms cost much less per month — a year works out at $8. API keys are included on the same account: no separate developer plan, no per-call charge."
         },
         "losses": {
           "q": "Can I lose money?",
@@ -77,6 +79,22 @@
         "broker": {
           "q": "Why Vantage specifically?",
           "a": "Vantage supports the account structure this needs: you hold your own account, and a manager is granted trade-only permission on it. That is what keeps your funds in your name."
+        },
+        "what": {
+          "q": "What does Scora actually give me?",
+          "a": "The condition of the market you are about to trade: how volatile it is against its own normal range, whether it is trending or going nowhere, where the levels sit, and what the round trip costs in spread and commission. Not signals, and not a prediction of where price is going — nobody can do that honestly."
+        },
+        "decide": {
+          "q": "Does Scora tell me what to buy?",
+          "a": "No, and that is deliberate. It gives you the condition of the market you are about to trade — volatility, trend, levels, cost — so the decision is yours and better informed. You know your own circumstances and your own risk; Scora does not."
+        },
+        "api": {
+          "q": "Can I use it in my own code?",
+          "a": "Yes. A paid account issues API keys from your dashboard, over the same figures the site publishes. Documented limits, bearer auth, JSON."
+        },
+        "managed": {
+          "q": "Can you just trade it for me?",
+          "a": "For businesses, yes — but not through this website. Tell us about your business and we arrange a call, then set up your broker account and a dashboard with you. Your funds stay in your own account throughout; we are granted permission to trade it, never to withdraw."
         }
       }
     },
@@ -111,18 +129,20 @@
     "plans": {
       "eyebrow": "Pricing",
       "title": "One price. Pay longer, pay less.",
-      "body": "A flat software subscription — not a share of your profits. The performance fee is set inside Vantage and paid by Vantage.",
+      "body": "One subscription for Scora — every market it reads, and the API keys to pull the same analysis into your own code. No tiers, and no share of your profits.",
       "month": "{count} month",
       "months": "{count} months",
       "perMonth": "{price}/mo",
       "save": "Save {percent}",
       "cta": "Get started",
-      "note": "Cancel any time. Your Vantage account is yours either way."
+      "note": "Cancel any time. API keys are included — there is nothing else to buy.",
+      "billedMonthly": "Billed monthly",
+      "billedTerm": "{price} billed every {months} months"
     },
     "cta": {
       "title": "Start reading the market properly.",
-      "body": "Free to start. Add managed trading whenever you want it.",
-      "primary": "Start free",
+      "body": "One subscription, every market Scora reads, API access included.",
+      "primary": "Get started",
       "secondary": "See the live record"
     },
     "analysis": {
@@ -147,13 +167,13 @@
           "body": "Spread, commission and overnight cost per market, so the cost of being right is visible before you are."
         }
       ],
-      "disclaimer": "Analysis, not advice. AI can make mistakes, and you are responsible for your own trades."
+      "disclaimer": "Scora analyses the market. You make the call. AI can make mistakes, so weigh what it shows you against what you see."
     },
     "managed": {
       "eyebrow": "Or let it trade for you",
-      "title": "Managed trading on your own broker account.",
-      "body": "Rather trade hands-free? Open a Vantage account in your own name, fund it, and give our bot permission to trade it. Permission to trade — never permission to withdraw. Your funds never leave your broker.",
-      "cta": "How managed trading works"
+      "title": "Managed trading, for businesses.",
+      "body": "Some clients would rather the analysis was acted on without them. We set that up directly: tell us about your business, we talk it through on a call, and we build you a dashboard that shows the bot's performance and every trade — the same trades you see in your own MT5. Your funds stay in your own broker account throughout.",
+      "cta": "Talk to us about investing"
     },
     "proof": {
       "title": "Why anyone should trust this",
@@ -172,8 +192,8 @@
     }
   },
   "howItWorks": {
-    "title": "How it works",
-    "intro": "Five things happen, in this order. At no point do we hold your money.",
+    "title": "How Scora works",
+    "intro": "You bring the market you are about to trade. Scora brings the reading of it you would never have time to do yourself. You still make every call.",
     "steps": {
       "open": {
         "title": "You open your own Vantage account",
@@ -194,17 +214,46 @@
       "disconnect": {
         "title": "You can disconnect at any time",
         "body": "Detach the bot from your account in Vantage and cancel your subscription. Your account, and the money in it, stay yours throughout."
+      },
+      "subscribe": {
+        "title": "Subscribe",
+        "body": "One price covers all 30 forex and crypto markets Scora follows. The same account issues your API keys — there is no separate developer plan."
+      },
+      "ask": {
+        "title": "Name the market",
+        "body": "Tell Scora what you are looking at. It answers in plain English, about that market, right now."
+      },
+      "read": {
+        "title": "It reads the conditions",
+        "body": "How violent the market is against its own normal range, whether it is trending or going nowhere, where the levels sit, and what the round trip actually costs you in spread and commission."
+      },
+      "decide": {
+        "title": "You decide",
+        "body": "Scora does not tell you to buy or sell and does not predict where price is going. It tells you the condition of the market you are about to trade. The trade is yours."
+      },
+      "build": {
+        "title": "Or build on it",
+        "body": "The same analysis is available over the API with the keys your subscription already includes, so you can pull it into your own code or strategy."
       }
     },
     "custody": {
       "title": "We never hold your funds",
       "body": "There is no stage of this where your money sits with us. You deposit with Vantage and withdraw from Vantage. The only money you pay us is the $20 software subscription."
     },
-    "cta": "Get started"
+    "cta": "Get started",
+    "limits": {
+      "title": "You make the call",
+      "body": "Scora shows you the condition of the market — how volatile it is, where it is going, the levels that matter and what the trade costs — so you decide with the full picture instead of a hunch. It analyses; you trade. AI can make mistakes, so weigh what it shows you against what you see, and only trade money you can afford to lose."
+    },
+    "managed": {
+      "title": "Want it traded for you instead?",
+      "body": "Businesses that would rather the analysis was acted on without them are set up directly with us, after a call.",
+      "cta": "For investors"
+    }
   },
   "pricing": {
     "title": "Pricing",
-    "intro": "One price for the software. 5% off any term longer than one month.",
+    "intro": "One subscription for Scora — every market it reads, and the API keys to use the same analysis in your own code. The longer the term, the less you pay each month.",
     "table": {
       "term": "Term",
       "price": "Price",
@@ -223,7 +272,16 @@
     },
     "noRefund": {
       "title": "Before you subscribe",
-      "body": "You need a funded Vantage account linked to us for the bot to trade. Subscribing on its own does not start anything."
+      "body": "This buys Scora’s analysis and your API keys. It does not connect a broker account or place any trade — managed trading is a separate arrangement."
+    },
+    "included": {
+      "title": "What the subscription includes",
+      "body": "Scora’s analysis across all 30 forex and crypto markets, and API access on the same account. There is no separate developer plan and no per-call charge — if you are subscribed, your keys work."
+    },
+    "managed": {
+      "title": "Managed trading is priced separately",
+      "body": "Having the bot trade a broker account for you is not part of this subscription. It is arranged directly with us and priced on the call, because what it involves depends on your business.",
+      "cta": "Talk to us about investing"
     }
   },
   "risk": {
@@ -553,7 +611,7 @@
     }
   },
   "footer": {
-    "tagline": "Automated trading on your own Vantage account.",
+    "tagline": "AI market analysis for forex and crypto. Managed trading for businesses.",
     "product": "Product",
     "legal": "Legal",
     "company": "Company",
@@ -561,7 +619,7 @@
     "terms": "Terms of service",
     "privacy": "Privacy policy",
     "rights": "© {year} Highzcore. All rights reserved.",
-    "disclaimer": "Trading carries risk of loss. Past performance does not predict future results. We never hold client funds — your account is held with Vantage in your own name, and we are granted permission to trade it only, never to withdraw."
+    "disclaimer": "Scora helps you analyse the market — every trading decision is your own. AI can make mistakes. Trading carries risk of loss and past performance does not predict future results. For managed clients: we never hold your funds. Your account is held with Vantage in your own name, and we are granted permission to trade it only, never to withdraw."
   },
   "performance": {
     "title": "The record",
@@ -713,7 +771,7 @@
   },
   "apiDocs": {
     "title": "API documentation",
-    "intro": "A small, honest API over the same figures the site publishes. JSON, bearer auth, documented limits.",
+    "intro": "A small, honest API over the same analysis Scora gives you on the site. JSON, bearer auth, documented limits. Keys come with a paid Scora account — there is no separate developer plan and no per-call charge.",
     "auth": {
       "title": "Authentication",
       "body": "Send your key as a bearer token. Keys are created in your dashboard, shown once, and stored only as a hash — we cannot recover one for you."
@@ -1093,7 +1151,7 @@
     "markets": "Markets",
     "noMarkets": "No markets configured.",
     "noProfitTarget": "none",
-    "lotNote": "The bot re-reads these settings about once a minute, so a change takes up to 60 seconds to take effect — it is not instant. Lot size is also checked against the broker and snapped if it falls outside the allowed range. Switching a market off stops NEW trades only; anything already open keeps its stop and target.",
+    "lotNote": "The bot checks lot size against the broker and snaps a value outside the allowed range within about a minute. A number here is a request, not the final word.",
     "switch": {
       "on": "The bot is trading",
       "off": "The bot is stopped",
@@ -1113,8 +1171,8 @@
     "saved": {
       "lot": "Lot size sent for {symbol}. The bot will confirm or snap it shortly.",
       "profit": "Profit target updated for {symbol}.",
-      "enabled": "{symbol} switched on. Takes effect within about a minute.",
-      "disabled": "{symbol} switched off. No new trades there within about a minute; open positions are left alone."
+      "enabled": "{symbol} enabled.",
+      "disabled": "{symbol} disabled."
     },
     "errors": {
       "forbidden": "You do not have permission to configure the bot.",
@@ -1298,6 +1356,75 @@
         "not_investor": "This form is for managed trading accounts.",
         "bad_phone": "Enter a phone number we can reach you on.",
         "not_configured": "We could not send that just now. Please email us directly so this does not get lost."
+      }
+    }
+  },
+  "investors": {
+    "eyebrow": "Managed trading",
+    "title": "Have it traded for you.",
+    "intro": "For businesses that want the analysis acted on rather than read. We do not sell this through a checkout — we talk to you first, understand what you trade and what you need to see, then set it up with you.",
+    "what": {
+      "title": "How it works",
+      "talk": {
+        "title": "Tell us about your business",
+        "body": "Fill in the form and we arrange a call. What you trade, what you are working with, and what you need the reporting to show."
+      },
+      "setup": {
+        "title": "We set you up",
+        "body": "We take you through opening your broker account and granting trade permission, and we build your dashboard. You are not left to work it out from a help page."
+      },
+      "watch": {
+        "title": "Watch it work",
+        "body": "Performance and every individual trade, in your dashboard and in your own MT5. The same trades, from both sides — ours is not the only copy you can check."
+      }
+    },
+    "form": {
+      "title": "Start the conversation",
+      "intro": "We reply to every enquiry. Tell us enough that the first call is worth having.",
+      "name": "Your name",
+      "email": "Email",
+      "company": "Business",
+      "phone": "Phone",
+      "optional": "Optional",
+      "message": "What are you looking for?",
+      "messageHint": "What you trade, roughly what you are working with, and what you want this to do for you.",
+      "submit": "Send enquiry",
+      "sending": "Sending…",
+      "privacy": "We use this only to reply to you. We never share it.",
+      "sent": {
+        "title": "Thank you — that reached us.",
+        "body": "We will reply by email to arrange a call, usually within one working day."
+      },
+      "error": {
+        "invalid": "Please add your name, a valid email and a message.",
+        "unconfigured": "We could not send that just now. Please email admin@highzcore.tech directly and we will pick it up.",
+        "generic": "Something went wrong sending that. Please try again, or email admin@highzcore.tech."
+      }
+    },
+    "mechanics": {
+      "title": "What we set up with you",
+      "intro": "Five things happen, in this order. At no point do we hold your money.",
+      "steps": {
+        "open": {
+          "title": "You open your own Vantage account",
+          "body": "The account is in your name, with Vantage, not with us. You complete their verification directly."
+        },
+        "fund": {
+          "title": "You fund it",
+          "body": "You deposit with Vantage. The money is in your account, under your control, the whole time."
+        },
+        "lpoa": {
+          "title": "You sign Vantage's limited power of attorney",
+          "body": "This grants permission to place trades on your account. It does not grant permission to withdraw, transfer, or move funds anywhere. That restriction is enforced by Vantage, not by our promise."
+        },
+        "trade": {
+          "title": "Our bot trades it",
+          "body": "The bot places the same positions on your account that it places on the master. You see each one in your dashboard."
+        },
+        "disconnect": {
+          "title": "You can disconnect at any time",
+          "body": "Detach the bot from your account in Vantage and cancel your subscription. Your account, and the money in it, stay yours throughout."
+        }
       }
     }
   }

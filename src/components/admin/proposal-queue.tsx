@@ -8,7 +8,7 @@ import {
   decideProposal,
   setRequireApproval,
 } from "@/app/(app)/app/admin/(panel)/bot/actions";
-import { useToast } from "@/components/toast";
+import { useToast } from "@/stores";
 
 export type PendingProposal = {
   id: string;

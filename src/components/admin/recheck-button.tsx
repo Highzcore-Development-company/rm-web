@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { RefreshCw } from "lucide-react";
 import { recheckPayment } from "@/app/(app)/app/admin/(panel)/billing/actions";
-import { useToast } from "@/components/toast";
+import { useToast } from "@/stores";
 
 export function RecheckButton({ subscriptionId }: { subscriptionId: string }) {
   const t = useTranslations("adminBilling");

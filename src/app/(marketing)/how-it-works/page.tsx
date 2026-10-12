@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { useTranslations } from "next-intl";
 import {
-  Banknote,
-  FileSignature,
-  LogOut,
+  Activity,
+  Code2,
+  MessageSquare,
   ShieldCheck,
+  Target,
   UserPlus,
   type LucideIcon,
 } from "lucide-react";
@@ -14,20 +15,25 @@ import { ButtonLink, Container } from "@/components/ui";
 export const metadata: Metadata = {
   title: "How it works",
   description:
-    "You open your own Vantage account, fund it, and grant trade permission only. We never hold your funds.",
+    "Scora reads volatility, trend, levels and cost across 30 markets, and tells you what it sees. You make the call.",
 };
 
 /**
  * Each step gets a mark. Five headings over five paragraphs is correct and
- * unreadable — the eye has nothing to land on, so the page reads as a wall and
- * people skim past the one step that matters (the LPOA).
+ * unreadable — the eye has nothing to land on, so the page reads as a wall.
+ *
+ * These used to be the managed-trading mechanics: open a Vantage account, fund
+ * it, sign the power of attorney. That is a real sequence but it belongs to
+ * the service we sell on a call, not to the product the site sells, and
+ * putting it behind "How it works" told every visitor the bot was the product.
+ * It now lives on /investors. These five are Scora's.
  */
 const STEPS: { key: string; Icon: LucideIcon }[] = [
-  { key: "open", Icon: UserPlus },
-  { key: "fund", Icon: Banknote },
-  { key: "lpoa", Icon: FileSignature },
-  { key: "trade", Icon: ShieldCheck },
-  { key: "disconnect", Icon: LogOut },
+  { key: "subscribe", Icon: UserPlus },
+  { key: "ask", Icon: MessageSquare },
+  { key: "read", Icon: Activity },
+  { key: "decide", Icon: Target },
+  { key: "build", Icon: Code2 },
 ];
 
 export default function HowItWorksPage() {
@@ -80,8 +86,10 @@ export default function HowItWorksPage() {
           ))}
         </Stagger>
 
-        {/* P2-102 — states plainly that we never hold funds. Given its own
-            treatment because it is the objection everyone arrives with. */}
+        {/* The limits, given the same prominence the custody promise used to
+            have here. For an analysis product this is the equivalent claim:
+            the thing a reader most needs to be told plainly, and the thing
+            that is most tempting to bury. */}
         <Reveal className="mt-10 max-w-3xl">
           <div className="surface-raised relative overflow-hidden rounded-xl border border-accent/30 p-6 sm:p-8">
             <span
@@ -93,17 +101,28 @@ export default function HowItWorksPage() {
                 <ShieldCheck className="size-6" aria-hidden="true" />
               </span>
               <div>
-                <h2 className="text-lg font-semibold">{t("custody.title")}</h2>
+                <h2 className="text-lg font-semibold">{t("limits.title")}</h2>
                 <p className="mt-2 text-sm leading-relaxed text-fg-muted">
-                  {t("custody.body")}
+                  {t("limits.body")}
                 </p>
               </div>
             </div>
           </div>
         </Reveal>
 
-        <div className="mt-12">
+        <div className="mt-12 flex flex-wrap items-center gap-3">
           <ButtonLink href="/app/signup">{t("cta")}</ButtonLink>
+        </div>
+
+        {/* The other door, for the reader who got here wanting the bot. */}
+        <div className="surface mt-10 max-w-3xl rounded-xl border border-border p-6">
+          <h2 className="text-lg font-semibold">{t("managed.title")}</h2>
+          <p className="mt-2 text-sm leading-relaxed text-fg-muted">
+            {t("managed.body")}
+          </p>
+          <ButtonLink href="/investors" variant="secondary" className="mt-5">
+            {t("managed.cta")}
+          </ButtonLink>
         </div>
       </Container>
   );
