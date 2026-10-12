@@ -426,6 +426,25 @@ function Empty({ text }: { text: string }) {
  * A resting order that has already been placed shows in Live, where it has a
  * ticket. This tab is strictly the step before that.
  */
+/**
+ * How far price has to move before this becomes a trade.
+ *
+ * The number people actually want. Two prices side by side make you do the
+ * subtraction yourself, and on a 5-decimal pair that is not a glance.
+ *
+ * In PIPS, which is the unit a trader thinks in: a JPY pair's pip is the
+ * second decimal, everything else the fourth. Not a percentage — a pip is
+ * what the stop and target are measured in everywhere else on this screen.
+ */
+function distance(now: number | null, entry: number | null): string {
+  if (now == null || entry == null) return "—";
+  // A JPY pair quotes to 3 decimals, so its pip is 0.01 rather than 0.0001.
+  const pip = Math.abs(entry) > 20 ? 0.01 : 0.0001;
+  const pips = Math.abs(now - entry) / pip;
+  if (pips < 0.1) return "at it";
+  return `${pips.toFixed(1)} pips`;
+}
+
 function PendingTab({ rows }: { rows: BotMarket[] }) {
   const waiting = rows.filter((m) => m.state === "ready");
 
@@ -441,16 +460,18 @@ function PendingTab({ rows }: { rows: BotMarket[] }) {
         <li key={m.symbol} className="px-5 py-4">
           <div className="flex items-baseline justify-between gap-3">
             <span className="font-semibold">{m.alias}</span>
-            <span className="font-mono text-xs text-brand">waiting for level</span>
+            <span className="font-mono text-xs text-brand">waiting to enter</span>
           </div>
 
           <p className="mt-1.5 text-sm text-fg-muted">{m.reason ?? "—"}</p>
 
           <div className="mt-2 grid grid-cols-3 gap-2 font-mono text-xs text-fg-subtle">
-            {/* The level is the whole point: it is where this becomes a trade. */}
-            <Cell label="level" value={px(m.level)} />
+            {/* "entry", not "level". The bot's own reason says "Entry ready"
+                and they are the same number — two words for one idea on a
+                screen an investor reads is one word too many. */}
+            <Cell label="entry" value={px(m.level)} />
             <Cell label="now" value={px(m.price)} />
-            <Cell label="tf" value={m.timeframe ?? "—"} />
+            <Cell label="away" value={distance(m.price, m.level)} />
           </div>
 
           {m.latest_signal && (
