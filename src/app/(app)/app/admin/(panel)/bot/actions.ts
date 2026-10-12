@@ -30,6 +30,28 @@ async function writeClient() {
 }
 
 /**
+ * A write that changed nothing is a FAILED write, not a successful one.
+ *
+ * This caught a real bug and it had been live for days: bot_settings never had
+ * an UPDATE policy (the columns were granted in 013/014, a read policy arrived
+ * in 018, an update policy was never written). Under RLS a grant without a
+ * policy is refused — but PostgREST returns no error for an UPDATE that simply
+ * matches no rows. So the trading switch reported success every time and
+ * changed nothing, which is the worst possible failure for a kill switch.
+ *
+ * Every rm-server write therefore asks for the rows it changed and treats an
+ * empty result as a refusal. The alternative is trusting that an absent error
+ * means something happened, which is exactly what went wrong.
+ */
+function refused(what: string, message?: string): BotActionResult {
+  console.error(
+    `[admin/bot] ${what} affected no rows${message ? `: ${message}` : ""} — ` +
+      "check the rm-server policy and that this admin is in bot_admins",
+  );
+  return { ok: false, error: "refused" };
+}
+
+/**
  * Connect this admin to rm-server.
  *
  * Their own rm-server credentials, never stored — only the resulting refresh
@@ -81,7 +103,7 @@ export async function setLotSize(
   const client = await writeClient();
   if (!client) return { ok: false, error: "not_connected" };
 
-  const { error } = await client
+  const { data, error } = await client
     .from("bot_symbol_config")
     .update({
       lot_size: lotSize,
@@ -90,11 +112,11 @@ export async function setLotSize(
       // changed this lot size" is the question the column exists to answer.
       updated_by: admin.email,
     })
-    .eq("symbol", symbol);
+    .eq("symbol", symbol)
+    .select("symbol");
 
-  if (error) {
-    console.error("[admin/bot] lot size write failed:", error.message);
-    return { ok: false, error: "generic" };
+  if (error || !data?.length) {
+    return refused("lot size", error?.message);
   }
 
   // The operator account did it on rm-server; this records which ADMIN asked.
@@ -120,18 +142,18 @@ export async function setCloseAtProfit(
   const client = await writeClient();
   if (!client) return { ok: false, error: "not_connected" };
 
-  const { error } = await client
+  const { data, error } = await client
     .from("bot_symbol_config")
     .update({
       close_at_profit: closeAtProfit,
       updated_at: new Date().toISOString(),
       updated_by: admin.email,
     })
-    .eq("symbol", symbol);
+    .eq("symbol", symbol)
+    .select("symbol");
 
-  if (error) {
-    console.error("[admin/bot] close-at-profit write failed:", error.message);
-    return { ok: false, error: "generic" };
+  if (error || !data?.length) {
+    return refused("close-at-profit", error?.message);
   }
 
   await recordAdminAction("bot.close_at_profit_changed", {
@@ -153,18 +175,18 @@ export async function setMarketEnabled(
   const client = await writeClient();
   if (!client) return { ok: false, error: "not_connected" };
 
-  const { error } = await client
+  const { data, error } = await client
     .from("bot_symbol_config")
     .update({
       enabled,
       updated_at: new Date().toISOString(),
       updated_by: admin.email,
     })
-    .eq("symbol", symbol);
+    .eq("symbol", symbol)
+    .select("symbol");
 
-  if (error) {
-    console.error("[admin/bot] market toggle failed:", error.message);
-    return { ok: false, error: "generic" };
+  if (error || !data?.length) {
+    return refused("market switch", error?.message);
   }
 
   await recordAdminAction("bot.market_toggled", { type: "market", id: symbol }, {
@@ -185,7 +207,7 @@ export async function setTradingEnabled(
   const client = await writeClient();
   if (!client) return { ok: false, error: "not_connected" };
 
-  const { error } = await client
+  const { data, error } = await client
     .from("bot_settings")
     .update({
       trading_enabled: enabled,
@@ -193,11 +215,11 @@ export async function setTradingEnabled(
       updated_by: admin.email,
     })
     // bot_settings is a single row; the bot's own queries assume id = 1.
-    .eq("id", 1);
+    .eq("id", 1)
+    .select("id");
 
-  if (error) {
-    console.error("[admin/bot] trading switch failed:", error.message);
-    return { ok: false, error: "generic" };
+  if (error || !data?.length) {
+    return refused("trading switch", error?.message);
   }
 
   await recordAdminAction(
@@ -224,7 +246,7 @@ export async function setRequireApproval(
   const client = await writeClient();
   if (!client) return { ok: false, error: "not_connected" };
 
-  const { error } = await client
+  const { data, error } = await client
     .from("bot_settings")
     .update({
       require_approval: required,

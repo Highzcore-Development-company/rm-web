@@ -1285,7 +1285,8 @@
       "invite_exists": "There is already an invitation waiting for that address. Revoke it first to send a new one.",
       "email_configured": "Email is not configured, so no invitation can be sent.",
       "email_not_configured": "Email is not configured, so no invitation can be sent.",
-      "email_failed": "The invitation could not be emailed, so it has been cancelled. Check the mail settings and try again."
+      "email_failed": "The invitation could not be emailed, so it has been cancelled. Check the mail settings and try again.",
+      "bot_revoke_failed": "Nothing was changed. Their bot access could not be cut, and removing them here while they keep it would be worse than leaving them alone. Connect to the bot on the Bot page, then try again."
     },
     "invite": {
       "title": "Invite someone to the admin panel",

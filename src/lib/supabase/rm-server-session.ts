@@ -179,3 +179,41 @@ export function isBotReachable(): boolean {
       envOr(process.env.RM_SERVER_SUPABASE_ANON_KEY, ""),
   );
 }
+
+/**
+ * Cut someone's access to the BOT, not just to our panel.
+ *
+ * The gap this closes: rm-web and rm-server revoke separately. Removing
+ * somebody as an admin here left their rm-server account working, so they lost
+ * the dashboard and kept the ability to close live trades and change lot
+ * sizes — until a human remembered to go and disable them in a different
+ * system. That is the kind of gap that surfaces on the worst possible day.
+ *
+ * Disabled, never deleted (migration 021 grants no delete at all): old
+ * bot_commands.created_by rows have to stay attributable to a real person.
+ *
+ * Returns false when it could not be done — no rm-server session, or the write
+ * was refused. The caller must NOT report a clean removal in that case: a
+ * revocation that looks complete and is not is worse than one that failed
+ * loudly.
+ */
+export async function revokeBotAdmin(email: string): Promise<boolean> {
+  const client = await getBotWriteClient();
+  if (!client) return false;
+
+  const { data, error } = await client
+    .from("bot_admins")
+    .update({ disabled_at: new Date().toISOString() })
+    .eq("email", email.toLowerCase())
+    .is("disabled_at", null)
+    .select("email");
+
+  if (error) {
+    console.error("[rm-server] revoke failed:", error.message);
+    return false;
+  }
+
+  // Zero rows is success here, unlike every other write: it means they were
+  // never a bot admin, or were already disabled. Either way they hold nothing.
+  return Array.isArray(data);
+}
