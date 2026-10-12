@@ -60,6 +60,14 @@ export function SignupForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [acknowledged, setAcknowledged] = useState(false);
+  /**
+   * HS-BOT-v4 §1. Null until they choose — deliberately not defaulted to
+   * either. A pre-selected card is a choice made for them, and this is the
+   * most consequential thing they decide on the site.
+   */
+  const [accountType, setAccountType] = useState<"trader" | "investor" | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -67,10 +75,19 @@ export function SignupForm() {
     event.preventDefault();
     setError(null);
 
+    if (!accountType) {
+      setError(t("errors.accountType"));
+      return;
+    }
+
     // P2-104 — the risk disclosure is shown during signup and must be
     // acknowledged. Checked here as well as in the markup so the form cannot
     // be submitted past it.
-    if (!acknowledged) {
+    //
+    // INVESTORS ONLY. A trader places their own trades on their own broker;
+    // we are not trading their money, so asking them to acknowledge the risk
+    // of us doing it would be a record of something that never happens.
+    if (accountType === "investor" && !acknowledged) {
       setError(t("errors.acknowledge"));
       return;
     }
@@ -88,7 +105,15 @@ export function SignupForm() {
       options: {
         // Supabase sends this link in the confirmation email. The callback
         // exchanges the code and creates the investors row.
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/app/onboarding`,
+        // Carried on the auth user because the investors row does not exist
+        // yet — it is created after verification, and reads this back.
+        data: { account_type: accountType },
+        // Where they land afterwards depends on which they chose. A trader
+        // has no broker account to onboard; an investor cannot finish on
+        // their own and goes to the enquiry form.
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${
+          accountType === "trader" ? "/app/checkout" : "/app/enquiry"
+        }`,
       },
     });
 
@@ -106,8 +131,12 @@ export function SignupForm() {
     // code that was never issued.
     if (data.session) {
       // They ticked the box on this form; recording it here means the gate
-      // does not stop and ask them the same question again.
-      await Promise.all([acknowledgeRisk(), sendVerificationCode()]);
+      // does not stop and ask them the same question again. A trader never
+      // ticked one and is never asked, so there is nothing to record.
+      await Promise.all([
+        ...(accountType === "investor" ? [acknowledgeRisk()] : []),
+        sendVerificationCode(),
+      ]);
     }
 
     router.push(`/app/verify-email?email=${encodeURIComponent(email)}`);
@@ -142,6 +171,48 @@ export function SignupForm() {
         <PasswordStrength password={password} />
       </PasswordField>
 
+      {/* HS-BOT-v4 §1 — the one question, after email and password and before
+          anything else. Two cards rather than a dropdown, because this is the
+          most important choice anybody makes on the site and a dropdown makes
+          it look like a preference. Radios underneath, so it is one keyboard
+          group and a screen reader announces it as a choice. */}
+      <fieldset>
+        <legend className="text-sm font-medium">{t("choose.legend")}</legend>
+        <p className="mt-1 text-xs text-fg-muted">{t("choose.hint")}</p>
+
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          {(["trader", "investor"] as const).map((kind) => {
+            const on = accountType === kind;
+            return (
+              <label
+                key={kind}
+                className={`cursor-pointer rounded-xl border p-4 transition-colors ${
+                  on
+                    ? "border-accent bg-accent/[0.06]"
+                    : "border-border bg-[var(--input-bg)] hover:border-fg-subtle"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="account_type"
+                  value={kind}
+                  checked={on}
+                  onChange={() => setAccountType(kind)}
+                  className="sr-only"
+                />
+                <span className="block text-sm font-semibold">
+                  {t(`choose.${kind}.title`)}
+                </span>
+                <span className="mt-1.5 block text-xs leading-relaxed text-fg-muted">
+                  {t(`choose.${kind}.body`)}
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      </fieldset>
+
+      {accountType === "investor" && (
       <div
         className={`flex gap-3 rounded-lg border p-4 transition-colors ${
           acknowledged
@@ -171,6 +242,7 @@ export function SignupForm() {
           </Link>
         </div>
       </div>
+      )}
 
       <SubmitButton pending={submitting} pendingLabel={t("submitting")}>
         {t("submit")}

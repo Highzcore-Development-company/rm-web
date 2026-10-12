@@ -272,9 +272,22 @@
         "email_invalid": "That email address was not accepted. Check it, and use an address you can actually receive mail at.",
         "already_registered": "There is already an account with that email. Try signing in, or reset your password.",
         "provider_disabled": "Account creation is temporarily switched off. Please try again shortly.",
-        "signup_disabled": "We are not accepting new accounts right now."
+        "signup_disabled": "We are not accepting new accounts right now.",
+        "accountType": "Choose one of the two above."
       },
-      "continue": "I understand — continue"
+      "continue": "I understand — continue",
+      "choose": {
+        "legend": "What do you want to do?",
+        "hint": "This decides what you see next, and it is not a preference you can flip later — ask us if you change your mind.",
+        "trader": {
+          "title": "I want to trade better",
+          "body": "Use Scora to read the market and make my own decisions. I place my own trades."
+        },
+        "investor": {
+          "title": "I want it traded for me",
+          "body": "Have the bot trade on my own broker account. We will talk first and set it up with you."
+        }
+      }
     },
     "verifyEmail": {
       "title": "Check your email",
@@ -1263,5 +1276,29 @@
     "failed": "That did not work",
     "failedBody": "The invitation is still valid, so you can try the link again. If it keeps failing, tell whoever invited you.",
     "toDashboard": "Go to your dashboard"
+  },
+  "enquiry": {
+    "title": "Let's talk about managed trading",
+    "intro": "This is not something you can finish on your own, on purpose. We set the account up with you on a call — so we know your situation, and you know exactly what you are agreeing to.",
+    "points": {
+      "custody": "Your money stays in your own Vantage account, in your name. We never hold it.",
+      "permission": "You grant permission to trade only — never to withdraw.",
+      "call": "We will call you, walk you through it, and set it up together."
+    },
+    "form": {
+      "phone": "Phone number",
+      "note": "Anything we should know?",
+      "noteHint": "Optional. Your experience, how much you are thinking of starting with, or a question.",
+      "submit": "Request a call",
+      "sending": "Sending…",
+      "sentTitle": "Thank you — we have your details.",
+      "sentBody": "Someone will call you to set it up. Nothing is active yet, and you have not been charged.",
+      "errors": {
+        "signed_out": "Your session has expired. Sign in and try again.",
+        "not_investor": "This form is for managed trading accounts.",
+        "bad_phone": "Enter a phone number we can reach you on.",
+        "not_configured": "We could not send that just now. Please email us directly so this does not get lost."
+      }
+    }
   }
 }

@@ -9,9 +9,19 @@
 
 export type InvestorStatus = "pending" | "linked" | "active" | "suspended";
 
+/**
+ * HS-BOT-v4 §1. Two customers, one platform.
+ *
+ * trader   — buys Scora, places their own trades, has no broker account.
+ * investor — the bot trades their own Vantage account. Does not self-serve.
+ */
+export type AccountType = "trader" | "investor";
+
 export type Investor = {
   id: string;
   user_id: string;
+  /** Never null. Which of the two products this account is. */
+  account_type: AccountType;
   /** Set when OUR code was accepted. Supabase auto-confirms, so its flag is not meaningful. */
   email_verified_at: string | null;
   /** P2-104. Server-written, and the RLS policy only allows null -> a value. */
@@ -316,7 +326,7 @@ export type Database = {
         Row: Investor;
         // Status and account are not insertable: the column grants in the
         // migration omit them, so they take their defaults whatever we send.
-        Insert: { user_id: string };
+        Insert: { user_id: string; account_type?: AccountType };
         Update: {
           vantage_account_id?: string | null;
           risk_acknowledged_at?: string | null;
