@@ -1237,6 +1237,17 @@
         "already_decided": "That one is no longer pending — it was answered or it expired. Refresh to see where it went.",
         "generic": "That did not reach the bot. Try again."
       }
+    },
+    "blankValue": "not set",
+    "on": "on",
+    "off": "off",
+    "apply": "Apply",
+    "applying": "Applying…",
+    "cancel": "Cancel",
+    "field": {
+      "lot": "Lot size",
+      "profit": "Close at profit",
+      "enabled": "Market"
     }
   },
   "adminAdmins": {

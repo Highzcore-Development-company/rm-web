@@ -161,41 +161,103 @@ function MarketRow({
   const [lot, setLot] = useState(market.lotSize?.toString() ?? "");
   const [profit, setProfit] = useState(market.closeAtProfit?.toString() ?? "");
 
-  function commitLot() {
-    const value = Number(lot);
-    if (lot === (market.lotSize?.toString() ?? "")) return;
+  /**
+   * "These controls move real money. Confirm before acting, show what the
+   * value was before and what it will be."
+   *
+   * These three used to commit straight off a blur, which meant tabbing out of
+   * a field with a typo in it changed the size of a live trade with no step in
+   * between. Nothing is sent until it is confirmed, and the confirmation shows
+   * BOTH values — "0.01 → 0.5" is a sentence somebody can catch a mistake in,
+   * where "are you sure?" is not.
+   */
+  const [confirming, setConfirming] = useState<{
+    what: "lot" | "profit" | "enabled";
+    from: string;
+    to: string;
+    apply: () => void;
+  } | null>(null);
 
-    start(async () => {
-      const res = await setLotSize(market.symbol, value);
-      if (res.ok) {
-        // Says what will happen next, because it is not instant: the bot
-        // checks the value against the broker and may snap it within a minute.
-        toast.success(t("saved.lot", { symbol: market.symbol }));
-        router.refresh();
-      } else {
-        toast.error(t(`errors.${res.error}`));
-        setLot(market.lotSize?.toString() ?? "");
-      }
+  const blank = t("blankValue");
+  const show = (v: string) => (v.trim() === "" ? blank : v);
+
+  function askLot() {
+    const was = market.lotSize?.toString() ?? "";
+    if (lot === was) return;
+    setConfirming({
+      what: "lot",
+      from: show(was),
+      to: show(lot),
+      apply: () =>
+        start(async () => {
+          const res = await setLotSize(market.symbol, Number(lot));
+          setConfirming(null);
+          if (res.ok) {
+            // Says what happens next, because it is not instant: the bot
+            // re-reads settings about once a minute and may snap the value.
+            toast.success(t("saved.lot", { symbol: market.symbol }));
+            router.refresh();
+          } else {
+            toast.error(t(`errors.${res.error}`));
+            setLot(was);
+          }
+        }),
     });
   }
 
-  function commitProfit() {
-    if (profit === (market.closeAtProfit?.toString() ?? "")) return;
-    const value = profit.trim() === "" ? null : Number(profit);
-
-    start(async () => {
-      const res = await setCloseAtProfit(market.symbol, value);
-      if (res.ok) {
-        toast.success(t("saved.profit", { symbol: market.symbol }));
-        router.refresh();
-      } else {
-        toast.error(t(`errors.${res.error}`));
-        setProfit(market.closeAtProfit?.toString() ?? "");
-      }
+  function askProfit() {
+    const was = market.closeAtProfit?.toString() ?? "";
+    if (profit === was) return;
+    setConfirming({
+      what: "profit",
+      from: show(was),
+      to: show(profit),
+      apply: () =>
+        start(async () => {
+          const value = profit.trim() === "" ? null : Number(profit);
+          const res = await setCloseAtProfit(market.symbol, value);
+          setConfirming(null);
+          if (res.ok) {
+            toast.success(t("saved.profit", { symbol: market.symbol }));
+            router.refresh();
+          } else {
+            toast.error(t(`errors.${res.error}`));
+            setProfit(was);
+          }
+        }),
     });
   }
 
-  return (
+  function askEnabled(next: boolean) {
+    setConfirming({
+      what: "enabled",
+      from: market.enabled ? t("on") : t("off"),
+      to: next ? t("on") : t("off"),
+      apply: () =>
+        start(async () => {
+          const res = await setMarketEnabled(market.symbol, next);
+          setConfirming(null);
+          if (res.ok) {
+            toast.success(
+              next
+                ? t("saved.enabled", { symbol: market.symbol })
+                : t("saved.disabled", { symbol: market.symbol }),
+            );
+            router.refresh();
+          } else toast.error(t(`errors.${res.error}`));
+        }),
+    });
+  }
+
+  function cancel() {
+    // Put the inputs back. Leaving the typed value on screen after cancelling
+    // would show a number the bot does not have.
+    setLot(market.lotSize?.toString() ?? "");
+    setProfit(market.closeAtProfit?.toString() ?? "");
+    setConfirming(null);
+  }
+
+  const row = (
     <tr className={market.enabled ? undefined : "opacity-50"}>
       <th scope="row" className="py-3 pr-4 font-mono text-xs font-normal">
         {market.symbol}
@@ -209,7 +271,7 @@ function MarketRow({
           onChange={(e) => setLot(e.target.value)}
           // Committed on blur and on Enter, not per keystroke: every keystroke
           // would be a write to the bot's database.
-          onBlur={commitLot}
+          onBlur={askLot}
           onKeyDown={(e) => {
             if (e.key === "Enter") e.currentTarget.blur();
           }}
@@ -224,7 +286,7 @@ function MarketRow({
           placeholder={t("noProfitTarget")}
           disabled={pending || !configurable}
           onChange={(e) => setProfit(e.target.value)}
-          onBlur={commitProfit}
+          onBlur={askProfit}
           onKeyDown={(e) => {
             if (e.key === "Enter") e.currentTarget.blur();
           }}
@@ -237,23 +299,52 @@ function MarketRow({
           type="checkbox"
           checked={market.enabled}
           disabled={pending || !configurable}
-          onChange={(e) => {
-            const next = e.target.checked;
-            start(async () => {
-              const res = await setMarketEnabled(market.symbol, next);
-              if (res.ok) {
-                toast.success(
-                  next
-                    ? t("saved.enabled", { symbol: market.symbol })
-                    : t("saved.disabled", { symbol: market.symbol }),
-                );
-                router.refresh();
-              } else toast.error(t(`errors.${res.error}`));
-            });
-          }}
+          onChange={(e) => askEnabled(e.target.checked)}
           className="control"
         />
       </td>
     </tr>
+  );
+
+  if (!confirming) return row;
+
+  return (
+    <>
+      {row}
+      {/* A row of its own rather than a browser confirm(): it has to show two
+          values side by side, and a native dialog can only show a sentence. */}
+      <tr className="bg-accent/[0.06]">
+        <td colSpan={4} className="px-2 py-3">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
+            <span className="font-mono text-xs">{market.symbol}</span>
+            <span className="text-fg-muted">{t(`field.${confirming.what}`)}</span>
+            <span className="tabular-nums text-fg-muted line-through">
+              {confirming.from}
+            </span>
+            <span aria-hidden="true" className="text-fg-muted">→</span>
+            <span className="tabular-nums font-semibold">{confirming.to}</span>
+
+            <span className="ml-auto flex gap-2">
+              <button
+                type="button"
+                disabled={pending}
+                onClick={confirming.apply}
+                className="rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-[#0A0A0A] disabled:opacity-50"
+              >
+                {pending ? t("applying") : t("apply")}
+              </button>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={cancel}
+                className="rounded-md border border-border px-3 py-1.5 text-xs text-fg-muted hover:text-fg disabled:opacity-50"
+              >
+                {t("cancel")}
+              </button>
+            </span>
+          </div>
+        </td>
+      </tr>
+    </>
   );
 }
