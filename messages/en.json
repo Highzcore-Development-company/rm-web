@@ -1129,6 +1129,43 @@
         "bad_credentials": "Those rm-server credentials were not accepted.",
         "generic": "That did not work. Try again."
       }
+    },
+    "approval": {
+      "title": "Before a trade goes live",
+      "on": "The bot asks before trading",
+      "onNote": "It writes a proposal and waits. Nothing reaches the market until somebody answers it.",
+      "off": "The bot places its own orders",
+      "offNote": "Trades go live as soon as the strategy finds them. Nothing waits for a person.",
+      "turnOn": "Ask me first",
+      "turnOff": "Let it trade",
+      "confirmOff": "The bot will place orders on the master account without asking, and every linked account copies them. Continue?",
+      "turnedOn": "The bot will now propose and wait.",
+      "turnedOff": "The bot will now place its own orders."
+    },
+    "proposals": {
+      "title": "{count, plural, =0 {Waiting for you} one {# waiting for you} other {# waiting for you}}",
+      "none": "Nothing is waiting. With approval on, proposals appear here as the bot finds them.",
+      "buy": "Buy",
+      "sell": "Sell",
+      "level": "Entry",
+      "sl": "Stop",
+      "tp": "Target",
+      "rr": "R:R",
+      "proposed": "Proposed {when}",
+      "approve": "Approve",
+      "reject": "Reject",
+      "reason": "Why are you rejecting it?",
+      "confirmReject": "Reject",
+      "cancel": "Cancel",
+      "approved": "Approved. The bot places it if the level is still valid.",
+      "rejected": "Rejected.",
+      "errors": {
+        "forbidden": "You do not have permission to configure the bot.",
+        "not_connected": "You are not signed in to the bot. Connect above and try again.",
+        "no_reason": "Give a reason — a rejection with no note is unreadable later.",
+        "already_decided": "That one is no longer pending — it was answered or it expired. Refresh to see where it went.",
+        "generic": "That did not reach the bot. Try again."
+      }
     }
   },
   "adminAdmins": {

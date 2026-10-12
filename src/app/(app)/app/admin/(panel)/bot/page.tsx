@@ -10,6 +10,12 @@ import {
 import { getAdmin, requirePermission } from "@/lib/admin";
 import { getWorkspaceData } from "@/lib/workspace/data";
 import { BotConnect } from "@/components/admin/bot-connect";
+import {
+  ApprovalMode,
+  ProposalQueue,
+  type PendingProposal,
+} from "@/components/admin/proposal-queue";
+import { createRmServerClient } from "@/lib/supabase/rm-server";
 import { hasBotSession, isBotReachable } from "@/lib/supabase/rm-server-session";
 import type { BotConfig } from "@/lib/workspace/types";
 
@@ -42,6 +48,31 @@ export default async function AdminBotPage() {
   // configured but this admin has not signed in to it yet.
   const connected = await hasBotSession();
   const configurable = canConfigure && isBotReachable() && connected;
+
+  // Pending proposals. Read with the ordinary read client: deciding one needs
+  // the admin's own rm-server session, but seeing the queue does not.
+  const reader = createRmServerClient();
+  const proposals: PendingProposal[] = reader
+    ? (
+        (
+          await reader
+            .from("bot_proposals")
+            .select("id, symbol, side, level, sl, tp, rr, created_at")
+            .eq("status", "pending")
+            .order("created_at", { ascending: true })
+            .limit(50)
+        ).data ?? []
+      ).map((p) => ({
+        id: p.id as string,
+        symbol: p.symbol as string,
+        side: p.side as string,
+        level: p.level as number,
+        sl: p.sl as number | null,
+        tp: p.tp as number | null,
+        rr: p.rr as number | null,
+        createdAt: p.created_at as string,
+      }))
+    : [];
 
   const markets: MarketConfig[] = (data.configs as BotConfig[]).map((c) => ({
     symbol: c.symbol,
@@ -90,6 +121,28 @@ export default async function AdminBotPage() {
             enabled={data.settings?.trading_enabled ?? false}
             configurable={configurable}
           />
+        </div>
+      </section>
+
+      {/* BEFORE a trade goes live. Placed directly under the settings and
+          above the markets, because an unanswered proposal is the only thing
+          on this page that is actively waiting on a human. */}
+      <section className="mt-10">
+        <h2 className="text-xs uppercase tracking-wide text-fg-muted">
+          {t("approval.title")}
+        </h2>
+        <div className="mt-3">
+          <ApprovalMode
+            required={data.settings?.require_approval ?? false}
+            configurable={configurable}
+          />
+        </div>
+
+        <h3 className="mt-6 text-xs uppercase tracking-wide text-fg-muted">
+          {t("proposals.title", { count: proposals.length })}
+        </h3>
+        <div className="mt-3">
+          <ProposalQueue proposals={proposals} configurable={configurable} />
         </div>
       </section>
 
