@@ -45,16 +45,38 @@ export type RawTrade = {
 };
 
 /**
- * Why the record is not being published. `too_few_snapshots` also covers
- * rows that cannot be read and an opening balance that is not positive: in
- * each the starting point of the record is not known.
+ * Why the record is not being published. One value per cause, so whoever is
+ * looking at a blank page knows what to check.
+ *
+ * - `too_few_snapshots`: fewer than 2 snapshots since the start. Check that
+ *   the bot is writing them and that `cutover_at` is not too recent.
+ * - `too_few_trades`: no closed trade, or fewer than the floor. Check the
+ *   trades table since the start.
+ * - `invalid_start`: `cutover_at` is set but is not a date. Check its value.
+ * - `invalid_data`: a timestamp, balance, equity or result is not a finite
+ *   number. Check the rows the bot wrote.
+ * - `non_positive_balance`: the opening balance, or the realised balance at
+ *   any point in the record, is zero or below. Check the first snapshot and
+ *   the trade results.
+ * - `cash_flow`: a balance moved with no trade to explain it, so money was
+ *   probably put in or taken out. Check for a deposit or withdrawal.
+ * - `gap`: more than a day without snapshots while trades kept closing. Check
+ *   that the bot was running.
+ * - `trade_after_snapshot`: a trade closed more than an hour after the last
+ *   snapshot. Check whether the bot stopped writing snapshots.
+ * - `trade_in_future`: a trade closed after the clock we were given. Check
+ *   the trade's `close_ts` and the server time.
  */
 export type FeedProblem =
   | "too_few_snapshots"
   | "too_few_trades"
+  | "invalid_start"
+  | "invalid_data"
+  | "non_positive_balance"
   | "cash_flow"
   | "gap"
-  | "trade_after_snapshot";
+  | "trade_after_snapshot"
+  | "trade_in_future";
 
 export type PerformanceBundle = {
   summary: PerformanceSummary;
@@ -78,6 +100,11 @@ export type ComputeOptions = {
  * Victor's ruling of 7 Oct 2026 is to show what is available, so the floor is
  * one closed trade. The disclosure beside the figures states the trade count,
  * which is what keeps a small sample honest. Zero trades still refuses.
+ *
+ * This floor only decides whether the page shows figures at all, per the
+ * ruling above. It is not the 200 closed trades the brief asks for before
+ * any external investor, so the page being live does not mean the record is
+ * ready to sell on.
  */
 export const MIN_PUBLIC_TRADES = 1;
 /** A hole longer than this with a close inside it means snapshots stopped (P2-704). */
@@ -87,8 +114,41 @@ export const TRADE_AFTER_SNAPSHOT_MS = 60 * 60 * 1000;
 /** How far a balance may move without a trade explaining it: 2%, or 1 unit if larger. */
 export const CASH_FLOW_TOLERANCE = 0.02;
 export const RECENT_TRADES = 25;
+/**
+ * The bot writes a snapshot right after each close, and the snapshot's own
+ * timestamp can sit a fraction of a second before the `close_ts` of a close its
+ * balance already includes (measured: up to about 0.2 s, and more when several
+ * positions close together). Two seconds is far above that and far below the
+ * time between trades.
+ */
+export const SNAPSHOT_GRACE_MS = 2000;
+/**
+ * Two consecutive snapshots closer than this are one burst of closes, as when
+ * several positions close together, and are reconciled as a whole. Whoever sets
+ * `cutover_at` should put it at least ten seconds clear of any close or
+ * snapshot, not inside a burst.
+ */
+export const SNAPSHOT_CLUSTER_MS = 10_000;
 
 const HOUR_MS = 60 * 60 * 1000;
+
+/**
+ * Which snapshot a close belongs to: the first whose time is at or after the
+ * close less SNAPSHOT_GRACE_MS, or -1 when the close is after the last one.
+ * `snapshotMs` is ascending. The one rule for matching trades to snapshots, so
+ * the cash-flow check and the opening balance cannot disagree.
+ */
+export function snapshotIndexFor(closeMs: number, snapshotMs: number[]): number {
+  const from = closeMs - SNAPSHOT_GRACE_MS;
+  let lo = 0;
+  let hi = snapshotMs.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (snapshotMs[mid] >= from) hi = mid;
+    else lo = mid + 1;
+  }
+  return lo === snapshotMs.length ? -1 : lo;
+}
 
 /** Result after costs. Commission and swap are stored negative. */
 export function netResult(t: RawTrade): number {
@@ -131,7 +191,10 @@ export function feedHealth(
     if (curTs - prevTs <= MAX_SNAPSHOT_GAP_MS) continue;
     const unrecorded = trades.some((t) => {
       const closeTs = Date.parse(t.close_ts);
-      return closeTs > prevTs && closeTs + TRADE_AFTER_SNAPSHOT_MS < curTs;
+      return (
+        closeTs > prevTs + SNAPSHOT_GRACE_MS &&
+        closeTs + TRADE_AFTER_SNAPSHOT_MS < curTs
+      );
     });
     if (unrecorded) return "gap";
   }
@@ -145,27 +208,37 @@ export function feedHealth(
     return "trade_after_snapshot";
   }
 
-  // Trades closed up to the first snapshot belong to the opening balance, so
-  // the walk starts after them. Trades after the last snapshot are in no
-  // interval; the check above has already bounded how late they can be.
-  let next = 0;
-  const first = Date.parse(snapshots[0].ts);
-  while (next < trades.length && Date.parse(trades[next].close_ts) <= first) {
-    next += 1;
+  // Each close is explained by the snapshot it belongs to. Those assigned to
+  // the first snapshot are inside the opening balance, so they explain no
+  // interval. Trades after the last snapshot are in no interval; the check
+  // above has already bounded how late they can be.
+  const snapshotMs = snapshots.map((s) => Date.parse(s.ts));
+  const explainedBy: number[] = snapshots.map(() => 0);
+  for (const t of trades) {
+    const at = snapshotIndexFor(Date.parse(t.close_ts), snapshotMs);
+    if (at >= 1) explainedBy[at] += netResult(t);
   }
+  // Snapshots written within SNAPSHOT_CLUSTER_MS of each other belong to one
+  // burst of closes; which of them first carried which close is not knowable
+  // from the rows, but the last one carries them all, so reconcile the burst
+  // as a whole against the snapshot before it.
+  let base = snapshots[0];
+  let explained = 0;
   for (let i = 1; i < snapshots.length; i += 1) {
-    const prev = snapshots[i - 1];
+    explained += explainedBy[i];
     const cur = snapshots[i];
-    const curTs = Date.parse(cur.ts);
-    let explained = 0;
-    while (next < trades.length && Date.parse(trades[next].close_ts) <= curTs) {
-      explained += netResult(trades[next]);
-      next += 1;
+    if (
+      i + 1 < snapshots.length &&
+      snapshotMs[i + 1] - snapshotMs[i] <= SNAPSHOT_CLUSTER_MS
+    ) {
+      continue;
     }
-    const unexplained = cur.balance - prev.balance - explained;
-    if (Math.abs(unexplained) > Math.max(1, CASH_FLOW_TOLERANCE * prev.balance)) {
+    const unexplained = cur.balance - base.balance - explained;
+    if (Math.abs(unexplained) > Math.max(1, CASH_FLOW_TOLERANCE * base.balance)) {
       return "cash_flow";
     }
+    base = cur;
+    explained = 0;
   }
 
   return null;
@@ -197,10 +270,11 @@ export function computePerformance(
   trades: RawTrade[],
   opts: ComputeOptions,
 ): { ok: true; bundle: PerformanceBundle } | { ok: false; problem: FeedProblem } {
-  const minTrades = opts.minTrades ?? MIN_PUBLIC_TRADES;
+  // Never below one: with no closed trade the win rate is 0/0.
+  const minTrades = Math.max(1, opts.minTrades ?? MIN_PUBLIC_TRADES);
 
   if (!readable(snapshots, trades)) {
-    return { ok: false, problem: "too_few_snapshots" };
+    return { ok: false, problem: "invalid_data" };
   }
 
   const orderedSnapshots = byTime(snapshots, (s) => Date.parse(s.ts));
@@ -213,7 +287,7 @@ export function computePerformance(
   // back from the first snapshot below.
   const startMs = opts.start ? Date.parse(opts.start) : null;
   if (startMs !== null && !Number.isFinite(startMs)) {
-    return { ok: false, problem: "too_few_snapshots" };
+    return { ok: false, problem: "invalid_start" };
   }
   const snaps =
     startMs === null
@@ -235,16 +309,17 @@ export function computePerformance(
   // A close dated after "now" cannot be placed in any month; refusing is
   // better than a total return that quietly leaves it out.
   if (closed.some((t) => Date.parse(t.close_ts) > opts.now)) {
-    return { ok: false, problem: "trade_after_snapshot" };
+    return { ok: false, problem: "trade_in_future" };
   }
 
   // Opening balance: the first snapshot, less whatever had already closed.
   const first = snaps[0];
+  const snapshotMs = snaps.map((s) => Date.parse(s.ts));
   const beforeFirst = closed.filter(
-    (t) => Date.parse(t.close_ts) <= Date.parse(first.ts),
+    (t) => snapshotIndexFor(Date.parse(t.close_ts), snapshotMs) === 0,
   );
   const b0 = first.balance - beforeFirst.reduce((s, t) => s + netResult(t), 0);
-  if (!(b0 > 0)) return { ok: false, problem: "too_few_snapshots" };
+  if (!(b0 > 0)) return { ok: false, problem: "non_positive_balance" };
 
   // Realised balance after each trade, and the balance before it.
   const balanceBefore: number[] = [];
@@ -256,7 +331,7 @@ export function computePerformance(
     realised.push(running);
   }
   if (!realised.every((b) => b > 0)) {
-    return { ok: false, problem: "too_few_snapshots" };
+    return { ok: false, problem: "non_positive_balance" };
   }
 
   // Monthly: every UTC month from the start to now, quiet ones included. With
