@@ -1109,10 +1109,14 @@ export function MarketChart({
   // hence the ref the loader also reads.
   const [overlaysOn, setOverlaysOn] = useState(true);
   const [reloadTick, setReloadTick] = useState(0);
+  const overlaysOnRef = useRef(true);
+  const drawingsHiddenRef = useRef(false);
+  useEffect(() => { drawingsHiddenRef.current = drawingsHidden; }, [drawingsHidden]);
   const loadedView = useRef('');
   const toggleOverlays = () => {
     const next = !overlaysOn;
     setOverlaysOn(next);
+    overlaysOnRef.current = next;
     const series = seriesRef.current;
     if (!next && series) {
       overlayLines.current.forEach((l) => series.removePriceLine(l));
@@ -1793,7 +1797,8 @@ export function MarketChart({
       setLastBar(bars.length ? bars[bars.length - 1] : null);
       series.setData(bars);
       redrawIndicators(); // recompute active indicators for the new candles
-      renderDrawings();   // re-draw saved manual annotations for this market/timeframe
+      if (!drawingsHiddenRef.current) renderDrawings();   // re-draw saved manual annotations for this market/timeframe
+      else syncLabels();
 
       // CLEAR every overlay from the previous market/timeframe first — otherwise
       // price lines (entry/SL/TP) and markers pile up on the axis and lines from
@@ -1834,8 +1839,10 @@ export function MarketChart({
             text: buy ? 'BUY' : 'SELL',
           } as SeriesMarker<Time>;
         }).sort((a, b) => (a.time as number) - (b.time as number));
-        if (markersApi.current) markersApi.current.setMarkers(markers);
-        else markersApi.current = createSeriesMarkers(series, markers);
+        // Hidden overlays stay hidden when the bot's own position change rebuilds the chart.
+        const shownMarkers = overlaysOnRef.current ? markers : [];
+        if (markersApi.current) markersApi.current.setMarkers(shownMarkers);
+        else markersApi.current = createSeriesMarkers(series, shownMarkers);
 
         // Entry / SL / TP overlay — for an OPEN position AND for a resting PENDING
         // order. bot_market_state is the authority: `level` is the entry (pending
@@ -1862,14 +1869,14 @@ export function MarketChart({
             : (sig.startsWith('SHORT') || sig.startsWith('SELL') ? 'sell' : 'buy');
           const sideStr = activeSide.current === 'sell' ? 'SELL' : 'BUY';
           // Entry line: solid once filled, dashed while the order is still pending.
-          overlayLines.current.push(series.createPriceLine({
+          if (overlaysOnRef.current) overlayLines.current.push(series.createPriceLine({
             price: entry, color: '#3b9de7', lineWidth: 2,
             lineStyle: hasPending ? LineStyle.Dashed : LineStyle.Solid,
             axisLabelVisible: true, title: hasPending ? `${sideStr} · pending` : sideStr,
           }));
           // SL / TP are now drawn by default (pending and open alike) — no click needed.
-          if (tradeSL.current != null) overlayLines.current.push(series.createPriceLine({ price: tradeSL.current, color: palette.down, lineWidth: 1, lineStyle: LineStyle.Dashed, axisLabelVisible: true, title: 'SL' }));
-          if (tradeTP.current != null) overlayLines.current.push(series.createPriceLine({ price: tradeTP.current, color: palette.up, lineWidth: 1, lineStyle: LineStyle.Dashed, axisLabelVisible: true, title: 'TP' }));
+          if (overlaysOnRef.current && tradeSL.current != null) overlayLines.current.push(series.createPriceLine({ price: tradeSL.current, color: palette.down, lineWidth: 1, lineStyle: LineStyle.Dashed, axisLabelVisible: true, title: 'SL' }));
+          if (overlaysOnRef.current && tradeTP.current != null) overlayLines.current.push(series.createPriceLine({ price: tradeTP.current, color: palette.up, lineWidth: 1, lineStyle: LineStyle.Dashed, axisLabelVisible: true, title: 'TP' }));
         }
       }
 
