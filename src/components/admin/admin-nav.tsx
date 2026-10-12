@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   Bot,
   ShieldCheck,
+  Sparkles,
   TrendingUp,
   CreditCard,
   LayoutDashboard,
@@ -21,12 +22,13 @@ const ICONS: Record<string, LucideIcon> = {
   bot: Bot,
   admins: ShieldCheck,
   trading: TrendingUp,
+  scora: Sparkles,
 };
 
 export type AdminNavItem = {
   href: string;
   label: string;
-  icon: "overview" | "links" | "billing" | "users" | "bot" | "admins" | "trading";
+  icon: "overview" | "links" | "billing" | "users" | "bot" | "admins" | "trading" | "scora";
 };
 
 /**

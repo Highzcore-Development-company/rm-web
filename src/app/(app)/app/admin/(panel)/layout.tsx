@@ -62,6 +62,9 @@ export default async function AdminLayout({
       ? [{ href: "/app/admin/admins", label: t("adminAdmins"), icon: "admins" as const }]
       : []),
     ...(admin.permissions.includes("finance.view")
+      ? [{ href: "/app/admin/scora", label: t("adminScora"), icon: "scora" as const }]
+      : []),
+    ...(admin.permissions.includes("finance.view")
       ? [
           {
             href: "/app/admin/billing",

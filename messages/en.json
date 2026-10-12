@@ -681,7 +681,8 @@
       "adminUsers": "Users",
       "adminBot": "Bot",
       "adminAdmins": "Admins",
-      "adminTrading": "Trading P&L"
+      "adminTrading": "Trading P&L",
+      "adminScora": "Scora usage"
     },
     "account": {
       "title": "My account",
