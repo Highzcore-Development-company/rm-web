@@ -115,6 +115,44 @@ export async function endBotSession(): Promise<void> {
   jar.delete({ name: COOKIE, path: "/app/admin" });
 }
 
+/**
+ * The way in that needs no second sign-in.
+ *
+ * Victor's objection to the sign-in was fair and he could not complete it
+ * anyway — the per-admin rm-server accounts do not exist. If this key is set,
+ * writes go through it and the connect form disappears entirely.
+ *
+ * WHAT IT COSTS, stated plainly because it is his database: a service key
+ * bypasses RLS, so a bug here could touch anything in rm-server rather than
+ * only the four columns granted to `authenticated`. The per-admin session has
+ * a far smaller blast radius, which is why it is still the default and why I
+ * did not ask for this key first.
+ *
+ * WHAT IT DOES NOT COST: the audit trail. updated_by is still written with the
+ * signed-in ADMIN's email, taken from their rm-web session — not "the service
+ * account" — so every change still names a person. Every action is recorded in
+ * admin_audit here as well.
+ *
+ * Server-only, and never prefixed NEXT_PUBLIC_.
+ */
+function serviceClient(): SupabaseClient | null {
+  const url = envOr(process.env.RM_SERVER_SUPABASE_URL, "");
+  const key = envOr(process.env.RM_SERVER_SERVICE_ROLE_KEY, "");
+  if (!url || !key) return null;
+
+  return createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
+/** Whether writes work without anybody signing in to the bot. */
+export function hasServiceAccess(): boolean {
+  return Boolean(
+    envOr(process.env.RM_SERVER_SUPABASE_URL, "") &&
+      envOr(process.env.RM_SERVER_SERVICE_ROLE_KEY, ""),
+  );
+}
+
 /** Whether this admin has a live rm-server session. Cheap — no network. */
 export async function hasBotSession(): Promise<boolean> {
   const jar = await cookies();
@@ -130,6 +168,11 @@ export async function hasBotSession(): Promise<boolean> {
  * every time somebody touches a control.
  */
 export async function getBotWriteClient(): Promise<SupabaseClient | null> {
+  // The service key wins when it is configured: there is nothing for an admin
+  // to sign in to, so asking them to would be theatre.
+  const service = serviceClient();
+  if (service) return service;
+
   const jar = await cookies();
   const refreshToken = jar.get(COOKIE)?.value;
   if (!refreshToken) return null;
