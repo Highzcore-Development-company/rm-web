@@ -26,7 +26,7 @@ import {
   LogOut,
   Settings2,
   ShieldCheck,
-  ShieldQuestion,
+  Hourglass,
   Sparkles,
   TrendingUp,
   X,
@@ -36,10 +36,6 @@ import { MarketChart } from "@/components/workspace/market-chart";
 import { useLiveMarkets } from "@/components/workspace/use-live-markets";
 import { LogoLink } from "@/components/logo";
 import { ScoraChat } from "@/components/workspace/scora-chat";
-import {
-  ProposalQueue,
-  type PendingProposal,
-} from "@/components/admin/proposal-queue";
 import { CloseTradeButton } from "@/components/workspace/close-trade";
 import { tradingPnlFrom } from "@/lib/admin/trading-pnl";
 import type { BotMarket, BotSettings, BotTrade } from "@/lib/workspace/types";
@@ -85,7 +81,8 @@ const TABS: { key: Tab; label: string; Icon: typeof Activity }[] = [
   { key: "market", label: "Market", Icon: Sparkles },
   // Before a trade goes live. Sits next to Live on purpose: the two are the
   // same question a minute apart — what is about to happen, and what is.
-  { key: "pending", label: "Pending", Icon: ShieldQuestion },
+  // An hourglass, not a shield: nothing here is waiting on a person.
+  { key: "pending", label: "Pending", Icon: Hourglass },
   { key: "live", label: "Live", Icon: Activity },
   { key: "history", label: "History", Icon: HistoryIcon },
   { key: "performance", label: "Performance", Icon: TrendingUp },
@@ -154,7 +151,6 @@ export function Desk({
   centre = null,
   embedded = false,
   showScora = true,
-  proposals = [],
 }: {
   /** Server-rendered snapshot; useLiveMarkets takes over once mounted. */
   markets: BotMarket[];
@@ -197,8 +193,6 @@ export function Desk({
    * them is selling something they have already declined.
    */
   showScora?: boolean;
-  /** Trades the bot wants to place, waiting on a human. Empty for investors. */
-  proposals?: PendingProposal[];
 }) {
   // Live, not the snapshot the page was rendered with. The feed's job is
   // showing what the bot is doing now; a frozen row is worse than no row,
@@ -359,11 +353,7 @@ export function Desk({
           {!connected ? (
             <Empty text="rm-server is not configured, so the bot cannot be read from here." />
           ) : tab === "pending" ? (
-            <PendingTab
-              proposals={proposals}
-              approvalOn={settings?.require_approval ?? false}
-              isAdmin={isAdmin}
-            />
+            <PendingTab rows={markets} />
           ) : tab === "live" ? (
             <LiveTab rows={live} isAdmin={isAdmin} />
           ) : tab === "market" ? (
@@ -421,48 +411,56 @@ function Empty({ text }: { text: string }) {
  * in that answer.
  */
 /**
- * HS-BOT-v4 — what the bot wants to do, before it does it.
+ * HS-BOT-v4 — what the bot is about to do.
  *
- * Only ever has anything in it when "ask me first" is on. With approval off
- * the bot places its own orders, so an empty list here would read as "nothing
- * is happening" when the truth is "everything is happening without you" —
- * opposite meanings, so the state is spelled out rather than left blank.
+ * NOT AN APPROVAL QUEUE, deliberately. Esther: "we are not approving trades
+ * again but we can notify some pending trades. We are training the bot to
+ * work for us, not us baby sitting it." So nothing here asks for a decision —
+ * it is a window on what is coming, and the bot acts whether or not anybody
+ * is looking.
+ *
+ * A market is pending when the bot has found its level and is waiting for
+ * price to reach it: state "ready". That is a real trade a minute or an hour
+ * from now, and it is the only moment where seeing it early is worth anything.
+ *
+ * A resting order that has already been placed shows in Live, where it has a
+ * ticket. This tab is strictly the step before that.
  */
-function PendingTab({
-  proposals,
-  approvalOn,
-  isAdmin,
-}: {
-  proposals: PendingProposal[];
-  approvalOn: boolean;
-  isAdmin: boolean;
-}) {
-  if (!approvalOn) {
+function PendingTab({ rows }: { rows: BotMarket[] }) {
+  const waiting = rows.filter((m) => m.state === "ready");
+
+  if (waiting.length === 0) {
     return (
-      <div className="px-5 py-6 text-sm text-fg-muted">
-        <p className="font-medium text-fg">The bot places its own trades.</p>
-        <p className="mt-2 leading-relaxed">
-          Nothing waits for approval right now. Turn on{" "}
-          <span className="text-fg">Ask me first</span> and every trade appears
-          here to be reviewed before it goes live.
-        </p>
-        {isAdmin && (
-          <Link
-            href="/app/admin/bot"
-            className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-xs transition-colors hover:border-brand"
-          >
-            <ShieldQuestion className="h-3.5 w-3.5" aria-hidden="true" />
-            Turn on approval
-          </Link>
-        )}
-      </div>
+      <Empty text="Nothing lined up. The bot is watching — Market shows what it sees on each instrument." />
     );
   }
 
   return (
-    <div className="px-4 py-4">
-      <ProposalQueue proposals={proposals} configurable={isAdmin} />
-    </div>
+    <ul className="divide-y divide-border">
+      {waiting.map((m) => (
+        <li key={m.symbol} className="px-5 py-4">
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="font-semibold">{m.alias}</span>
+            <span className="font-mono text-xs text-brand">waiting for level</span>
+          </div>
+
+          <p className="mt-1.5 text-sm text-fg-muted">{m.reason ?? "—"}</p>
+
+          <div className="mt-2 grid grid-cols-3 gap-2 font-mono text-xs text-fg-subtle">
+            {/* The level is the whole point: it is where this becomes a trade. */}
+            <Cell label="level" value={px(m.level)} />
+            <Cell label="now" value={px(m.price)} />
+            <Cell label="tf" value={m.timeframe ?? "—"} />
+          </div>
+
+          {m.latest_signal && (
+            <p className="mt-2 font-mono text-[11px] text-fg-subtle">
+              {m.latest_signal}
+            </p>
+          )}
+        </li>
+      ))}
+    </ul>
   );
 }
 
