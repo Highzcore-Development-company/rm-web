@@ -175,6 +175,41 @@ export type ServiceDatabase = {
         Update: Partial<{ attempts: number; last_sent_at: string }>;
         Relationships: [];
       };
+      scora_conversations: {
+        Row: {
+          id: string;
+          investor_id: string;
+          title: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: { investor_id: string; title?: string | null };
+        Update: { title?: string | null; updated_at?: string };
+        Relationships: [];
+      };
+      /** Append-only. No Update type, because nobody may rewrite a transcript. */
+      scora_messages: {
+        Row: {
+          id: number;
+          conversation_id: string;
+          role: "user" | "assistant";
+          content: string;
+          prompt_tokens: number | null;
+          completion_tokens: number | null;
+          model: string | null;
+          created_at: string;
+        };
+        Insert: {
+          conversation_id: string;
+          role: "user" | "assistant";
+          content: string;
+          prompt_tokens?: number | null;
+          completion_tokens?: number | null;
+          model?: string | null;
+        };
+        Update: never;
+        Relationships: [];
+      };
       sent_reminders: {
         Row: { subscription_id: string; milestone: number; sent_at: string };
         Insert: { subscription_id: string; milestone: number };
@@ -394,6 +429,39 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      /** §3. An investor's own Scora threads, gated by can_use_scora(). */
+      scora_conversations: {
+        Row: {
+          id: string;
+          investor_id: string;
+          title: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: { investor_id: string; title?: string | null };
+        Update: { title?: string | null; updated_at?: string };
+        Relationships: [];
+      };
+      /** Append-only: no Update type, because nobody may rewrite a transcript. */
+      scora_messages: {
+        Row: {
+          id: number;
+          conversation_id: string;
+          role: "user" | "assistant";
+          content: string;
+          prompt_tokens: number | null;
+          completion_tokens: number | null;
+          model: string | null;
+          created_at: string;
+        };
+        Insert: {
+          conversation_id: string;
+          role: "user" | "assistant";
+          content: string;
+        };
+        Update: never;
+        Relationships: [];
+      };
       api_usage: {
         Row: { api_key_id: string; window_start: string; calls: number };
         Insert: never;
@@ -410,6 +478,10 @@ export type Database = {
     };
     Views: Record<never, never>;
     Functions: {
+      can_use_scora: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
       is_admin: {
         Args: Record<string, never>;
         Returns: boolean;

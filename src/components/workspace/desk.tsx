@@ -34,6 +34,7 @@ import type { ReactNode } from "react";
 import { MarketChart } from "@/components/workspace/market-chart";
 import { useLiveMarkets } from "@/components/workspace/use-live-markets";
 import { LogoLink } from "@/components/logo";
+import { ScoraChat } from "@/components/workspace/scora-chat";
 import { CloseTradeButton } from "@/components/workspace/close-trade";
 import { tradingPnlFrom } from "@/lib/admin/trading-pnl";
 import type { BotMarket, BotSettings, BotTrade } from "@/lib/workspace/types";
@@ -785,56 +786,5 @@ function MenuLink({
       <Icon className="h-4 w-4" aria-hidden="true" />
       {children}
     </Link>
-  );
-}
-
-/* ----------------------------------------------------------- Scora */
-
-/** Lifted from the ported workspace so the chat is unchanged in place. */
-function ScoraChat({ name }: { name: string }) {
-  return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-6 text-center">
-        <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand text-brand-fg">
-          <Sparkles className="h-5 w-5" aria-hidden="true" />
-        </span>
-        <p className="mt-5 text-xl font-semibold">Welcome back.</p>
-        <p className="mt-0.5 text-xs text-fg-subtle">{name}</p>
-        <span className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-brand/15 px-2.5 py-1 font-mono text-xs font-semibold text-brand">
-          Scora v0.1
-        </span>
-        <p className="mt-4 text-sm text-fg-muted">What would you like to explore today?</p>
-
-        <div className="mt-6 w-full max-w-sm space-y-2.5">
-          {["Analyze my portfolio", "Find a setup"].map((s) => (
-            <button
-              key={s}
-              type="button"
-              disabled
-              className="w-full rounded-lg border border-border bg-bg-elevated px-4 py-3 text-left text-sm text-fg-muted disabled:opacity-60"
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="shrink-0 border-t border-border p-4">
-        <div className="flex items-center gap-2 rounded-xl border border-border bg-bg-elevated px-3 py-2.5">
-          <Plus className="h-4 w-4 shrink-0 text-fg-subtle" aria-hidden="true" />
-          <input
-            disabled
-            placeholder="Ask Scora…"
-            className="min-w-0 flex-1 bg-transparent text-sm placeholder:text-fg-subtle focus:outline-none"
-          />
-          <Send className="h-4 w-4 shrink-0 text-fg-subtle" aria-hidden="true" />
-        </div>
-        {/* Disabled, and it says why. An input that swallows questions in
-            silence is worse than one that admits it is not connected. */}
-        <p className="mt-2 text-center text-[11px] text-fg-subtle">
-          Scora answers once the model is connected. AI can make mistakes. Not financial advice.
-        </p>
-      </div>
-    </div>
   );
 }
