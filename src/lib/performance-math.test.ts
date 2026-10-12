@@ -6,6 +6,8 @@ import {
   MIN_PUBLIC_TRADES,
   monthKey,
   netResult,
+  SNAPSHOT_GRACE_MS,
+  snapshotIndexFor,
   type FeedProblem,
   type RawSnapshot,
   type RawTrade,
@@ -570,5 +572,132 @@ describe("max drawdown", () => {
       }),
     );
     expect(summary.maxDrawdown).toBeCloseTo(0.1, 10);
+  });
+});
+
+describe("matching a close to its snapshot", () => {
+  it("assigns a close exactly the grace after a snapshot to it, and one millisecond later to the next", () => {
+    const snaps = [T, T + HOUR, T + 2 * HOUR];
+    expect(snapshotIndexFor(T + SNAPSHOT_GRACE_MS, snaps)).toBe(0);
+    expect(snapshotIndexFor(T + SNAPSHOT_GRACE_MS + 1, snaps)).toBe(1);
+    expect(snapshotIndexFor(T - HOUR, snaps)).toBe(0);
+  });
+
+  it("returns -1 for a close more than the grace after the last snapshot", () => {
+    const snaps = [T, T + HOUR];
+    expect(snapshotIndexFor(T + HOUR + SNAPSHOT_GRACE_MS, snaps)).toBe(1);
+    expect(snapshotIndexFor(T + HOUR + SNAPSHOT_GRACE_MS + 1, snaps)).toBe(-1);
+  });
+
+  it("still trips trade_after_snapshot only by the one-hour rule", () => {
+    const snaps = [snap(iso(T), 10_000), snap(iso(T + HOUR), 10_000)];
+    const last = T + HOUR;
+    const within = [anchor(T), trade({ close_ts: iso(last + HOUR), pnl: 0 })];
+    expect(feedHealth(snaps, within)).toBeNull();
+    const beyond = [anchor(T), trade({ close_ts: iso(last + HOUR + 1), pnl: 0 })];
+    expect(feedHealth(snaps, beyond)).toBe("trade_after_snapshot");
+  });
+
+  it("accepts a close 213 ms after the snapshot whose balance includes it", () => {
+    const trades = [trade({ close_ts: iso(T + HOUR + 213), pnl: 100 })];
+    const snaps = [
+      snap(iso(T), 10_000),
+      snap(iso(T + HOUR), 10_100),
+      snap(iso(T + 2 * HOUR), 10_100),
+    ];
+    const { summary } = bundleOf(
+      computePerformance(snaps, trades, { now: NOW, minTrades: 1 }),
+    );
+    expect(summary.totalReturn).toBeCloseTo(0.01, 10);
+    expect(summary.tradeCount).toBe(1);
+  });
+
+  it("accepts three closes together whose snapshot sits before two of them", () => {
+    const t1 = T + HOUR;
+    const trades = [
+      trade({ close_ts: iso(t1 - 50), pnl: 100 }),
+      trade({ close_ts: iso(t1 + 150), pnl: 100 }),
+      trade({ close_ts: iso(t1 + 380), pnl: 100 }),
+    ];
+    const snaps = [
+      snap(iso(T), 10_000),
+      snap(iso(t1), 10_300),
+      snap(iso(t1 + 400), 10_300),
+    ];
+    const { summary } = bundleOf(
+      computePerformance(snaps, trades, { now: NOW, minTrades: 1 }),
+    );
+    expect(summary.totalReturn).toBeCloseTo(0.03, 10);
+  });
+
+  it("does not hide a deposit with no trade near it", () => {
+    const snaps = [
+      snap(iso(T), 10_000),
+      snap(iso(T + HOUR), 15_000),
+      snap(iso(T + 2 * HOUR), 15_000),
+    ];
+    expect(
+      computePerformance(snaps, [anchor(T)], { now: NOW, minTrades: 1 }),
+    ).toEqual({ ok: false, problem: "cash_flow" });
+  });
+
+  it("does not hide a deposit that lands beside a small trade", () => {
+    const trades = [trade({ close_ts: iso(T + HOUR + 100), pnl: 100 })];
+    const snaps = [
+      snap(iso(T), 10_000),
+      snap(iso(T + HOUR), 15_100),
+      snap(iso(T + 2 * HOUR), 15_100),
+    ];
+    expect(
+      computePerformance(snaps, trades, { now: NOW, minTrades: 1 }),
+    ).toEqual({ ok: false, problem: "cash_flow" });
+  });
+
+  it("takes a close 150 ms after the first snapshot into the opening balance", () => {
+    const trades = [trade({ close_ts: iso(T + 150), pnl: 100 })];
+    const snaps = [snap(iso(T), 10_100), snap(iso(T + HOUR), 10_100)];
+    const { summary } = bundleOf(
+      computePerformance(snaps, trades, { now: NOW, minTrades: 1 }),
+    );
+    expect(summary.totalReturn).toBeCloseTo(0.01, 10);
+  });
+
+  it("publishes a record shaped like the bot's, with the monthly returns chained", () => {
+    const day = (d: string, h = 12) =>
+      Date.parse(`${d}T${String(h).padStart(2, "0")}:00:00Z`);
+    const single: Array<[number, number, number]> = [
+      // close, net, snapshot offset from the close
+      [day("2026-02-05"), 100, 83],
+      [day("2026-02-10"), -50, 426],
+      [day("2026-02-28"), 200, -213],
+      [day("2026-03-02", 10), 100, 200],
+    ];
+    const cluster = day("2026-03-01", 11);
+    const clusterNets: Array<[number, number]> = [
+      [0, 100],
+      [100, 100],
+      [300, -30],
+    ];
+    const trades = [
+      ...single.map(([at, pnl]) => trade({ close_ts: iso(at), pnl })),
+      ...clusterNets.map(([off, pnl]) => trade({ close_ts: iso(cluster + off), pnl })),
+    ];
+    const events: Array<[number, number]> = [
+      ...single.map(([at, pnl, off]): [number, number] => [at + off, pnl]),
+      [cluster + 50, 170] as [number, number],
+    ].sort((a, b) => a[0] - b[0]);
+    let balance = 10_000;
+    const snaps = [snap(iso(T), balance)];
+    for (const [ts, net] of events) {
+      balance += net;
+      snaps.push(snap(iso(ts), balance));
+    }
+    const { summary, monthly } = bundleOf(
+      computePerformance(snaps, trades, { now: NOW, minTrades: 1 }),
+    );
+    expect(summary.tradeCount).toBe(7);
+    const chained = monthly.reduce((acc, m) => acc * (1 + m.ret), 1) - 1;
+    expect(summary.totalReturn).toBeCloseTo(chained, 10);
+    expect(summary.totalReturn).toBeCloseTo(520 / 10_000, 10);
   });
 });

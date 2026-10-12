@@ -114,8 +114,34 @@ export const TRADE_AFTER_SNAPSHOT_MS = 60 * 60 * 1000;
 /** How far a balance may move without a trade explaining it: 2%, or 1 unit if larger. */
 export const CASH_FLOW_TOLERANCE = 0.02;
 export const RECENT_TRADES = 25;
+/**
+ * The bot writes a snapshot right after each close, and the snapshot's own
+ * timestamp can sit a fraction of a second before the `close_ts` of a close its
+ * balance already includes (measured: up to about 0.2 s, and more when several
+ * positions close together). Two seconds is far above that and far below the
+ * time between trades.
+ */
+export const SNAPSHOT_GRACE_MS = 2000;
 
 const HOUR_MS = 60 * 60 * 1000;
+
+/**
+ * Which snapshot a close belongs to: the first whose time is at or after the
+ * close less SNAPSHOT_GRACE_MS, or -1 when the close is after the last one.
+ * `snapshotMs` is ascending. The one rule for matching trades to snapshots, so
+ * the cash-flow check and the opening balance cannot disagree.
+ */
+export function snapshotIndexFor(closeMs: number, snapshotMs: number[]): number {
+  const from = closeMs - SNAPSHOT_GRACE_MS;
+  let lo = 0;
+  let hi = snapshotMs.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (snapshotMs[mid] >= from) hi = mid;
+    else lo = mid + 1;
+  }
+  return lo === snapshotMs.length ? -1 : lo;
+}
 
 /** Result after costs. Commission and swap are stored negative. */
 export function netResult(t: RawTrade): number {
@@ -172,23 +198,20 @@ export function feedHealth(
     return "trade_after_snapshot";
   }
 
-  // Trades closed up to the first snapshot belong to the opening balance, so
-  // the walk starts after them. Trades after the last snapshot are in no
-  // interval; the check above has already bounded how late they can be.
-  let next = 0;
-  const first = Date.parse(snapshots[0].ts);
-  while (next < trades.length && Date.parse(trades[next].close_ts) <= first) {
-    next += 1;
+  // Each close is explained by the snapshot it belongs to. Those assigned to
+  // the first snapshot are inside the opening balance, so they explain no
+  // interval. Trades after the last snapshot are in no interval; the check
+  // above has already bounded how late they can be.
+  const snapshotMs = snapshots.map((s) => Date.parse(s.ts));
+  const explainedBy: number[] = snapshots.map(() => 0);
+  for (const t of trades) {
+    const at = snapshotIndexFor(Date.parse(t.close_ts), snapshotMs);
+    if (at >= 1) explainedBy[at] += netResult(t);
   }
   for (let i = 1; i < snapshots.length; i += 1) {
     const prev = snapshots[i - 1];
     const cur = snapshots[i];
-    const curTs = Date.parse(cur.ts);
-    let explained = 0;
-    while (next < trades.length && Date.parse(trades[next].close_ts) <= curTs) {
-      explained += netResult(trades[next]);
-      next += 1;
-    }
+    const explained = explainedBy[i];
     const unexplained = cur.balance - prev.balance - explained;
     if (Math.abs(unexplained) > Math.max(1, CASH_FLOW_TOLERANCE * prev.balance)) {
       return "cash_flow";
@@ -268,8 +291,9 @@ export function computePerformance(
 
   // Opening balance: the first snapshot, less whatever had already closed.
   const first = snaps[0];
+  const snapshotMs = snaps.map((s) => Date.parse(s.ts));
   const beforeFirst = closed.filter(
-    (t) => Date.parse(t.close_ts) <= Date.parse(first.ts),
+    (t) => snapshotIndexFor(Date.parse(t.close_ts), snapshotMs) === 0,
   );
   const b0 = first.balance - beforeFirst.reduce((s, t) => s + netResult(t), 0);
   if (!(b0 > 0)) return { ok: false, problem: "non_positive_balance" };
