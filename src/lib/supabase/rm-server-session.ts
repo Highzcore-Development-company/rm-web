@@ -29,6 +29,20 @@ import { envOr } from "@/lib/env";
 
 const COOKIE = "rm_bot_session";
 
+/**
+ * How long a bot session lasts, in seconds.
+ *
+ * Without this it was a SESSION cookie — gone when the browser closed, so an
+ * operator re-entered their rm-server password several times a day. That is
+ * not security, it is friction that trains people to pick a shorter password.
+ *
+ * Thirty days, and the exposure is smaller than it looks: the cookie is
+ * httpOnly, scoped to /app/admin, and useless without an rm-web admin session
+ * to reach that path at all. The refresh token also rotates on every use, so a
+ * stale copy stops working as soon as the real one is used.
+ */
+const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
+
 /** Writable columns, as granted. Anything outside this list will be refused. */
 export const WRITABLE = {
   bot_symbol_config: [
@@ -90,6 +104,7 @@ export async function startBotSession(
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/app/admin",
+    maxAge: SESSION_MAX_AGE,
   });
 
   return { ok: true, email: data.user?.email ?? email };
@@ -136,6 +151,7 @@ export async function getBotWriteClient(): Promise<SupabaseClient | null> {
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/app/admin",
+    maxAge: SESSION_MAX_AGE,
   });
 
   return client;
