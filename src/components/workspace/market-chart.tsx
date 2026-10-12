@@ -1730,13 +1730,13 @@ export function MarketChart({
   useEffect(() => {
     if (!symbol) return;
     let alive = true;
-    setLoading(true);
     liveBar.current = null;
     // A reload for a position opening or closing keeps the user's view: only a
     // real symbol/timeframe change resets the draft, the selection and the zoom.
     let loaded = false;
     const viewChanged = loadedView.current !== `${symbol}|${tf}`;
     loadedView.current = `${symbol}|${tf}`;
+    if (viewChanged) setLoading(true);   // a position-driven rebuild must not flash the loader
     if (viewChanged) {
       trendStart.current = null; forkPts.current = []; setDrawPending(false); clearPreview(); setSelected(null);
     }
@@ -1878,7 +1878,7 @@ export function MarketChart({
     })();
 
     // A load cut short (strict-mode remount, quick switch) never fitted the view, so the next one must.
-    return () => { alive = false; if (!loaded) loadedView.current = ''; };
+    return () => { alive = false; if (!loaded && viewChanged) loadedView.current = ''; };
     // reloadTick: turning the trade overlays back on rebuilds them from the
     // same query that drew them in the first place.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1910,8 +1910,11 @@ export function MarketChart({
         state: (msRes.data?.state as string) ?? null,
       };
       setQuote(q);
-      if (prevState !== undefined && overlayNeedsRebuild(prevState, q.state)) setReloadTick((t) => t + 1);
-      prevState = q.state;
+      // A failed read says nothing about the position: a 429 or an offline tick is not a close.
+      if (!msRes.error) {
+        if (prevState !== undefined && overlayNeedsRebuild(prevState, q.state)) setReloadTick((t) => t + 1);
+        prevState = q.state;
+      }
       const price = q.bid;
       const series = seriesRef.current;
       // Only move the chart when the quote is genuinely fresh — a stale feed
