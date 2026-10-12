@@ -1,13 +1,18 @@
 import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { getInvestor } from "@/lib/investors";
+import { landingPathFor } from "@/lib/landing";
 
 /**
  * /app had no page, so it 404'd — an obvious URL to type, and the one people
  * shorten to when telling someone where the product lives.
  *
- * It is the desk, so this redirects rather than duplicating it. permanent:
- * false, because which page /app means is a product decision that may change,
- * and a 308 would be cached by browsers long after we changed our minds.
+ * HS-BOT-v4 §1: it now routes on the account type rather than sending
+ * everybody to the same screen, through the one helper so every entry point
+ * agrees about where an account belongs.
  */
-export default function AppIndexPage() {
-  redirect("/app/dashboard");
+export default async function AppIndexPage() {
+  const supabase = await createClient();
+  const investor = await getInvestor(supabase);
+  redirect(landingPathFor(investor?.account_type ?? null));
 }

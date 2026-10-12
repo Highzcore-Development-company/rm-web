@@ -117,6 +117,7 @@ export function Desk({
   showChart = true,
   centre = null,
   embedded = false,
+  showScora = true,
 }: {
   /** Server-rendered snapshot; useLiveMarkets takes over once mounted. */
   markets: BotMarket[];
@@ -151,6 +152,14 @@ export function Desk({
    * admin is configuring the bot, not asking it questions.
    */
   embedded?: boolean;
+  /**
+   * HS-BOT-v4 §1. Scora is what a TRADER buys.
+   *
+   * An investor's dashboard is the chart, their trades and their performance:
+   * the bot does their analysis, so a panel offering to analyse markets for
+   * them is selling something they have already declined.
+   */
+  showScora?: boolean;
 }) {
   // Live, not the snapshot the page was rendered with. The feed's job is
   // showing what the bot is doing now; a frozen row is worse than no row,
@@ -181,7 +190,7 @@ export function Desk({
     >
       {/* ---- left: the Scora CHAT ----
           A drawer over the chart below lg, a column beside it above. */}
-      {!embedded && (
+      {!embedded && showScora && (
       <aside
         className={`fixed inset-y-0 left-0 z-40 flex w-full flex-col border-r border-border bg-bg transition-transform duration-200 sm:w-[360px] lg:relative lg:z-auto lg:translate-x-0 lg:transition-[width] ${
           scoraOpen ? "translate-x-0" : "-translate-x-full"
