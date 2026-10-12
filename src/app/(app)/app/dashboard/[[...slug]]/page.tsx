@@ -4,6 +4,8 @@ import { Desk } from "@/components/workspace/desk";
 import { showsScora } from "@/lib/landing";
 import { BotTradeBanner } from "@/components/workspace/bot-trade-banner";
 import { getWorkspaceData } from "@/lib/workspace/data";
+import { createRmServerClient } from "@/lib/supabase/rm-server";
+import type { PendingProposal } from "@/components/admin/proposal-queue";
 import { getAdmin } from "@/lib/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getInvestor } from "@/lib/investors";
@@ -44,6 +46,32 @@ export default async function WorkspacePage() {
   // Null for everybody who is not an admin, which is almost everybody.
   const admin = await getAdmin();
 
+  // What the bot wants to do next. Only fetched for an admin: an investor
+  // cannot approve a trade, so showing them a queue they cannot act on would
+  // be worry without agency.
+  const reader = admin ? createRmServerClient() : null;
+  const proposals: PendingProposal[] = reader
+    ? (
+        (
+          await reader
+            .from("bot_proposals")
+            .select("id, symbol, side, level, sl, tp, rr, created_at")
+            .eq("status", "pending")
+            .order("created_at", { ascending: true })
+            .limit(50)
+        ).data ?? []
+      ).map((p) => ({
+        id: p.id as string,
+        symbol: p.symbol as string,
+        side: p.side as string,
+        level: p.level as number,
+        sl: p.sl as number | null,
+        tp: p.tp as number | null,
+        rr: p.rr as number | null,
+        createdAt: p.created_at as string,
+      }))
+    : [];
+
   // The route is no longer read. The desk has three tabs held in component
   // state, not eleven sections addressed by URL, so there is nothing left for
   // a slug to select. The catch-all stays so old links keep resolving here
@@ -70,6 +98,7 @@ export default async function WorkspacePage() {
           // "Then when the person logs in, he sees the admin panel." This is
           // that: the way in, for admins only.
           isAdmin={Boolean(admin)}
+          proposals={proposals}
         />
       </div>
     </div>

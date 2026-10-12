@@ -23,7 +23,7 @@ import type { SliceCreator } from "../types";
  * "performance" is new. Chart is the centre column rather than a tab, and
  * Settings lives in the profile menu, which is the other two of the six.
  */
-export type DeskTab = "market" | "live" | "history" | "performance";
+export type DeskTab = "market" | "pending" | "live" | "history" | "performance";
 
 export type DeskSlice = {
   scoraOpen: boolean;

@@ -26,6 +26,7 @@ import {
   LogOut,
   Settings2,
   ShieldCheck,
+  ShieldQuestion,
   Sparkles,
   TrendingUp,
   X,
@@ -35,6 +36,10 @@ import { MarketChart } from "@/components/workspace/market-chart";
 import { useLiveMarkets } from "@/components/workspace/use-live-markets";
 import { LogoLink } from "@/components/logo";
 import { ScoraChat } from "@/components/workspace/scora-chat";
+import {
+  ProposalQueue,
+  type PendingProposal,
+} from "@/components/admin/proposal-queue";
 import { CloseTradeButton } from "@/components/workspace/close-trade";
 import { tradingPnlFrom } from "@/lib/admin/trading-pnl";
 import type { BotMarket, BotSettings, BotTrade } from "@/lib/workspace/types";
@@ -78,6 +83,9 @@ type Tab = DeskTab;
 
 const TABS: { key: Tab; label: string; Icon: typeof Activity }[] = [
   { key: "market", label: "Market", Icon: Sparkles },
+  // Before a trade goes live. Sits next to Live on purpose: the two are the
+  // same question a minute apart — what is about to happen, and what is.
+  { key: "pending", label: "Pending", Icon: ShieldQuestion },
   { key: "live", label: "Live", Icon: Activity },
   { key: "history", label: "History", Icon: HistoryIcon },
   { key: "performance", label: "Performance", Icon: TrendingUp },
@@ -146,6 +154,7 @@ export function Desk({
   centre = null,
   embedded = false,
   showScora = true,
+  proposals = [],
 }: {
   /** Server-rendered snapshot; useLiveMarkets takes over once mounted. */
   markets: BotMarket[];
@@ -188,6 +197,8 @@ export function Desk({
    * them is selling something they have already declined.
    */
   showScora?: boolean;
+  /** Trades the bot wants to place, waiting on a human. Empty for investors. */
+  proposals?: PendingProposal[];
 }) {
   // Live, not the snapshot the page was rendered with. The feed's job is
   // showing what the bot is doing now; a frozen row is worse than no row,
@@ -347,6 +358,12 @@ export function Desk({
         <div className="min-h-0 flex-1 overflow-y-auto">
           {!connected ? (
             <Empty text="rm-server is not configured, so the bot cannot be read from here." />
+          ) : tab === "pending" ? (
+            <PendingTab
+              proposals={proposals}
+              approvalOn={settings?.require_approval ?? false}
+              isAdmin={isAdmin}
+            />
           ) : tab === "live" ? (
             <LiveTab rows={live} isAdmin={isAdmin} />
           ) : tab === "market" ? (
@@ -403,6 +420,52 @@ function Empty({ text }: { text: string }) {
  * this tab answers "what is my money in right now", and nothing else belongs
  * in that answer.
  */
+/**
+ * HS-BOT-v4 — what the bot wants to do, before it does it.
+ *
+ * Only ever has anything in it when "ask me first" is on. With approval off
+ * the bot places its own orders, so an empty list here would read as "nothing
+ * is happening" when the truth is "everything is happening without you" —
+ * opposite meanings, so the state is spelled out rather than left blank.
+ */
+function PendingTab({
+  proposals,
+  approvalOn,
+  isAdmin,
+}: {
+  proposals: PendingProposal[];
+  approvalOn: boolean;
+  isAdmin: boolean;
+}) {
+  if (!approvalOn) {
+    return (
+      <div className="px-5 py-6 text-sm text-fg-muted">
+        <p className="font-medium text-fg">The bot places its own trades.</p>
+        <p className="mt-2 leading-relaxed">
+          Nothing waits for approval right now. Turn on{" "}
+          <span className="text-fg">Ask me first</span> and every trade appears
+          here to be reviewed before it goes live.
+        </p>
+        {isAdmin && (
+          <Link
+            href="/app/admin/bot"
+            className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-xs transition-colors hover:border-brand"
+          >
+            <ShieldQuestion className="h-3.5 w-3.5" aria-hidden="true" />
+            Turn on approval
+          </Link>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-4 py-4">
+      <ProposalQueue proposals={proposals} configurable={isAdmin} />
+    </div>
+  );
+}
+
 function LiveTab({ rows, isAdmin }: { rows: BotMarket[]; isAdmin: boolean }) {
   if (!rows.length) {
     return <Empty text="No open trades. The bot is watching; Activities shows what it sees." />;
