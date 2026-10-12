@@ -122,6 +122,13 @@ export const RECENT_TRADES = 25;
  * time between trades.
  */
 export const SNAPSHOT_GRACE_MS = 2000;
+/**
+ * Two consecutive snapshots closer than this are one burst of closes, as when
+ * several positions close together, and are reconciled as a whole. Whoever sets
+ * `cutover_at` should put it at least ten seconds clear of any close or
+ * snapshot, not inside a burst.
+ */
+export const SNAPSHOT_CLUSTER_MS = 10_000;
 
 const HOUR_MS = 60 * 60 * 1000;
 
@@ -184,7 +191,10 @@ export function feedHealth(
     if (curTs - prevTs <= MAX_SNAPSHOT_GAP_MS) continue;
     const unrecorded = trades.some((t) => {
       const closeTs = Date.parse(t.close_ts);
-      return closeTs > prevTs && closeTs + TRADE_AFTER_SNAPSHOT_MS < curTs;
+      return (
+        closeTs > prevTs + SNAPSHOT_GRACE_MS &&
+        closeTs + TRADE_AFTER_SNAPSHOT_MS < curTs
+      );
     });
     if (unrecorded) return "gap";
   }
@@ -208,14 +218,27 @@ export function feedHealth(
     const at = snapshotIndexFor(Date.parse(t.close_ts), snapshotMs);
     if (at >= 1) explainedBy[at] += netResult(t);
   }
+  // Snapshots written within SNAPSHOT_CLUSTER_MS of each other belong to one
+  // burst of closes; which of them first carried which close is not knowable
+  // from the rows, but the last one carries them all, so reconcile the burst
+  // as a whole against the snapshot before it.
+  let base = snapshots[0];
+  let explained = 0;
   for (let i = 1; i < snapshots.length; i += 1) {
-    const prev = snapshots[i - 1];
+    explained += explainedBy[i];
     const cur = snapshots[i];
-    const explained = explainedBy[i];
-    const unexplained = cur.balance - prev.balance - explained;
-    if (Math.abs(unexplained) > Math.max(1, CASH_FLOW_TOLERANCE * prev.balance)) {
+    if (
+      i + 1 < snapshots.length &&
+      snapshotMs[i + 1] - snapshotMs[i] <= SNAPSHOT_CLUSTER_MS
+    ) {
+      continue;
+    }
+    const unexplained = cur.balance - base.balance - explained;
+    if (Math.abs(unexplained) > Math.max(1, CASH_FLOW_TOLERANCE * base.balance)) {
       return "cash_flow";
     }
+    base = cur;
+    explained = 0;
   }
 
   return null;

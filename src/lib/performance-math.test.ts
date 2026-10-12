@@ -662,6 +662,99 @@ describe("matching a close to its snapshot", () => {
     expect(summary.totalReturn).toBeCloseTo(0.01, 10);
   });
 
+  it("reconciles a burst whose snapshots each carry the closes up to their own time", () => {
+    const t1 = T + HOUR;
+    const trades = [
+      trade({ close_ts: iso(t1), pnl: 300 }),
+      trade({ close_ts: iso(t1 + 800), pnl: 300 }),
+      trade({ close_ts: iso(t1 + 1600), pnl: 300 }),
+    ];
+    const snaps = [
+      snap(iso(T), 10_000),
+      snap(iso(t1 + 100), 10_300),
+      snap(iso(t1 + 900), 10_600),
+      snap(iso(t1 + 1700), 10_900),
+    ];
+    const { summary } = bundleOf(
+      computePerformance(snaps, trades, { now: NOW, minTrades: 1 }),
+    );
+    expect(summary.totalReturn).toBeCloseTo(0.09, 10);
+  });
+
+  it("reconciles a burst wider than the grace but inside the cluster window, either way round", () => {
+    const t1 = T + HOUR;
+    const trades = [
+      trade({ close_ts: iso(t1), pnl: 300 }),
+      trade({ close_ts: iso(t1 + 2500), pnl: 300 }),
+      trade({ close_ts: iso(t1 + 5000), pnl: 300 }),
+    ];
+    const at = [t1 + 100, t1 + 2600, t1 + 5100];
+    const sequential = [
+      snap(iso(T), 10_000),
+      snap(iso(at[0]), 10_300),
+      snap(iso(at[1]), 10_600),
+      snap(iso(at[2]), 10_900),
+    ];
+    const allFirst = [
+      snap(iso(T), 10_000),
+      ...at.map((ms) => snap(iso(ms), 10_900)),
+    ];
+    for (const snaps of [sequential, allFirst]) {
+      const { summary } = bundleOf(
+        computePerformance(snaps, trades, { now: NOW, minTrades: 1 }),
+      );
+      expect(summary.totalReturn).toBeCloseTo(0.09, 10);
+    }
+  });
+
+  it("does not hide a deposit inside a burst", () => {
+    const t1 = T + HOUR;
+    const trades = [
+      trade({ close_ts: iso(t1), pnl: 300 }),
+      trade({ close_ts: iso(t1 + 800), pnl: 300 }),
+    ];
+    const snaps = [
+      snap(iso(T), 10_000),
+      snap(iso(t1 + 100), 10_300),
+      snap(iso(t1 + 900), 15_600),
+    ];
+    expect(
+      computePerformance(snaps, trades, { now: NOW, minTrades: 1 }),
+    ).toEqual({ ok: false, problem: "cash_flow" });
+  });
+
+  it("does not hide a deposit between two bursts", () => {
+    const t1 = T + HOUR;
+    const t2 = T + 2 * HOUR;
+    const trades = [
+      trade({ close_ts: iso(t1), pnl: 300 }),
+      trade({ close_ts: iso(t2), pnl: 300 }),
+    ];
+    const snaps = [
+      snap(iso(T), 10_000),
+      snap(iso(t1 + 100), 10_300),
+      snap(iso(t1 + 600), 10_300),
+      snap(iso(t2 + 100), 15_600),
+      snap(iso(t2 + 600), 15_600),
+    ];
+    expect(
+      computePerformance(snaps, trades, { now: NOW, minTrades: 1 }),
+    ).toEqual({ ok: false, problem: "cash_flow" });
+  });
+
+  it("is not a gap when a snapshot is stamped just before its own close", () => {
+    const trades = [trade({ close_ts: iso(T + HOUR), pnl: 100 })];
+    const snaps = [
+      snap(iso(T), 10_000),
+      snap(iso(T + HOUR - 213), 10_100),
+      snap(iso(T + 26 * HOUR), 10_100),
+    ];
+    const { summary } = bundleOf(
+      computePerformance(snaps, trades, { now: NOW, minTrades: 1 }),
+    );
+    expect(summary.totalReturn).toBeCloseTo(0.01, 10);
+  });
+
   it("publishes a record shaped like the bot's, with the monthly returns chained", () => {
     const day = (d: string, h = 12) =>
       Date.parse(`${d}T${String(h).padStart(2, "0")}:00:00Z`);
