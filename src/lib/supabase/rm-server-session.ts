@@ -143,19 +143,50 @@ export async function endBotSession(): Promise<void> {
 }
 
 /**
- * NO SERVICE-KEY PATH, deliberately, and this is Victor's ruling with a
- * better reason than the convenience I offered against it.
+ * ONE USER, OURS. The bot's project does not get its own login.
  *
- * I proposed giving rm-web rm-server's service key so nobody had to sign in
- * twice. He refused, and the argument is about the AUDIT TRAIL rather than
- * blast radius: today rm-server knows who made a change because that person
- * signed in to it. With a service key, rm-web merely CLAIMS who made it. A
- * compromise of rm-web would then make the trail lie while still looking
- * complete, which is worse than having no trail at all.
+ * Victor's call, and it reverses the earlier ruling, so the reasoning on both
+ * sides is worth keeping:
  *
- * So the helper is gone rather than left dormant behind an unset variable —
- * a path nobody intends to use is one somebody eventually enables.
+ *   The earlier position was that each admin signs in to rm-server as
+ *   themselves, so rm-server KNOWS who made a change rather than taking
+ *   rm-web's word for it. That is a real property and this gives it up.
+ *
+ *   His position is that there is one set of admins, created on the front end,
+ *   and permission is ours to decide. A second account per person to use a
+ *   button in our own panel is a login nobody should be asked for — he was
+ *   surprised to find one there at all.
+ *
+ * WHAT WE KEEP of the audit trail: every write still stamps updated_by and
+ * created_by with the signed-in ADMIN's email from their rm-web session, and
+ * every action is recorded in admin_audit here with who, when and to what. So
+ * "who changed this lot size" is still answerable. What changes is that
+ * rm-server now trusts rm-web's answer rather than establishing it itself.
+ *
+ * WHAT THAT COSTS, stated plainly because it is a real cost: a service key
+ * bypasses RLS, so a bug on our side could reach anything in rm-server rather
+ * than only the columns granted to `authenticated`. Everything that uses this
+ * goes through requirePermission("bot.configure") first.
+ *
+ * Server-only. Never give this a NEXT_PUBLIC_ prefix.
  */
+function serviceClient(): SupabaseClient | null {
+  const url = envOr(process.env.RM_SERVER_SUPABASE_URL, "");
+  const key = envOr(process.env.RM_SERVER_SERVICE_ROLE_KEY, "");
+  if (!url || !key) return null;
+
+  return createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
+/** Whether writes work without anybody signing in to the bot separately. */
+export function hasServiceAccess(): boolean {
+  return Boolean(
+    envOr(process.env.RM_SERVER_SUPABASE_URL, "") &&
+      envOr(process.env.RM_SERVER_SERVICE_ROLE_KEY, ""),
+  );
+}
 
 /** Whether this admin has a live rm-server session. Cheap — no network. */
 export async function hasBotSession(): Promise<boolean> {
@@ -172,6 +203,12 @@ export async function hasBotSession(): Promise<boolean> {
  * every time somebody touches a control.
  */
 export async function getBotWriteClient(): Promise<SupabaseClient | null> {
+  // The configured key wins. With it there is nothing to sign in to, so the
+  // per-admin session below is only a fallback for an environment that has
+  // not been given one.
+  const service = serviceClient();
+  if (service) return service;
+
   const jar = await cookies();
   const refreshToken = jar.get(COOKIE)?.value;
   if (!refreshToken) return null;
