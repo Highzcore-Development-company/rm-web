@@ -170,9 +170,43 @@ export async function endBotSession(): Promise<void> {
  *
  * Server-only. Never give this a NEXT_PUBLIC_ prefix.
  */
+/**
+ * The rm-server service key, under either name it is stored as.
+ *
+ * The bot's Supabase project is called two different things depending on which
+ * codebase is talking about it. rm-web says RM_SERVER_*; highzcore says BOT_*.
+ * They are the same project (ttpbkk…) — not the app project, which is wprdtd…
+ * and whose key is plain SUPABASE_SERVICE_ROLE_KEY.
+ *
+ * The deploy stores it as BOT_SUPABASE_SERVICE_ROLE_KEY while this file read
+ * RM_SERVER_SERVICE_ROLE_KEY, so hasServiceAccess() was false in production
+ * and every admin write to the bot was a silent no-op with a perfectly good
+ * key sitting in the project.
+ *
+ * Both names are accepted rather than one being renamed, because renaming the
+ * live variable is a deploy that breaks the panel for as long as it takes
+ * anyone to notice, and renaming in code breaks whoever set it the other way.
+ * The deployed name wins.
+ *
+ * Server-only. Never give either a NEXT_PUBLIC_ prefix.
+ */
+function serviceRoleKey(): string {
+  return (
+    envOr(process.env.BOT_SUPABASE_SERVICE_ROLE_KEY, "") ||
+    envOr(process.env.RM_SERVER_SERVICE_ROLE_KEY, "")
+  );
+}
+
+function serviceUrl(): string {
+  return (
+    envOr(process.env.RM_SERVER_SUPABASE_URL, "") ||
+    envOr(process.env.NEXT_PUBLIC_BOT_SUPABASE_URL, "")
+  );
+}
+
 function serviceClient(): SupabaseClient | null {
-  const url = envOr(process.env.RM_SERVER_SUPABASE_URL, "");
-  const key = envOr(process.env.RM_SERVER_SERVICE_ROLE_KEY, "");
+  const url = serviceUrl();
+  const key = serviceRoleKey();
   if (!url || !key) return null;
 
   return createClient(url, key, {
@@ -182,10 +216,7 @@ function serviceClient(): SupabaseClient | null {
 
 /** Whether writes work without anybody signing in to the bot separately. */
 export function hasServiceAccess(): boolean {
-  return Boolean(
-    envOr(process.env.RM_SERVER_SUPABASE_URL, "") &&
-      envOr(process.env.RM_SERVER_SERVICE_ROLE_KEY, ""),
-  );
+  return Boolean(serviceUrl() && serviceRoleKey());
 }
 
 /** Whether this admin has a live rm-server session. Cheap — no network. */
