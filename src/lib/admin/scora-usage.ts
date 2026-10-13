@@ -8,22 +8,40 @@
  * half that satisfies the sentence: a number nobody can read does not tell you
  * anything before the bill does.
  *
- * PRICES ARE A SETTING, NOT A FACT. They are what Alibaba charged when this
- * was written, in USD per million tokens, and they will move. They live in one
+ * PRICES ARE A SETTING, NOT A FACT. They are what the provider charged when
+ * this was written, in USD per million tokens, and they will move. They live in one
  * place with a date on them so a wrong figure is correctable rather than
  * scattered through the code — and so anybody reading a cost knows what it was
  * priced at.
  */
 
-/** USD per MILLION tokens. Alibaba international list price, 12 October 2026. */
+/**
+ * USD per MILLION tokens, as listed on 13 October 2026.
+ *
+ * GROQ is what Scora runs on now. The Qwen rows stay because a cost read back
+ * must use the price the tokens were actually bought at — repricing history
+ * at today's provider would quietly rewrite last month's figure.
+ */
 const PRICES: Record<string, { in: number; out: number }> = {
+  // Groq
+  "llama-3.3-70b-versatile": { in: 0.59, out: 0.79 },
+  "llama-3.1-8b-instant": { in: 0.05, out: 0.08 },
+  "openai/gpt-oss-120b": { in: 0.15, out: 0.75 },
+  "openai/gpt-oss-20b": { in: 0.1, out: 0.5 },
+  // Alibaba, for anything answered before the provider changed.
   "qwen-plus": { in: 0.4, out: 1.2 },
   "qwen-turbo": { in: 0.05, out: 0.2 },
   "qwen-max": { in: 1.6, out: 6.4 },
 };
 
-/** What we assume when a model is not in the table above. */
-const FALLBACK = PRICES["qwen-plus"];
+/**
+ * What we assume for a model not in the table.
+ *
+ * The current default, so an unlisted Groq model is costed near the truth
+ * rather than at a price from a provider we no longer use. Either way the page
+ * says it guessed.
+ */
+const FALLBACK = PRICES["llama-3.3-70b-versatile"];
 
 export type UsageRow = {
   model: string | null;

@@ -27,7 +27,8 @@ import { createBrowserClient } from "@supabase/ssr";
 type QueryResult = { data: null; error: { message: string } };
 
 const UNCONFIGURED = {
-  message: "rm-server is not configured (NEXT_PUBLIC_RM_SERVER_SUPABASE_URL).",
+  message:
+    "rm-server is not configured. Set NEXT_PUBLIC_BOT_SUPABASE_URL (or NEXT_PUBLIC_RM_SERVER_SUPABASE_URL).",
 };
 
 /**
@@ -49,8 +50,20 @@ function stubQuery(): Record<string, unknown> {
 }
 
 export function createRmServerBrowserClient() {
-  const url = process.env.NEXT_PUBLIC_RM_SERVER_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_RM_SERVER_SUPABASE_ANON_KEY;
+  // BOTH NAMES, same reason as rm-server-session: the deploy stores these as
+  // NEXT_PUBLIC_BOT_SUPABASE_* while this file was written against
+  // NEXT_PUBLIC_RM_SERVER_*. Victor fixed the server side; this is the browser
+  // half, and without it the live Market feed falls back to the stub and
+  // simply stops updating — which looks like a bot that went quiet.
+  //
+  // Written out in full rather than through a helper: these are inlined at
+  // build time, so process.env cannot be indexed by a variable here.
+  const url =
+    process.env.NEXT_PUBLIC_RM_SERVER_SUPABASE_URL ||
+    process.env.NEXT_PUBLIC_BOT_SUPABASE_URL;
+  const key =
+    process.env.NEXT_PUBLIC_RM_SERVER_SUPABASE_ANON_KEY ||
+    process.env.NEXT_PUBLIC_BOT_SUPABASE_ANON_KEY;
 
   if (!url || !key) {
     // `channel` too, not just `from`: the Activities feed subscribes to
