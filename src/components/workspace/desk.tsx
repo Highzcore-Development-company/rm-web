@@ -513,10 +513,12 @@ function LiveTab({ rows, isAdmin }: { rows: BotMarket[]; isAdmin: boolean }) {
               open <Ago iso={m.opened_at} suffix={false} /> · {m.strategy ?? "—"}
             </p>
 
-            {/* Admins only, and only with a ticket to name. pending_ticket is
-                null on a flat market and on anything predating migration 007 —
-                a close request with no ticket has nothing to act on. */}
-            {isAdmin && m.pending_ticket != null && (
+            {/* Admins only. Deliberately NOT conditional on pending_ticket:
+                that column can be null on a trade that is genuinely open, and
+                hiding the Close button at that moment takes the control away
+                exactly when it is wanted. The server resolves the ticket, and
+                says so if it truly cannot find one. */}
+            {isAdmin && (
               <div className="mt-2">
                 <CloseTradeButton
                   symbol={m.symbol}

@@ -352,24 +352,60 @@ export type CommandResult =
  */
 export async function requestCloseTrade(
   symbol: string,
-  ticket: number,
+  ticket?: number | null,
 ): Promise<CommandResult> {
   const admin = await requirePermission("bot.configure");
   if (!admin) return { ok: false, error: "forbidden" };
 
-  if (!Number.isInteger(ticket) || ticket <= 0) {
-    return { ok: false, error: "bad_ticket" };
-  }
-
   const client = await writeClient();
   if (!client) return { ok: false, error: "not_connected" };
+
+  // THE TICKET IS RESOLVED HERE, not demanded from the browser.
+  //
+  // It used to come from bot_market_state.pending_ticket, and the button was
+  // hidden whenever that was null — so an open trade could lose its Close
+  // button while it was still open, which is exactly when somebody needs it.
+  // One denormalised column blinking must not take a control away.
+  //
+  // bot_trades is the second, independent source: an open position is a row
+  // with no close_ts, and it carries the same broker ticket. Asked in that
+  // order because bot_market_state is written every few seconds and is the
+  // fresher of the two.
+  let resolved = Number.isInteger(ticket) && (ticket as number) > 0 ? (ticket as number) : null;
+
+  if (resolved === null) {
+    const { data: state } = await client
+      .from("bot_market_state")
+      .select("pending_ticket")
+      .eq("symbol", symbol)
+      .maybeSingle();
+    const fromState = (state as { pending_ticket?: number | null } | null)?.pending_ticket;
+    if (typeof fromState === "number" && fromState > 0) resolved = fromState;
+  }
+
+  if (resolved === null) {
+    const { data: open } = await client
+      .from("bot_trades")
+      .select("ticket")
+      .eq("symbol", symbol)
+      .is("close_ts", null)
+      .order("open_ts", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const fromTrades = (open as { ticket?: number | null } | null)?.ticket;
+    if (typeof fromTrades === "number" && fromTrades > 0) resolved = fromTrades;
+  }
+
+  // Refused rather than guessed. Closing "whatever is open on EURUSD" without
+  // naming a ticket is how the wrong position gets closed when two exist.
+  if (resolved === null) return { ok: false, error: "no_ticket" };
 
   const { data, error } = await client
     .from("bot_commands")
     .insert({
       command: "close",
       symbol,
-      ticket,
+      ticket: resolved,
       payload: {},
       // The ADMIN's email, not the rm-server account's. They may differ, and
       // "who asked for this position to be closed" has to name a person.
@@ -383,9 +419,11 @@ export async function requestCloseTrade(
     return { ok: false, error: "generic" };
   }
 
-  await recordAdminAction("bot.close_requested", { type: "trade", id: String(ticket) }, {
-    symbol,
-  });
+  await recordAdminAction(
+    "bot.close_requested",
+    { type: "trade", id: String(resolved) },
+    { symbol },
+  );
 
   return { ok: true, id: data.id as string };
 }
