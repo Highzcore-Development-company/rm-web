@@ -39,7 +39,15 @@ export function CloseTradeButton({
   alias,
 }: {
   symbol: string;
-  ticket: number;
+  /**
+   * Optional. The server resolves it if absent.
+   *
+   * It used to be required, so the button disappeared whenever
+   * bot_market_state.pending_ticket was momentarily null — on an open trade,
+   * which is precisely when somebody wants to close it. A control that comes
+   * and goes is worse than one that explains why it cannot act.
+   */
+  ticket?: number | null;
   alias: string;
 }) {
   const [phase, setPhase] = useState<Phase>({ kind: "idle" });
@@ -116,7 +124,7 @@ export function CloseTradeButton({
         {/* Names the market and the ticket. "Close this trade?" on a rail of
             near-identical rows is how the wrong one gets closed. */}
         <span className="text-[11px] text-fg-muted">
-          Close {alias} #{ticket}?
+          Close {alias}{ticket ? ` #${ticket}` : ""}?
         </span>
         <button
           type="button"
@@ -133,7 +141,9 @@ export function CloseTradeButton({
                       ? "You are not signed in to the bot — connect on the Bot page."
                       : res.error === "forbidden"
                         ? "You do not have permission to do that."
-                        : "The request did not reach the bot.",
+                        : res.error === "no_ticket"
+                          ? "No open trade found on this market to close."
+                          : "The request did not reach the bot.",
                 });
             });
           }}
