@@ -70,7 +70,7 @@ export default async function ScoraUsagePage() {
     <div>
       <h1 className="display text-3xl font-semibold">Scora usage</h1>
       <p className="mt-3 max-w-2xl text-sm leading-relaxed text-fg-muted">
-        What Scora has cost, and who is spending it. Priced at Alibaba&apos;s
+        What Scora has cost, and who is spending it. Priced at the provider&apos;s
         list rates, so treat it as close rather than exact — the invoice is the
         invoice.
       </p>
@@ -128,9 +128,10 @@ export default async function ScoraUsagePage() {
 
           {usage.hasUnpricedModel && (
             <p className="mt-4 rounded-lg border border-accent/40 bg-accent/5 px-4 py-3 text-xs leading-relaxed">
-              Some answers used a model with no price in the table, and were
-              costed at the qwen-plus rate. The real figure will differ — add
-              the price in <code>lib/admin/scora-usage.ts</code>.
+              Costed at a fallback rate, because these have no price in the
+              table: <code>{usage.models.join(", ")}</code>. The real figure
+              will differ. Add them from the provider&apos;s pricing page in{" "}
+              <code>lib/admin/scora-usage.ts</code>.
             </p>
           )}
 
