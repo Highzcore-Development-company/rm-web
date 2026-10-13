@@ -27,9 +27,41 @@ export const dynamic = "force-dynamic";
  * rather than merely enforced.
  */
 
-/** Alibaba's OpenAI-compatible endpoint. Overridable for the Singapore region. */
-const QWEN_BASE = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
-const DEFAULT_MODEL = "qwen-plus";
+/**
+ * WHO RUNS QWEN FOR US.
+ *
+ * Qwen is the model; it is open-weight, so several companies host it and they
+ * all speak the same OpenAI-compatible protocol. Only the base URL, the key
+ * and the model id differ, which is why one code path serves both.
+ *
+ *   Groq      free tier, no card. What the Netlify project is configured with.
+ *   Alibaba   the makers. Paid, ~$0.375/1M input on the smaller model.
+ *
+ * The deploy had GROQ_API_KEY set while this file read QWEN_API_KEY, so the
+ * key was never found and Scora answered 503 "not_configured" to everyone
+ * while a perfectly good key sat beside it. Whichever key is present now
+ * selects its own endpoint and default model — setting one variable is enough,
+ * and setting the wrong pair is not possible.
+ */
+const PROVIDERS = {
+  groq: {
+    base: "https://api.groq.com/openai/v1",
+    // Groq's Qwen offering. Groq retires model ids (it dropped two Llama
+    // models in Aug 2026), so confirm this against the live list in the
+    // console rather than trusting it — QWEN_MODEL overrides it.
+    model: "qwen3.6-27b",
+  },
+  dashscope: {
+    base: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+    model: "qwen-plus",
+  },
+} as const;
+
+function provider() {
+  const groq = envOr(process.env.GROQ_API_KEY, "");
+  if (groq) return { key: groq, ...PROVIDERS.groq };
+  return { key: envOr(process.env.QWEN_API_KEY, ""), ...PROVIDERS.dashscope };
+}
 
 /** Turns kept as history. Enough to follow a thread, bounded so cost cannot run. */
 const HISTORY_TURNS = 10;
@@ -42,8 +74,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "signed_out" }, { status: 401 });
   }
 
-  const apiKey = envOr(process.env.QWEN_API_KEY, "");
-  if (!apiKey) {
+  const ai = provider();
+  if (!ai.key) {
     // Said plainly rather than failing oddly: the panel tells people Scora
     // answers once the model is connected, and this is that state.
     return NextResponse.json({ error: "not_configured" }, { status: 503 });
@@ -118,7 +150,9 @@ export async function POST(request: Request) {
   // ---- the call ---------------------------------------------------------
 
   const ctx = await getScoraContext();
-  const model = envOr(process.env.QWEN_MODEL, DEFAULT_MODEL);
+  // QWEN_MODEL and QWEN_API_BASE still override, whichever provider is in
+  // use — the names are about the model, not about who hosts it.
+  const model = envOr(process.env.QWEN_MODEL, ai.model);
 
   const messages = [
     { role: "system", content: SCORA_SYSTEM_PROMPT },
@@ -132,11 +166,11 @@ export async function POST(request: Request) {
 
   let upstream: Response;
   try {
-    upstream = await fetch(`${envOr(process.env.QWEN_API_BASE, QWEN_BASE)}/chat/completions`, {
+    upstream = await fetch(`${envOr(process.env.QWEN_API_BASE, ai.base)}/chat/completions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: `Bearer ${ai.key}`,
       },
       body: JSON.stringify({
         model,
