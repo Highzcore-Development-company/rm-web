@@ -11,6 +11,7 @@ import {
   setTradingEnabled,
 } from "@/app/(app)/app/admin/(panel)/bot/actions";
 import { useToast } from "@/stores";
+import { pipLineFor } from "@/lib/admin/pip-value";
 
 export type MarketConfig = {
   symbol: string;
@@ -263,7 +264,7 @@ function MarketRow({
         {market.symbol}
       </th>
 
-      <td className="py-3 pr-4">
+      <td className="py-3 pr-4 align-top">
         <input
           inputMode="decimal"
           value={lot}
@@ -277,9 +278,22 @@ function MarketRow({
           }}
           className="field-input w-24 rounded-md px-2 py-1.5 text-sm tabular-nums"
         />
+
+        {/* What this size is actually worth, under the box, updating as it is
+            typed. "0.1" means nothing on its own; "$1.00 a pip" is the number
+            a person reasons with, and lot size is the one setting that decides
+            how much money a trade moves.
+
+            Shown for the TYPED value, not the saved one — the point is to see
+            what you are about to do before confirming it. Blank when we have
+            no figure for the market, because a confident wrong number here is
+            worse than none. */}
+        <p className="mt-1 text-[11px] leading-tight text-fg-muted">
+          {pipLineFor(market.symbol, lot)}
+        </p>
       </td>
 
-      <td className="py-3 pr-4">
+      <td className="py-3 pr-4 align-top">
         <input
           inputMode="decimal"
           value={profit}
