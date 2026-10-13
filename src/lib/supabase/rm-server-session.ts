@@ -30,6 +30,31 @@ import { envOr } from "@/lib/env";
 const COOKIE = "rm_bot_session";
 
 /**
+ * Which paths send the session.
+ *
+ * "/app", not "/app/admin". It was the narrower path, which looked like good
+ * hygiene and was a bug: the Close button lives on the DASHBOARD, and a server
+ * action posts to the page it was invoked from. So the cookie was never sent
+ * from /app/dashboard, and closing a trade failed with "you are not signed in
+ * to the bot" however many times somebody signed in on the Bot page.
+ *
+ * Still not "/" — the marketing pages, the API routes and /auth have no
+ * business carrying a credential for the bot's database.
+ */
+const COOKIE_PATH = "/app";
+
+/**
+ * Where the cookie used to live.
+ *
+ * Anybody who connected before the path changed still has one at /app/admin.
+ * The browser would send BOTH on an admin request and the older, narrower one
+ * can win — so a stale refresh token would quietly outlive its replacement.
+ * Cleared whenever a session starts or ends. Removable once nobody can still
+ * be holding one, which is thirty days from this landing.
+ */
+const LEGACY_COOKIE_PATH = "/app/admin";
+
+/**
  * How long a bot session lasts, in seconds.
  *
  * Without this it was a SESSION cookie — gone when the browser closed, so an
@@ -99,11 +124,12 @@ export async function startBotSession(
   }
 
   const jar = await cookies();
+  jar.delete({ name: COOKIE, path: LEGACY_COOKIE_PATH });
   jar.set(COOKIE, data.session.refresh_token, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
-    path: "/app/admin",
+    path: COOKIE_PATH,
     maxAge: SESSION_MAX_AGE,
   });
 
@@ -112,7 +138,8 @@ export async function startBotSession(
 
 export async function endBotSession(): Promise<void> {
   const jar = await cookies();
-  jar.delete({ name: COOKIE, path: "/app/admin" });
+  jar.delete({ name: COOKIE, path: COOKIE_PATH });
+  jar.delete({ name: COOKIE, path: LEGACY_COOKIE_PATH });
 }
 
 /**
@@ -157,7 +184,7 @@ export async function getBotWriteClient(): Promise<SupabaseClient | null> {
   });
 
   if (error || !data.session) {
-    jar.delete({ name: COOKIE, path: "/app/admin" });
+    jar.delete({ name: COOKIE, path: COOKIE_PATH });
     return null;
   }
 
@@ -165,7 +192,7 @@ export async function getBotWriteClient(): Promise<SupabaseClient | null> {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
-    path: "/app/admin",
+    path: COOKIE_PATH,
     maxAge: SESSION_MAX_AGE,
   });
 
