@@ -46,10 +46,17 @@ export const dynamic = "force-dynamic";
 const PROVIDERS = {
   groq: {
     base: "https://api.groq.com/openai/v1",
-    // Groq's Qwen offering. Groq retires model ids (it dropped two Llama
-    // models in Aug 2026), so confirm this against the live list in the
-    // console rather than trusting it — QWEN_MODEL overrides it.
-    model: "qwen3.6-27b",
+    // Groq's Qwen offering. CONFIRMED against the live /models list on
+    // 13 Oct 2026 with the key the deploy holds: the id is namespaced and the
+    // version is 3.8. "qwen3.6-27b" 404s — the advice in this comment to check
+    // rather than trust was right, so it has now been checked.
+    //
+    // Also confirmed by asking it a real question: it answers in prose and
+    // respects the no-recommendation rule. openai/gpt-oss-120b is on the same
+    // account and was rejected — it returns EMPTY content with its tokens
+    // spent on a reasoning field we do not read, so Scora would have streamed
+    // nothing at all.
+    model: "qwen/qwen3.8-27b",
   },
   dashscope: {
     base: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",

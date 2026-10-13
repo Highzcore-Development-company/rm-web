@@ -23,7 +23,13 @@
  * at today's provider would quietly rewrite last month's figure.
  */
 const PRICES: Record<string, { in: number; out: number }> = {
-  // Groq
+  // Groq.
+  //
+  // qwen/qwen3.8-27b — the model Scora actually runs on — is deliberately
+  // ABSENT. I do not know what Groq charges for it and a plausible-looking
+  // guess is worse than none: it would read as a measured cost. The page
+  // names any unpriced model so somebody can add it from the pricing page,
+  // and until then every figure is openly flagged as an estimate.
   "llama-3.3-70b-versatile": { in: 0.59, out: 0.79 },
   "llama-3.1-8b-instant": { in: 0.05, out: 0.08 },
   "openai/gpt-oss-120b": { in: 0.15, out: 0.75 },
