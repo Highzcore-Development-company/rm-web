@@ -8,6 +8,7 @@ import {
 } from "@/components/admin/shell/admin-sidebar";
 import { AdminProfileMenu } from "@/components/admin/shell/admin-profile-menu";
 import { LiveBell } from "@/components/admin/shell/live-bell";
+import { PendingBell } from "@/components/admin/shell/pending-bell";
 import { getAdmin, recordAdminLogin } from "@/lib/admin";
 import { createServiceClient } from "@/lib/supabase/service";
 import { createRmServerClient } from "@/lib/supabase/rm-server";
@@ -171,9 +172,21 @@ export default async function AdminLayout({
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Only for an admin who may see the bot at all. The figure is the
-                master account's floating P&L, which is bot.view's business. */}
-            {canSeeBot ? <LiveBell initial={marketRows} /> : null}
+            {/* Only for an admin who may see the bot at all. Both read the
+                bot's live state, which is bot.view's business.
+
+                TWO NOTIFICATIONS, not one, because they answer different
+                questions. Pending is a COUNT of setups waiting to trigger;
+                live is the floating P&L of what is already open, where the
+                count barely matters. The desk used to carry both as tabs in a
+                rail — they are in the navbar now, where a number you want to
+                see without navigating belongs. */}
+            {canSeeBot ? (
+              <>
+                <PendingBell initial={marketRows} />
+                <LiveBell initial={marketRows} />
+              </>
+            ) : null}
             <ThemeToggle />
             <AdminProfileMenu
               profile={{

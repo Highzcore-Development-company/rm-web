@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
 import { Activity, ArrowUpRight } from "lucide-react";
 import { useLiveMarkets } from "@/components/workspace/use-live-markets";
+import { useDismissable } from "@/components/admin/shell/use-dismissable";
 import type { BotMarket } from "@/lib/workspace/types";
 
 /**
@@ -32,24 +32,7 @@ import type { BotMarket } from "@/lib/workspace/types";
  */
 export function LiveBell({ initial }: { initial: BotMarket[] }) {
   const markets = useLiveMarkets(initial);
-  const [open, setOpen] = useState(false);
-  const container = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
-    };
-    const onPointer = (event: PointerEvent) => {
-      if (!container.current?.contains(event.target as Node)) setOpen(false);
-    };
-    document.addEventListener("keydown", onKey);
-    document.addEventListener("pointerdown", onPointer);
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.removeEventListener("pointerdown", onPointer);
-    };
-  }, [open]);
+  const { open, setOpen, ref: container } = useDismissable();
 
   const live = markets.filter((m) => m.state === "active");
   const floating = live.reduce((sum, m) => sum + (m.pnl ?? 0), 0);

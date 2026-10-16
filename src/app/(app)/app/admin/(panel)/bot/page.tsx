@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { Desk } from "@/components/workspace/desk";
 import {
   MarketControls,
   TradingSwitch,
@@ -36,9 +35,18 @@ export const dynamic = "force-dynamic";
  *     that does not happen. decideProposal() is still in actions.ts if the
  *     feature comes back.
  *
- * The desk still wraps it — Live, History and the market feed on the right are
- * the same component the investor sees, so the two cannot disagree about what
- * the bot is doing.
+ * AND NO DESK RAIL. It used to render inside <Desk>, which put Market, Pending,
+ * Live, History and Performance in a column down the right. Victor, 16 Oct:
+ * "take off the side where market, live, history etc is listed. All of them now
+ * have their own pages, so those should be happening in their own page not on
+ * that tab."
+ *
+ * He is right that it was duplication — Markets, History and the Chart are
+ * real pages now and Performance leads the Overview, so the rail was a second,
+ * narrower copy of four screens. The two that had nowhere else to live are
+ * Pending and Live, and those are notifications in the navbar now: a count you
+ * want to see without navigating does not belong in a panel you have to open a
+ * particular page to reach.
  */
 export default async function AdminBotPage() {
   if (!(await requirePermission("bot.view"))) notFound();
@@ -64,8 +72,8 @@ export default async function AdminBotPage() {
 
   const blocked = writeBlockedReason();
 
-  const centre = (
-    <div className="mx-auto w-full max-w-3xl px-4 py-8">
+  return (
+    <div className="max-w-3xl">
       {/* No visible page title — see the note on the overview page. The h1
           stays screen-reader-only so the document still has a landmark. */}
       <h1 className="sr-only">{t("title")}</h1>
@@ -121,21 +129,5 @@ export default async function AdminBotPage() {
         </div>
       </section>
     </div>
-  );
-
-  return (
-    <Desk
-      markets={data.markets}
-      closedTrades={data.closedTrades}
-      settings={data.settings}
-      connected={data.connected}
-      user={{
-        name: admin?.email ?? "Admin",
-        initials: (admin?.email ?? "A").slice(0, 2).toUpperCase(),
-      }}
-      showChart={false}
-      centre={centre}
-      embedded
-    />
   );
 }
