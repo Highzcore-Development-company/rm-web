@@ -35,39 +35,87 @@ import type { BotMarket } from "@/lib/workspace/types";
  * opening a second subscription to the same table. The signature is unchanged
  * so the desk did not have to care.
  */
+/**
+ * ONE SUBSCRIPTION, however many components ask for the feed.
+ *
+ * This is reference-counted at module scope rather than owned by the hook, and
+ * it has to be. @supabase/ssr's createBrowserClient is a singleton per browser,
+ * and a Supabase client hands back the SAME channel object for a given topic —
+ * so a second component calling `.channel("desk-market-state").on(...)` is
+ * adding a listener to a channel the first one has already subscribed, which
+ * throws outright:
+ *
+ *   cannot add `postgres_changes` callbacks for realtime:desk-market-state
+ *   after `subscribe()`
+ *
+ * That took down /app/admin/bot, where the admin layout's live figure and the
+ * page's own <Desk> both want the feed. Two mounts, one channel, one of them
+ * too late.
+ *
+ * Unique topics per mount would also have silenced it, at the cost of a second
+ * websocket and a second copy of every row — which is the thing the comment
+ * above already said this hook exists to avoid. So the first mount opens the
+ * socket, the last one to leave closes it, and everyone in between just reads
+ * the store.
+ */
+let subscribers = 0;
+let channel: ReturnType<
+  ReturnType<typeof createRmServerBrowserClient>["channel"]
+> | null = null;
+let pollId: ReturnType<typeof setInterval> | null = null;
+
 export function useLiveMarkets(initial: BotMarket[]): BotMarket[] {
   const setMarkets = useSetMarkets();
   const mergeMarket = useMergeMarket();
 
   useEffect(() => {
-    const supabase = createRmServerBrowserClient();
+    subscribers += 1;
 
-    const channel = supabase
-      .channel("desk-market-state")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "bot_market_state" },
-        // Typed explicitly: the stubbed client used when rm-server is
-        // unconfigured cannot carry the generic that would infer this.
-        (payload: { new: unknown }) => {
-          const row = payload.new as BotMarket | null;
-          if (row?.symbol) mergeMarket(row);
-        },
-      )
-      .subscribe();
+    // Only the first mount wires anything up. Guarded on the channel as well
+    // as the count because React's development double-mount can run this
+    // again before the previous cleanup has finished.
+    if (subscribers === 1 && !channel) {
+      const supabase = createRmServerBrowserClient();
 
-    const refetch = async () => {
-      const { data } = await supabase.from("bot_market_state").select("*");
-      if (data?.length) setMarkets(data as BotMarket[]);
-    };
-    const id = setInterval(refetch, 30_000);
+      channel = supabase
+        .channel("desk-market-state")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "bot_market_state" },
+          // Typed explicitly: the stubbed client used when rm-server is
+          // unconfigured cannot carry the generic that would infer this.
+          (payload: { new: unknown }) => {
+            const row = payload.new as BotMarket | null;
+            if (row?.symbol) mergeMarket(row);
+          },
+        )
+        .subscribe();
+
+      const refetch = async () => {
+        const { data } = await supabase.from("bot_market_state").select("*");
+        if (data?.length) setMarkets(data as BotMarket[]);
+      };
+      pollId = setInterval(refetch, 30_000);
+    }
 
     return () => {
-      clearInterval(id);
-      supabase.removeChannel(channel);
+      subscribers -= 1;
+      // Never below zero: a cleanup that ran twice would otherwise leave the
+      // count negative and the next mount would not re-subscribe.
+      if (subscribers > 0) return;
+      subscribers = 0;
+
+      if (pollId !== null) {
+        clearInterval(pollId);
+        pollId = null;
+      }
+      if (channel) {
+        createRmServerBrowserClient().removeChannel(channel);
+        channel = null;
+      }
     };
-    // Store actions are stable for the life of the store, so this runs once —
-    // the socket must not be torn down and rebuilt on re-render.
+    // Store actions are stable for the life of the store, so this runs once per
+    // mount — the socket must not be torn down and rebuilt on re-render.
   }, [setMarkets, mergeMarket]);
 
   // Falls back to the server snapshot until the store has its own rows, so

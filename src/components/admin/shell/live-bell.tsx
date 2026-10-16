@@ -22,9 +22,13 @@ import type { BotMarket } from "@/lib/workspace/types";
  * that froze at page load is worse than no figure: it is the one number on the
  * screen somebody would act on without refreshing first.
  *
- * It is the only subscriber in the admin area — the chart page renders
- * <MarketChart> directly rather than the whole desk, so there is exactly one
- * socket open on bot_market_state no matter which admin page is up.
+ * It is NOT the only subscriber, and assuming it was broke /app/admin/bot:
+ * that page renders the whole <Desk>, which wants the same feed, and two
+ * components reaching for one Supabase channel throws. useLiveMarkets now
+ * reference-counts a single subscription, so any number of mounts share one
+ * socket — see the note there. The chart page still renders <MarketChart>
+ * directly rather than the whole desk, but that is now an economy rather than
+ * a load-bearing assumption.
  */
 export function LiveBell({ initial }: { initial: BotMarket[] }) {
   const markets = useLiveMarkets(initial);
