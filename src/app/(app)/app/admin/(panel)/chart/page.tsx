@@ -108,6 +108,7 @@ export default async function AdminChartPage({
           openTrades={openTrades.map((t) => ({ symbol: t.symbol, side: t.side }))}
           focusSymbol={focus}
           chrome="workspace"
+          marketHrefBase="/app/admin/markets"
         />
       </div>
     </div>

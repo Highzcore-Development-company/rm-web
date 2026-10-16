@@ -483,6 +483,7 @@ const DESK_PALETTE: ChartPalette = { up: '#22c55e', down: '#ef4444', text: '#98A
 export function MarketChart({
   markets, openTrades = [], showGrid = true, palette = DESK_PALETTE, focusSymbol = null,
   chrome = 'desk',
+  marketHrefBase = null,
 }: {
   markets: { symbol: string; alias: string }[];
   openTrades?: { symbol: string; side: string }[];
@@ -498,6 +499,22 @@ export function MarketChart({
    *  'workspace' — fills its container with the trading-desk chrome: top bar,
    *  vertical tool rail, status strip, and the symbol search. */
   chrome?: 'desk' | 'workspace';
+  /**
+   * Where the "full read on this market" button goes, as a base path — the
+   * symbol is appended.
+   *
+   * NULL HIDES THE BUTTON, which is the default, because there is no such page
+   * for everyone. It used to link at `/bot/<symbol>` unconditionally: a route
+   * from highzcore, where this component was ported from, and one rm-web has
+   * never had. Every click 404'd.
+   *
+   * A path rather than a callback: this is a client component and the pages
+   * that render it are server components, so a function cannot cross the
+   * boundary. The admin chart passes /app/admin/markets; the investor desk
+   * passes nothing, because that page is admin-only and would 404 for them
+   * just as surely.
+   */
+  marketHrefBase?: string | null;
 }) {
   // A market's label reads "Alias — SYMBOL", but when the alias IS the symbol
   // (e.g. NZDUSD) that renders as "NZDUSD — NZDUSD". Show it once in that case.
@@ -2171,13 +2188,15 @@ export function MarketChart({
                 </span>
               </span>
             )}
-            <a
-              href={`/bot/${encodeURIComponent(symbol)}`}
-              title={`${alias} — the bot's full read on this market`}
-              className="flex h-9 w-9 items-center justify-center rounded-sm text-fg-muted transition-colors hover:bg-brand/10 hover:text-brand"
-            >
-              <FileText className="h-4 w-4" />
-            </a>
+            {marketHrefBase ? (
+              <a
+                href={`${marketHrefBase}/${encodeURIComponent(symbol)}`}
+                title={`${alias} — the bot's full read on this market`}
+                className="flex h-9 w-9 items-center justify-center rounded-sm text-fg-muted transition-colors hover:bg-brand/10 hover:text-brand"
+              >
+                <FileText className="h-4 w-4" />
+              </a>
+            ) : null}
             <RailBtn
               active={overlaysOn}
               onClick={toggleOverlays}

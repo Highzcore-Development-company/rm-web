@@ -21,8 +21,14 @@ import { rangeFor, type DateRange, type RangeKey } from "@/lib/admin/ranges";
 
 export const PER_PAGE = 25;
 
+/** How many rows an outcome filter may scan before it stops being honest. */
+const OUTCOME_SCAN_LIMIT = 20_000;
+
 export type SortKey = "closed" | "opened" | "pnl" | "symbol" | "duration";
 export type SortDir = "asc" | "desc";
+
+/** Won, lost or scratched — judged on NET, so it cannot be a SQL filter. */
+export type Outcome = "all" | "won" | "lost" | "scratch";
 
 export type HistoryQuery = {
   range: RangeKey;
@@ -30,6 +36,12 @@ export type HistoryQuery = {
   to?: string | null;
   /** Bot symbol, exactly as rm-server stores it. Null = every market. */
   symbol?: string | null;
+  /** "buy" or "sell". Null = both. */
+  side?: string | null;
+  /** close_reason, exactly as the bot writes it. Null = every reason. */
+  reason?: string | null;
+  /** Filtered on net result, which means in memory — see below. */
+  outcome?: Outcome;
   sort?: SortKey;
   dir?: SortDir;
   page?: number;
@@ -55,6 +67,8 @@ export type HistoryTotals = {
 export type HistoryPage = {
   rows: HistoryRow[];
   total: number;
+  /** True when an outcome filter forced the in-memory path and hit its cap. */
+  truncated?: boolean;
   page: number;
   perPage: number;
   pages: number;
@@ -132,6 +146,21 @@ export async function getHistory(query: HistoryQuery): Promise<HistoryPage> {
 
   const offset = (page - 1) * perPage;
 
+  /**
+   * OUTCOME CANNOT BE A SQL FILTER, so asking for one changes the whole shape
+   * of this function.
+   *
+   * Won and lost are judged on NET — pnl plus commission plus swap — and
+   * PostgREST cannot compare an expression, only a column. Filtering on `pnl`
+   * alone would be the easy wrong answer: a $1 gain that cost $1.50 in
+   * commission is a loss, and classifying it as a win is exactly the mistake
+   * totalsFor() is written to avoid. The two must not disagree on one screen.
+   *
+   * So when an outcome is asked for, the range is read in one go, filtered on
+   * the real figure, and paged in memory. Capped, and the cap is reported.
+   */
+  const byOutcome = query.outcome && query.outcome !== "all";
+
   let rowsQuery = client
     .from("bot_trades")
     .select("*", { count: "exact" })
@@ -139,14 +168,19 @@ export async function getHistory(query: HistoryQuery): Promise<HistoryPage> {
 
   rowsQuery = withinRange(rowsQuery, window);
   if (query.symbol) rowsQuery = rowsQuery.eq("symbol", query.symbol);
+  if (query.side) rowsQuery = rowsQuery.eq("side", query.side);
+  if (query.reason) rowsQuery = rowsQuery.eq("close_reason", query.reason);
 
-  const rowsPromise = rowsQuery
+  const ordered = rowsQuery
     .order(SORT_COLUMN[sort], { ascending: dir === "asc" })
     // A stable tiebreaker. Without it, two trades that closed in the same
     // second can swap places between page 1 and page 2, so one is shown twice
     // and the other never — paging without a total order.
-    .order("id", { ascending: true })
-    .range(offset, offset + perPage - 1);
+    .order("id", { ascending: true });
+
+  const rowsPromise = byOutcome
+    ? ordered.limit(OUTCOME_SCAN_LIMIT)
+    : ordered.range(offset, offset + perPage - 1);
 
   // The range totals, as a SECOND query on purpose. The numbers above the
   // table describe the range; computing them from `rows` would make them
@@ -157,13 +191,30 @@ export async function getHistory(query: HistoryQuery): Promise<HistoryPage> {
     .not("close_ts", "is", null);
   totalsQuery = withinRange(totalsQuery, window);
   if (query.symbol) totalsQuery = totalsQuery.eq("symbol", query.symbol);
+  if (query.side) totalsQuery = totalsQuery.eq("side", query.side);
+  if (query.reason) totalsQuery = totalsQuery.eq("close_reason", query.reason);
 
   const [rowsResult, totalsResult] = await Promise.all([
     rowsPromise,
     totalsQuery.limit(20_000),
   ]);
 
-  const rows = ((rowsResult.data ?? []) as BotTrade[]).map(decorate);
+  let rows = ((rowsResult.data ?? []) as BotTrade[]).map(decorate);
+  let total = rowsResult.count ?? 0;
+  let truncated = false;
+
+  if (byOutcome) {
+    const matched = rows.filter((row) =>
+      query.outcome === "won"
+        ? row.net > 0
+        : query.outcome === "lost"
+          ? row.net < 0
+          : row.net === 0,
+    );
+    truncated = rows.length >= OUTCOME_SCAN_LIMIT;
+    total = matched.length;
+    rows = matched.slice(offset, offset + perPage);
+  }
 
   // Duration is not a column, so it orders here, WITHIN the page. Said plainly
   // because it is a real limitation: sorting by duration orders the page you
@@ -177,11 +228,14 @@ export async function getHistory(query: HistoryQuery): Promise<HistoryPage> {
     });
   }
 
-  const totals = totalsFor(
-    (totalsResult.data ?? []) as Pick<BotTrade, "pnl" | "commission" | "swap">[],
-  );
-
-  const total = rowsResult.count ?? 0;
+  // The figures above the table describe the range as filtered. When an
+  // outcome filter is on they come from the matched rows instead, so the
+  // headline and the table are talking about the same set.
+  const totals = byOutcome
+    ? totalsFor(rows.length ? allMatched(rowsResult.data as BotTrade[], query.outcome!) : [])
+    : totalsFor(
+        (totalsResult.data ?? []) as Pick<BotTrade, "pnl" | "commission" | "swap">[],
+      );
 
   return {
     rows,
@@ -190,8 +244,17 @@ export async function getHistory(query: HistoryQuery): Promise<HistoryPage> {
     perPage,
     pages: Math.max(Math.ceil(total / perPage), 1),
     totals,
+    truncated,
     connected: true,
   };
+}
+
+/** The whole matched set, for the totals when paging happens in memory. */
+function allMatched(data: BotTrade[], outcome: Outcome): BotTrade[] {
+  return (data ?? []).filter((trade) => {
+    const net = netOf(trade);
+    return outcome === "won" ? net > 0 : outcome === "lost" ? net < 0 : net === 0;
+  });
 }
 
 /** Pure, so the arithmetic is tested without rm-server. */
