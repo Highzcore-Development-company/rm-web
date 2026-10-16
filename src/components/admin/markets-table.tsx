@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { CandlestickChart, ChevronRight, Search } from "lucide-react";
+import { CandlestickChart, ChevronRight, Maximize2, Search } from "lucide-react";
 import { Signed } from "@/components/admin/signed";
 import { MarketStateDialog } from "@/components/admin/market-state-dialog";
 import { useLiveMarkets } from "@/components/workspace/use-live-markets";
@@ -393,23 +393,37 @@ export function MarketsTable({
                       }}
                       disabled={!liveBySymbol.has(row.symbol)}
                       title="See the full state"
-                      className="block w-full max-w-[22rem] text-left transition-colors hover:text-fg disabled:cursor-default"
+                      /* IT HAS TO LOOK CLICKABLE. A <button> is `cursor:
+                         default` in every browser — only links get a pointer —
+                         so this read as plain text that happened to respond.
+                         The pointer is fixed globally now (globals.css); what
+                         this adds is a hover surface, a ring and an icon that
+                         fades in — three signals, because one of them is colour
+                         and this table is already full of colour that means
+                         profit and loss. */
+                      className="group -mx-2 block w-full max-w-[22rem] rounded-md px-2 py-1 text-left transition-colors hover:bg-surface-hover hover:ring-1 hover:ring-border disabled:hover:bg-transparent disabled:hover:ring-0"
                     >
-                      {row.state === "active" ? (
-                        <span className="inline-flex items-center gap-1.5 text-accent">
-                          In a trade
-                          {row.openPnl !== null ? (
-                            <span className="tabular-nums">
-                              ({row.openPnl >= 0 ? "+" : "−"}$
-                              {Math.abs(row.openPnl).toFixed(2)})
-                            </span>
-                          ) : null}
-                        </span>
-                      ) : (
-                        <span className="block truncate text-xs text-fg-muted">
-                          {row.reason ?? (row.state ? "Watching" : "No state")}
-                        </span>
-                      )}
+                      <span className="flex items-center gap-1.5">
+                        {row.state === "active" ? (
+                          <span className="inline-flex items-center gap-1.5 text-accent">
+                            In a trade
+                            {row.openPnl !== null ? (
+                              <span className="tabular-nums">
+                                ({row.openPnl >= 0 ? "+" : "−"}$
+                                {Math.abs(row.openPnl).toFixed(2)})
+                              </span>
+                            ) : null}
+                          </span>
+                        ) : (
+                          <span className="min-w-0 flex-1 truncate text-xs text-fg-muted transition-colors group-hover:text-fg">
+                            {row.reason ?? (row.state ? "Watching" : "No state")}
+                          </span>
+                        )}
+                        <Maximize2
+                          className="size-3 shrink-0 opacity-0 transition-opacity group-hover:opacity-70 group-disabled:hidden"
+                          aria-hidden="true"
+                        />
+                      </span>
                       {/* Per row, because one market going quiet while the
                           rest tick is a different fault from the whole feed
                           stopping, and only a per-row clock shows it. */}

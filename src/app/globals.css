@@ -355,6 +355,33 @@ select.field-input option {
    widget; everything below puts back what it was doing, in our colours.
    --------------------------------------------------------------------------- */
 
+/* ---------------------------------------------------------------------------
+   A control that can be clicked looks like it.
+
+   Victor, 16 Oct: "when my mouse enter doings, it should show that I am about
+   to click something and a cursor pointer."
+
+   It was not just that cell. EVERY button in the app read `cursor: default` —
+   the sort headers, the filter chips, the range picker, the navbar menus.
+   Tailwind v4's preflight sets buttons to `cursor: default` on purpose (it
+   matches the native control, and v3's pointer was the odd one out), which is
+   defensible for a form submit and wrong for everything we use a button for:
+   tabs, filters, sort toggles and things that open dialogs, none of which the
+   browser would have styled as default either.
+
+   Fixed here rather than with a utility class on each one, because the next
+   button somebody adds should not have to remember. Disabled controls are
+   excluded — a pointer on something that will not respond is a worse lie than
+   no pointer at all — and `summary` is included because a <details> toggle has
+   the same problem.
+   --------------------------------------------------------------------------- */
+
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+summary {
+  cursor: pointer;
+}
+
 .control {
   appearance: none;
   -webkit-appearance: none;
