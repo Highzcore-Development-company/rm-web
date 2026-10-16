@@ -9,6 +9,7 @@ import {
 import { getAdmin, requirePermission } from "@/lib/admin";
 import { getWorkspaceData } from "@/lib/workspace/data";
 import { canWriteToBot, writeBlockedReason } from "@/lib/supabase/rm-server-session";
+import type { Quotes } from "@/lib/admin/pip-value";
 import type { BotConfig } from "@/lib/workspace/types";
 
 export const metadata: Metadata = { title: "Bot", robots: { index: false } };
@@ -72,6 +73,14 @@ export default async function AdminBotPage() {
 
   const blocked = writeBlockedReason();
 
+  // Live prices for the pip line under each lot box. getWorkspaceData already
+  // carries them, so this is a reshape rather than a read.
+  const quotes: Quotes = {};
+  for (const row of data.markets) {
+    const pair = (row.alias || row.symbol).toUpperCase().replace(/[^A-Z]/g, "");
+    if (pair.length >= 6 && row.price) quotes[pair.slice(0, 6)] = row.price;
+  }
+
   return (
     <div className="max-w-3xl">
       {/* No visible page title — see the note on the overview page. The h1
@@ -125,7 +134,11 @@ export default async function AdminBotPage() {
           {t("lotNote")}
         </p>
         <div className="mt-4">
-          <MarketControls markets={markets} configurable={configurable} />
+          <MarketControls
+            markets={markets}
+            configurable={configurable}
+            quotes={quotes}
+          />
         </div>
       </section>
     </div>

@@ -11,7 +11,7 @@ import {
   setTradingEnabled,
 } from "@/app/(app)/app/admin/(panel)/bot/actions";
 import { useToast } from "@/stores";
-import { pipLineFor } from "@/lib/admin/pip-value";
+import { pipLineFor, type Quotes } from "@/lib/admin/pip-value";
 
 export type MarketConfig = {
   symbol: string;
@@ -112,9 +112,12 @@ export function TradingSwitch({
 export function MarketControls({
   markets,
   configurable,
+  quotes = {},
 }: {
   markets: MarketConfig[];
   configurable: boolean;
+  /** Live prices, so the pip line under each lot box is computed not guessed. */
+  quotes?: Quotes;
 }) {
   const t = useTranslations("adminBot");
 
@@ -139,6 +142,7 @@ export function MarketControls({
               key={market.symbol}
               market={market}
               configurable={configurable}
+              quotes={quotes}
             />
           ))}
         </tbody>
@@ -150,9 +154,11 @@ export function MarketControls({
 function MarketRow({
   market,
   configurable,
+  quotes,
 }: {
   market: MarketConfig;
   configurable: boolean;
+  quotes: Quotes;
 }) {
   const t = useTranslations("adminBot");
   const toast = useToast();
@@ -289,7 +295,7 @@ function MarketRow({
             no figure for the market, because a confident wrong number here is
             worse than none. */}
         <p className="mt-1 text-[11px] leading-tight text-fg-muted">
-          {pipLineFor(market.symbol, lot)}
+          {pipLineFor(market.symbol, lot, quotes)}
         </p>
       </td>
 

@@ -11,7 +11,11 @@ import {
 import { MarketSettings } from "@/components/admin/market-settings";
 import { Signed } from "@/components/admin/signed";
 import { breakdownOf, decorate, totalsFor } from "@/lib/admin/history";
-import { pipValueFor, BROKER_MINIMUM_LOTS } from "@/lib/admin/pip-value";
+import {
+  pipValueFor,
+  BROKER_MINIMUM_LOTS,
+  type Quotes,
+} from "@/lib/admin/pip-value";
 import type { BotConfig, BotEquity, BotMarket, BotTrade } from "@/lib/workspace/types";
 
 export const metadata: Metadata = { title: "Market", robots: { index: false } };
@@ -52,7 +56,7 @@ export default async function AdminMarketPage({
   // Permission first: it is the one an admin cannot resolve themselves.
   const blocked = !canConfigure ? "no_permission" : writeBlockedReason();
 
-  const [config, state, trades, snapshot] = await Promise.all([
+  const [config, state, trades, snapshot, priceRows] = await Promise.all([
     client
       .from("bot_symbol_config")
       .select("symbol, alias, lot_size, close_at_profit, enabled, updated_at")
@@ -82,6 +86,10 @@ export default async function AdminMarketPage({
       .limit(1)
       .maybeSingle()
       .then((r) => (r.data ?? null) as BotEquity | null, () => null),
+    client
+      .from("bot_market_state")
+      .select("symbol, alias, price")
+      .then((r) => (r.data ?? []) as BotMarket[], () => [] as BotMarket[]),
   ]);
 
   // A market nobody has configured and that has never traded does not exist.
@@ -93,7 +101,15 @@ export default async function AdminMarketPage({
   const rows = trades.map(decorate);
 
   const lots = config?.lot_size ?? BROKER_MINIMUM_LOTS;
-  const pip = pipValueFor(symbol, lots);
+  // The pip is paid in the quote currency, so pricing it in dollars needs the
+  // OTHER pairs' prices — USDJPY to value a yen pip, and so on. One small read
+  // of every market's price rather than a table that goes stale.
+  const quotes: Quotes = {};
+  for (const row of priceRows) {
+    const pair = (row.alias || row.symbol).toUpperCase().replace(/[^A-Z]/g, "");
+    if (pair.length >= 6 && row.price) quotes[pair.slice(0, 6)] = row.price;
+  }
+  const pip = pipValueFor(symbol, lots, quotes);
   const money = (n: number) => `$${Math.abs(n).toFixed(2)}`;
 
   return (
@@ -232,9 +248,7 @@ export default async function AdminMarketPage({
               value={
                 pip.kind === "known"
                   ? `$${pip.usd < 0.1 ? pip.usd.toFixed(3) : pip.usd.toFixed(2)} at ${lots} lots`
-                  : pip.kind === "broker"
-                    ? "Depends on the broker"
-                    : "Not measured"
+                  : "No quote yet"
               }
             />
             <Cell
@@ -265,6 +279,7 @@ export default async function AdminMarketPage({
             enabled={config?.enabled ?? true}
             configurable={configurable}
             blocked={blocked}
+            quotes={quotes}
             balance={snapshot?.balance ?? null}
           />
         </div>

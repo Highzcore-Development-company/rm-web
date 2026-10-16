@@ -9,7 +9,12 @@ import {
   setMarketEnabled,
 } from "@/app/(app)/app/admin/(panel)/bot/actions";
 import { useToast } from "@/stores";
-import { pipLineFor, pipValueFor, BROKER_MINIMUM_LOTS } from "@/lib/admin/pip-value";
+import {
+  pipLineFor,
+  pipValueFor,
+  BROKER_MINIMUM_LOTS,
+  type Quotes,
+} from "@/lib/admin/pip-value";
 
 /**
  * One market's settings — lot size, profit target, on/off.
@@ -43,6 +48,12 @@ export type MarketSettingsProps = {
    */
   blocked?: "no_permission" | "no_url" | "no_key" | null;
   /**
+   * Live prices, so the pip figure under the lot box is computed rather than
+   * looked up. Passed in because this is a client component and the prices are
+   * already on the server page that renders it.
+   */
+  quotes?: Quotes;
+  /**
    * Account balance, for turning a percentage into a dollar figure.
    *
    * Null when rm-server has no snapshot — the percentage control is then
@@ -53,7 +64,7 @@ export type MarketSettingsProps = {
 };
 
 export function MarketSettings(props: MarketSettingsProps) {
-  const { symbol, alias, configurable, balance } = props;
+  const { symbol, alias, configurable, balance, quotes = {} } = props;
   const toast = useToast();
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -80,7 +91,7 @@ export function MarketSettings(props: MarketSettingsProps) {
       what: "Lot size",
       from: show(was),
       to: show(lot),
-      detail: pipLineFor(symbol, lot),
+      detail: pipLineFor(symbol, lot, quotes),
       apply: () =>
         start(async () => {
           const result = await setLotSize(symbol, Number(lot));
@@ -164,7 +175,7 @@ export function MarketSettings(props: MarketSettingsProps) {
       : null;
 
   const lots = props.lotSize ?? BROKER_MINIMUM_LOTS;
-  const pip = pipValueFor(symbol, lots);
+  const pip = pipValueFor(symbol, lots, quotes);
 
   if (!configurable) {
     return (
@@ -266,7 +277,7 @@ export function MarketSettings(props: MarketSettingsProps) {
       {/* ---- lot size ---- */}
       <Field
         label="Lot size"
-        help={`Blank is the broker minimum (${BROKER_MINIMUM_LOTS}). ${pipLineFor(symbol, lot)}`}
+        help={`Blank is the broker minimum (${BROKER_MINIMUM_LOTS}). ${pipLineFor(symbol, lot, quotes)}`}
       >
         <div className="flex gap-2">
           <input

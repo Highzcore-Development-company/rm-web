@@ -1,100 +1,187 @@
 import { describe, expect, it } from "vitest";
-import { formatPipValue, pipLineFor, pipValueFor } from "@/lib/admin/pip-value";
+import {
+  formatPipAmount,
+  formatPipValue,
+  pipLineFor,
+  pipValueFor,
+  type Quotes,
+} from "@/lib/admin/pip-value";
 
 /**
- * This number sizes real trades, so the scaling is tested rather than assumed.
- * Victor's example is the first case: 0.01 lots of EURUSD is $0.10 a pip, so
- * 0.1 lots must be $1.00 — ten times the size, ten times the money.
+ * This number sizes real trades, so the arithmetic is tested rather than
+ * assumed.
+ *
+ * The live quotes below are the ones that were on the dashboard when the
+ * calculation was checked against Victor's hand measurements. Keeping the real
+ * numbers makes the expectations checkable by hand: at AUD/USD 0.69446, one
+ * pip of EURAUD on 0.01 lots is 1,000 x 0.0001 x 0.69446 = $0.0694 — which is
+ * the figure the old stored table got wrong.
  */
+const QUOTES: Quotes = {
+  EURUSD: 1.12271,
+  GBPUSD: 1.33233,
+  AUDUSD: 0.69446,
+  NZDUSD: 0.56497,
+  USDJPY: 158.015,
+  USDCHF: 0.82416,
+  USDCAD: 1.41609,
+};
 
-describe("pipValueFor", () => {
-  it("scales linearly from the measured 0.01 lot figure", () => {
-    expect(pipValueFor("EURUSD", 0.01)).toEqual({ kind: "known", usd: 0.1 });
-    const tenTimes = pipValueFor("EURUSD", 0.1);
-    expect(tenTimes.kind).toBe("known");
-    if (tenTimes.kind === "known") expect(tenTimes.usd).toBeCloseTo(1, 10);
+describe("pipValueFor, from live quotes", () => {
+  it("is exactly ten dollars a pip per lot on a USD-quoted pair", () => {
+    // The anchor every other case is checked against: 100,000 x 0.0001 = $10.
+    const r = pipValueFor("EURUSD", 1, QUOTES);
+    expect(r.kind).toBe("known");
+    if (r.kind === "known") {
+      expect(r.usd).toBeCloseTo(10, 10);
+      expect(r.live).toBe(true);
+    }
   });
 
-  it("handles a full lot", () => {
-    const r = pipValueFor("EURUSD", 1);
+  it("matches Victor's measurement on every USD-quoted pair", () => {
+    // These reconciled to the cent, which is what established the method.
+    for (const pair of ["EURUSD", "GBPUSD", "AUDUSD", "NZDUSD"]) {
+      const r = pipValueFor(pair, 0.01, QUOTES);
+      if (r.kind === "known") expect(r.usd).toBeCloseTo(0.1, 10);
+    }
+  });
+
+  it("scales linearly", () => {
+    // Ten times the size, ten times the money — no threshold in between.
+    const small = pipValueFor("EURUSD", 0.01, QUOTES);
+    const big = pipValueFor("EURUSD", 0.1, QUOTES);
+    if (small.kind === "known" && big.kind === "known") {
+      expect(big.usd).toBeCloseTo(small.usd * 10, 10);
+    }
+  });
+
+  it("uses the second decimal on a yen pair, not the fourth", () => {
+    // 100,000 x 0.01 / 158.015 = $6.33 per lot. With the wrong pip size it
+    // would be six cents, and with the rate inverted it would be $158.
+    const r = pipValueFor("USDJPY", 1, QUOTES);
+    if (r.kind === "known") expect(r.usd).toBeCloseTo(6.328, 2);
+  });
+
+  it("inverts the rate when USD is the base", () => {
+    // USDCHF 0.82416: one CHF is MORE than one dollar, so the pip is worth
+    // more than ten dollars a lot, not less.
+    const r = pipValueFor("USDCHF", 1, QUOTES);
+    if (r.kind === "known") expect(r.usd).toBeCloseTo(10 / 0.82416, 6);
+  });
+
+  it("does not invert when USD is the quote", () => {
+    const r = pipValueFor("AUDUSD", 1, QUOTES);
     if (r.kind === "known") expect(r.usd).toBeCloseTo(10, 10);
   });
 
-  it("keeps each market's own rate", () => {
-    // These differ because of the quote currency, and conflating them would
-    // misreport the pairs an admin is most likely to resize.
-    const eurgbp = pipValueFor("EURGBP", 0.01);
-    const usdjpy = pipValueFor("USDJPY", 0.01);
-    if (eurgbp.kind === "known") expect(eurgbp.usd).toBeCloseTo(0.13, 10);
-    if (usdjpy.kind === "known") expect(usdjpy.usd).toBeCloseTo(0.06, 10);
+  it("prices a cross nobody measured", () => {
+    // AUDCAD was one of the thirteen markets showing "—". Its pip is paid in
+    // CAD: 100,000 x 0.0001 / 1.41609 = $7.06 a lot.
+    const r = pipValueFor("AUDCAD", 1, QUOTES);
+    expect(r.kind).toBe("known");
+    if (r.kind === "known") expect(r.usd).toBeCloseTo(10 / 1.41609, 6);
   });
 
-  it("matches the Raw ECN symbol with its + suffix", () => {
-    // bot_symbol_config stores EURUSD+, the table is keyed EURUSD. Without
-    // this the figure would vanish on every market.
-    expect(pipValueFor("EURUSD+", 0.01)).toEqual(pipValueFor("EURUSD", 0.01));
-    expect(pipValueFor("usdjpy+", 0.01)).toEqual(pipValueFor("USDJPY", 0.01));
+  it("fixes EURAUD, which the stored table had 15.7% wrong", () => {
+    // The table said $0.06 at 0.01 lots. That needs AUD/USD near 0.60.
+    const r = pipValueFor("EURAUD", 0.01, QUOTES);
+    if (r.kind === "known") {
+      expect(r.usd).toBeCloseTo(0.0694, 4);
+      expect(r.usd).not.toBeCloseTo(0.06, 3);
+    }
   });
 
-  it("says crypto depends on the broker rather than guessing", () => {
-    expect(pipValueFor("BTCUSD", 0.1).kind).toBe("broker");
-    expect(pipValueFor("ETHUSD", 0.1).kind).toBe("broker");
-  });
-
-  it("is unknown for a market nobody has measured", () => {
-    expect(pipValueFor("XAUUSD", 0.1).kind).toBe("unknown");
-  });
-
-  it("refuses a zero or blank lot size rather than reporting zero", () => {
-    // Zero would read as "this cannot lose anything", on the very field that
-    // decides how much it can.
-    expect(pipValueFor("EURUSD", 0).kind).toBe("unknown");
-    expect(pipValueFor("EURUSD", NaN).kind).toBe("unknown");
-    expect(pipValueFor("EURUSD", -1).kind).toBe("unknown");
+  it("reads the `+` suffix and the bare alias as one market", () => {
+    // bot_symbol_config stores EURUSD+; the state row's alias is EURUSD.
+    expect(pipValueFor("EURUSD+", 0.01, QUOTES)).toEqual(
+      pipValueFor("EURUSD", 0.01, QUOTES),
+    );
   });
 });
 
-describe("formatPipValue", () => {
-  it("keeps three decimals below a cent so near values stay distinct", () => {
-    // At 0.01 lots several pairs sit at $0.06; two decimals would make
-    // different markets look identical.
-    // $0.06 is below the boundary, so the third decimal is kept — several
-    // pairs sit near here and two decimals would flatten them together.
-    expect(formatPipValue(pipValueFor("USDJPY", 0.01))).toBe("≈ $0.060 per pip");
-    // 0.13 is already at the threshold, so two decimals is exact and reads
-    // better — three would be "$0.130" for no gain.
-    expect(formatPipValue(pipValueFor("EURGBP", 0.01))).toBe("≈ $0.13 per pip");
+describe("pipValueFor, without quotes", () => {
+  it("still computes a USD-quoted pair, because it needs no rate", () => {
+    // $10 a lot is exact for EURUSD whatever the quotes say — the pip is paid
+    // in dollars already. So this is `live`, not a fallback.
+    const r = pipValueFor("EURUSD", 0.01);
+    expect(r.kind).toBe("known");
+    if (r.kind === "known") {
+      expect(r.usd).toBeCloseTo(0.1, 10);
+      expect(r.live).toBe(true);
+    }
   });
 
-  it("uses cents once the figure is big enough to need them", () => {
-    expect(formatPipValue(pipValueFor("EURUSD", 0.1))).toBe("≈ $1.00 per pip");
+  it("falls back to the hand-measured figure when the rate is missing", () => {
+    // USDJPY's pip is paid in yen, so without USDJPY there is nothing to
+    // convert with — and Victor measured this one.
+    const r = pipValueFor("USDJPY", 0.01);
+    expect(r.kind).toBe("known");
+    if (r.kind === "known") {
+      expect(r.usd).toBeCloseTo(0.06, 10);
+      expect(r.live).toBe(false);
+    }
   });
 
-  it("says so for crypto, and nothing at all when unknown", () => {
-    expect(formatPipValue({ kind: "broker" })).toMatch(/broker/);
+  it("says nothing at all for a market nobody measured", () => {
+    // Better than a confident wrong number on the field that sizes a trade.
+    expect(pipValueFor("AUDCAD", 0.01)).toEqual({ kind: "unknown" });
+  });
+
+  it("refuses EURAUD rather than repeating the wrong figure", () => {
+    // Deliberately dropped from the table. With no quote we do not know.
+    expect(pipValueFor("EURAUD", 0.01)).toEqual({ kind: "unknown" });
+  });
+
+  it("ignores a quote of zero rather than dividing by it", () => {
+    // A market the bot has not priced yet carries 0 or null.
+    expect(pipValueFor("AUDCAD", 0.01, { USDCAD: 0 })).toEqual({
+      kind: "unknown",
+    });
+  });
+});
+
+describe("a nonsense lot size", () => {
+  it("is no answer, never zero", () => {
+    // Zero would read as "this trade cannot lose anything".
+    for (const lots of [0, -1, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(pipValueFor("EURUSD", lots, QUOTES)).toEqual({ kind: "unknown" });
+    }
+  });
+});
+
+describe("formatting", () => {
+  it("keeps three decimals below a cent", () => {
+    // Several pairs sit near six cents at 0.01 lots; two places would round
+    // three different markets to the same wrong number.
+    expect(formatPipValue({ kind: "known", usd: 0.0633, live: true })).toBe(
+      "≈ $0.063 per pip",
+    );
+  });
+
+  it("keeps two above a cent", () => {
+    expect(formatPipValue({ kind: "known", usd: 1.234, live: true })).toBe(
+      "≈ $1.23 per pip",
+    );
+  });
+
+  it("says nothing when it does not know", () => {
     expect(formatPipValue({ kind: "unknown" })).toBe("");
+    expect(formatPipAmount({ kind: "unknown" })).toBeNull();
   });
 });
 
 describe("pipLineFor", () => {
   it("treats a blank box as the broker minimum and says so", () => {
-    // Every market has no lot size set today, so this is the common case.
-    // $0.10 sits exactly on the two-decimal boundary, so it is not padded.
-    expect(pipLineFor("EURUSD+", "")).toBe(
-      "≈ $0.10 per pip at the broker minimum (0.01)",
-    );
+    const line = pipLineFor("EURUSD", "", QUOTES);
+    expect(line).toContain("broker minimum");
+    expect(line).toContain("0.01");
   });
 
-  it("uses what is typed once something is", () => {
-    expect(pipLineFor("EURUSD+", "0.1")).toBe("≈ $1.00 per pip");
+  it("answers for what is typed", () => {
+    expect(pipLineFor("EURUSD", "0.5", QUOTES)).toBe("≈ $5.00 per pip");
   });
 
-  it("stays silent on a market it cannot price, blank or not", () => {
-    expect(pipLineFor("XAUUSD", "")).toBe("");
-    expect(pipLineFor("XAUUSD", "0.5")).toBe("");
-  });
-
-  it("still names crypto as broker-dependent when blank", () => {
-    expect(pipLineFor("BTCUSD", "")).toMatch(/broker/);
+  it("goes quiet rather than guessing", () => {
+    expect(pipLineFor("AUDCAD", "0.5")).toBe("");
   });
 });
