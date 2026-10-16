@@ -10,6 +10,7 @@ import {
   BROKER_MINIMUM_USD,
   MANAGER_ID,
   PARTNER_LINK,
+  PARTNER_LINK_CONFIGURED,
   RECOMMENDED_MINIMUM_USD,
 } from "@/lib/vantage";
 
@@ -56,6 +57,24 @@ export default async function LinkAccountPage() {
               <li key={k}>{t(`partner.steps.${k}`)}</li>
             ))}
           </ol>
+          {/*
+            An unattributed signup is indistinguishable from an attributed one
+            from in here -- the investor opens an account either way. Without
+            our IB link the commission simply never arrives, and nothing ever
+            surfaces as broken. So when it is unset, say so where someone will
+            see it instead of shipping a button that quietly earns nothing.
+          */}
+          {PARTNER_LINK_CONFIGURED ? null : (
+            <p
+              role="alert"
+              className="mt-5 rounded-md border border-chart-down/50 bg-chart-down/10 px-4 py-3 text-sm font-medium"
+            >
+              NEXT_PUBLIC_VANTAGE_PARTNER_LINK is not set. This button opens
+              Vantage&rsquo;s home page, so any account opened through it is
+              NOT credited to us.
+            </p>
+          )}
+
           <a
             href={PARTNER_LINK}
             target="_blank"

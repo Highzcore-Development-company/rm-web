@@ -19,6 +19,21 @@ export const PARTNER_LINK =
     "https://www.vantagemarkets.com/",
   );
 
+/**
+ * Whether that link is OURS, or the fallback to Vantage's front door.
+ *
+ * This is the one unset value here that costs money rather than looking
+ * unfinished. The button works either way -- it opens Vantage, the investor
+ * signs up, everything appears to succeed -- and the account is simply never
+ * attributed to us. Nothing errors, nothing logs, the commission does not
+ * arrive and there is no moment at which anybody finds out.
+ *
+ * So the UI asks this and says so, rather than rendering a button that lies.
+ */
+export const PARTNER_LINK_CONFIGURED = Boolean(
+  process.env.NEXT_PUBLIC_VANTAGE_PARTNER_LINK,
+);
+
 /** The MAM manager ID an investor attaches their account to. */
 export const MANAGER_ID = envOr(process.env.NEXT_PUBLIC_VANTAGE_MANAGER_ID, "TBC");
 

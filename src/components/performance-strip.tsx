@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import {
   getPerformanceSummary,
+  IS_SAMPLE_DATA,
   isStale,
   type PerformanceSummary,
 } from "@/lib/performance";
@@ -38,6 +39,10 @@ function Stats({ summary }: { summary: PerformanceSummary }) {
  */
 export async function PerformanceStrip() {
   const t = await getTranslations("home.performance");
+  // The warning string belongs to the performance page and is read from there
+  // rather than copied, so the two surfaces cannot drift into saying different
+  // things about the same data.
+  const tp = await getTranslations("performance");
   const summary = await getPerformanceSummary();
   const usable = summary !== null && !isStale(summary);
 
@@ -51,6 +56,25 @@ export async function PerformanceStrip() {
           </div>
 
           <div className="flex-1 md:max-w-xl">
+            {/*
+              SAY SO WHEN THE FIGURES ARE INVENTED.
+              /performance already carries this banner; the home page did not,
+              so the same sample numbers appeared labelled on one surface and
+              bare on the other. In development that is the page a stakeholder
+              is most likely to be shown, and "18.0% return, 70.8% win rate"
+              with no caveat reads as a track record. Gated on NODE_ENV the
+              same way the data is, so it cannot reach production — and if it
+              ever does appear in production, the banner is the bug report.
+            */}
+            {IS_SAMPLE_DATA ? (
+              <p
+                role="alert"
+                className="mb-4 rounded-md border border-chart-down/50 bg-chart-down/10 px-4 py-3 text-sm font-medium"
+              >
+                {tp("sampleWarning")}
+              </p>
+            ) : null}
+
             {usable ? (
               <Stats summary={summary} />
             ) : (
