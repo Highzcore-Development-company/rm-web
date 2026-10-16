@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import {
   getPerformanceSummary,
-  IS_SAMPLE_DATA,
+  usingSampleData,
   isStale,
   type PerformanceSummary,
 } from "@/lib/performance";
@@ -44,6 +44,7 @@ export async function PerformanceStrip() {
   // things about the same data.
   const tp = await getTranslations("performance");
   const summary = await getPerformanceSummary();
+  const sample = await usingSampleData();
   const usable = summary !== null && !isStale(summary);
 
   return (
@@ -66,7 +67,7 @@ export async function PerformanceStrip() {
               same way the data is, so it cannot reach production — and if it
               ever does appear in production, the banner is the bug report.
             */}
-            {IS_SAMPLE_DATA ? (
+            {sample ? (
               <p
                 role="alert"
                 className="mb-4 rounded-md border border-chart-down/50 bg-chart-down/10 px-4 py-3 text-sm font-medium"

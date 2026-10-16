@@ -80,7 +80,24 @@ export function isStale(summary: PerformanceSummary, now = Date.now()): boolean 
  */
 const SHOW_SAMPLE = process.env.NODE_ENV === "development";
 
-export const IS_SAMPLE_DATA = SHOW_SAMPLE;
+/**
+ * Whether what is on screen is invented, for THIS request.
+ *
+ * It used to be `SHOW_SAMPLE` — a constant, true in development full stop. That
+ * was accurate while sample data OVERRODE the feed, which it did: every getter
+ * began `if (!SHOW_SAMPLE) return real`, so the real record was never read
+ * locally. The account went live, rm-server filled with real trades, and the
+ * site kept publishing a generated 18.0% because nothing ever asked.
+ *
+ * Sample is a fallback now, so the banner has to ask whether the fallback
+ * actually fired rather than whether it could. A warning that is always on is
+ * a warning nobody reads, and worse, one that stays on over real figures
+ * teaches people to ignore it.
+ */
+export async function usingSampleData(): Promise<boolean> {
+  if (!SHOW_SAMPLE) return false;
+  return (await bundle()) === null;
+}
 
 /** Deterministic pseudo-random so the sample does not change every reload. */
 function seeded(seed: number) {
@@ -142,10 +159,15 @@ function sampleTrades(): PublicTrade[] {
 const bundle = cache(() => loadPerformanceBundle());
 
 export async function getPerformanceSummary(): Promise<PerformanceSummary | null> {
-  // Outside development this is the real record, or null. See
-  // performance-feed.ts for the source and performance-math.ts for the health
-  // rules that decide when it goes dark.
-  if (!SHOW_SAMPLE) return (await bundle())?.summary ?? null;
+  // THE REAL RECORD FIRST, always. See performance-feed.ts for the source and
+  // performance-math.ts for the health rules that decide when it goes dark.
+  //
+  // This was `if (!SHOW_SAMPLE) return real` — sample won outright in
+  // development and the feed was never consulted. Now it is only reached when
+  // there is genuinely nothing: an unconfigured project, or a feed that failed
+  // its own health checks.
+  const real = (await bundle())?.summary ?? null;
+  if (real || !SHOW_SAMPLE) return real;
 
   const points = sampleEquity();
   const first = points[0].equity;
@@ -180,15 +202,19 @@ export async function getPerformanceSummary(): Promise<PerformanceSummary | null
 }
 
 export async function getEquityCurve(): Promise<EquityPoint[] | null> {
-  return SHOW_SAMPLE ? sampleEquity() : ((await bundle())?.equity ?? null);
+  const real = (await bundle())?.equity ?? null;
+  if (real || !SHOW_SAMPLE) return real;
+  return sampleEquity();
 }
 
 export async function getMonthlyReturns(): Promise<MonthlyReturn[] | null> {
-  return SHOW_SAMPLE
-    ? sampleMonthly(sampleEquity())
-    : ((await bundle())?.monthly ?? null);
+  const real = (await bundle())?.monthly ?? null;
+  if (real || !SHOW_SAMPLE) return real;
+  return sampleMonthly(sampleEquity());
 }
 
 export async function getRecentTrades(): Promise<PublicTrade[] | null> {
-  return SHOW_SAMPLE ? sampleTrades() : ((await bundle())?.trades ?? null);
+  const real = (await bundle())?.trades ?? null;
+  if (real || !SHOW_SAMPLE) return real;
+  return sampleTrades();
 }

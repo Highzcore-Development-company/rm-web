@@ -8,7 +8,7 @@ import {
   getPerformanceSummary,
   getRecentTrades,
   isStale,
-  IS_SAMPLE_DATA,
+  usingSampleData,
   type MonthlyReturn,
   type PublicTrade,
 } from "@/lib/performance";
@@ -175,6 +175,7 @@ function TradeTable({
 
 export default async function PerformancePage() {
   const t = await getTranslations("performance");
+  const sample = await usingSampleData();
 
   const [summary, equity, monthly, trades] = await Promise.all([
     getPerformanceSummary(),
@@ -213,7 +214,7 @@ export default async function PerformancePage() {
 
   return (
     <Container className="py-16 sm:py-24">
-      {IS_SAMPLE_DATA ? (
+      {sample ? (
         <p
           role="alert"
           className="mb-8 rounded-md border border-chart-down/50 bg-chart-down/10 px-4 py-3 text-sm font-medium"
