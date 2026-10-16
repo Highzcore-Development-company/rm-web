@@ -38,10 +38,9 @@ export default async function AdminLinksPage() {
 
   return (
     <div>
-      <h1 className="display text-3xl font-semibold">{t("title")}</h1>
-      <p className="mt-3 max-w-2xl text-sm leading-relaxed text-fg-muted">
-        {t("intro")}
-      </p>
+      {/* No visible page title — see the note on the overview page. The h1
+          stays screen-reader-only so the document still has a landmark. */}
+      <h1 className="sr-only">{t("title")}</h1>
 
       {claims.length === 0 ? (
         <p className="mt-10 text-sm text-fg-muted">{t("empty")}</p>

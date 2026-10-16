@@ -150,14 +150,17 @@ function Shell({
 }) {
   return (
     <div>
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="display text-2xl font-semibold sm:text-3xl">Markets</h1>
-          <p className="mt-2 max-w-2xl text-sm text-fg-muted">
-            What each market is doing and what it has made. Open one to see its
-            log and change its settings.
-          </p>
-        </div>
+      {/* NO VISIBLE PAGE TITLE. Victor, 16 Oct: "remove all title from each
+          pages, I don't like it... Keep it without any title." The sidebar
+          already says which page this is, so the heading and its blurb were
+          repeating it back.
+
+          The h1 stays, screen-reader-only: a document with no h1 gives an
+          assistive reader no landmark to jump to and no idea what it has
+          landed on, and "invisible" is not the same as "absent". */}
+      <h1 className="sr-only">Markets</h1>
+
+      <div className="mb-6 flex flex-wrap items-end justify-end gap-4">
         <RangePicker current={range} basePath="/app/admin/markets" />
       </div>
       {children}

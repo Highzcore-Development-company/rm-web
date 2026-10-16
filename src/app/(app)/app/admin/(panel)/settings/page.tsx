@@ -44,12 +44,17 @@ export default async function AdminSettingsPage() {
 
   return (
     <div className="max-w-3xl">
-      <h1 className="display text-2xl font-semibold sm:text-3xl">Settings</h1>
-      <p className="mt-2 text-sm text-fg-muted">
-        Your preferences, and what this deployment currently has switched on.
-      </p>
+      {/* NO VISIBLE PAGE TITLE. Victor, 16 Oct: "remove all title from each
+          pages, I don't like it... Keep it without any title." The sidebar
+          already says which page this is, so the heading and its blurb were
+          repeating it back.
 
-      <section className="mt-8">
+          The h1 stays, screen-reader-only: a document with no h1 gives an
+          assistive reader no landmark to jump to and no idea what it has
+          landed on, and "invisible" is not the same as "absent". */}
+      <h1 className="sr-only">Settings</h1>
+
+      <section>
         <h2 className="text-sm font-medium">Appearance</h2>
         <div className="surface mt-3 flex items-center justify-between gap-4 rounded-xl border border-border p-5">
           <div>

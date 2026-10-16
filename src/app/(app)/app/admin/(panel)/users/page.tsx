@@ -58,10 +58,11 @@ export default async function AdminUsersPage({
 
   return (
     <div>
-      <h1 className="display text-3xl font-semibold">{t("title")}</h1>
-      <p className="mt-2 text-sm text-fg-muted">{t("intro")}</p>
+      {/* No visible page title — see the note on the overview page. The h1
+          stays screen-reader-only so the document still has a landmark. */}
+      <h1 className="sr-only">{t("title")}</h1>
 
-      <div className="mt-6 max-w-xs">
+      <div className="max-w-xs">
         <Card>
           <p className="text-xs uppercase tracking-wide text-fg-muted">
             {t("total")}

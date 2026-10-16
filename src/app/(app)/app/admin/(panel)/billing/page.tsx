@@ -145,12 +145,11 @@ export default async function AdminBillingPage() {
 
   return (
     <div>
-      <h1 className="display text-3xl font-semibold">{t("title")}</h1>
-      <p className="mt-3 max-w-2xl text-sm leading-relaxed text-fg-muted">
-        {t("intro")}
-      </p>
+      {/* No visible page title — see the note on the overview page. The h1
+          stays screen-reader-only so the document still has a landmark. */}
+      <h1 className="sr-only">{t("title")}</h1>
 
-      <dl className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Stat label={t("paidUp")} value={String(summary.paidUp)} />
         <Stat label={t("expiringSoon")} value={String(summary.expiringSoon)} />
         <Stat label={t("lapsed")} value={String(summary.lapsed)} />

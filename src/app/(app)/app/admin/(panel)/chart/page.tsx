@@ -78,8 +78,8 @@ export default async function AdminChartPage({
   if (!client || markets.length === 0) {
     return (
       <div>
-        <h1 className="display text-2xl font-semibold sm:text-3xl">Chart</h1>
-        <p className="mt-6 rounded-lg border border-border bg-surface px-4 py-3 text-sm leading-relaxed text-fg-muted">
+        <h1 className="sr-only">Chart</h1>
+        <p className="rounded-lg border border-border bg-surface px-4 py-3 text-sm leading-relaxed text-fg-muted">
           {!client
             ? "rm-server is not configured, so there are no markets to chart."
             : "The bot has no markets configured yet."}
@@ -90,13 +90,15 @@ export default async function AdminChartPage({
 
   return (
     <div className="flex h-[calc(100dvh-9rem)] min-h-[32rem] flex-col">
-      <div className="mb-4 shrink-0">
-        <h1 className="display text-2xl font-semibold sm:text-3xl">Chart</h1>
-        <p className="mt-1 text-sm text-fg-muted">
-          {markets.length} markets. A dot on the picker marks a market the bot
-          currently holds a position in.
-        </p>
-      </div>
+      {/* NO VISIBLE PAGE TITLE. Victor, 16 Oct: "remove all title from each
+          pages, I don't like it... Keep it without any title." The sidebar
+          already says which page this is, so the heading and its blurb were
+          repeating it back.
+
+          The h1 stays, screen-reader-only: a document with no h1 gives an
+          assistive reader no landmark to jump to and no idea what it has
+          landed on, and "invisible" is not the same as "absent". */}
+      <h1 className="sr-only">Chart</h1>
 
       {/* Fills the rest of the viewport. The chart is the page here, so it gets
           the height rather than a fixed card inside a scrolling column. */}

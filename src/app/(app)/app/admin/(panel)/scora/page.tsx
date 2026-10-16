@@ -68,12 +68,9 @@ export default async function ScoraUsagePage() {
 
   return (
     <div>
-      <h1 className="display text-3xl font-semibold">Scora usage</h1>
-      <p className="mt-3 max-w-2xl text-sm leading-relaxed text-fg-muted">
-        What Scora has cost, and who is spending it. Priced at the provider&apos;s
-        list rates, so treat it as close rather than exact — the invoice is the
-        invoice.
-      </p>
+      {/* No visible page title — see the note on the overview page. The h1
+          stays screen-reader-only so the document still has a landmark. */}
+      <h1 className="sr-only">Scora usage</h1>
 
       {usage.messages === 0 ? (
         <p className="mt-8 rounded-lg border border-border bg-surface px-4 py-3 text-sm text-fg-muted">

@@ -80,10 +80,9 @@ export default async function AdminsPage() {
 
   return (
     <div>
-      <h1 className="display text-3xl font-semibold">{t("title")}</h1>
-      <p className="mt-3 max-w-2xl text-sm leading-relaxed text-fg-muted">
-        {t("intro")}
-      </p>
+      {/* No visible page title — see the note on the overview page. The h1
+          stays screen-reader-only so the document still has a landmark. */}
+      <h1 className="sr-only">{t("title")}</h1>
 
       {/* INVITE FIRST. Staff no longer need a customer account, so an
           invitation can reach somebody who has never signed up — which is what

@@ -92,8 +92,9 @@ export default async function AdminBotPage() {
 
   const centre = (
     <div className="mx-auto w-full max-w-3xl px-4 py-8">
-      <h1 className="display text-2xl font-semibold">{t("title")}</h1>
-      <p className="mt-2 text-sm text-fg-muted">{t("intro")}</p>
+      {/* No visible page title — see the note on the overview page. The h1
+          stays screen-reader-only so the document still has a landmark. */}
+      <h1 className="sr-only">{t("title")}</h1>
 
       {/* Said plainly rather than leaving an admin to wonder why a control
           does nothing. Reading and writing fail independently — the panels can
