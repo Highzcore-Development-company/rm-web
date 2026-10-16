@@ -1,11 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { useTranslations } from "next-intl";
-import { Mail, X } from "lucide-react";
+import { X } from "lucide-react";
 import {
-  inviteStaff,
   removeAdmin,
   revokeInvite,
   setAdminDisabled,
@@ -177,88 +176,13 @@ export function AdminRow({
  * becomes staff by signing up: the invitation names the role, expires in a
  * week, and is the only thing that creates the staff row.
  */
-export function InviteStaffForm({
-  roles,
-  canCreateSuper,
-}: {
-  roles: RoleOption[];
-  canCreateSuper: boolean;
-}) {
-  const t = useTranslations("adminAdmins");
-  const toast = useToast();
-  const router = useRouter();
-  const [pending, start] = useTransition();
-  const [email, setEmail] = useState("");
-  // The LEAST powerful role, because `roles` arrives ordered that way. Least
-  // privilege by default: handing someone more than they need should take a
-  // deliberate choice, not an unchanged dropdown.
-  const [role, setRole] = useState(
-    roles.find((r) => !r.isSuper)?.name ?? "support",
-  );
+/*
+ * InviteStaffForm lived here. It is now InviteAdminButton in
+ * invite-admin-modal.tsx: Victor asked for a button that opens a form in a
+ * dialog rather than a panel sitting permanently above the list of admins,
+ * and the form grew from two fields to nine in the same change.
+ */
 
-  // Only a super admin may create another. Otherwise anyone holding
-  // admins.manage could mint an account that outranks them and that nobody can
-  // then disable or delete.
-  const selectable = roles.filter((r) => canCreateSuper || !r.isSuper);
-
-  return (
-    <form
-      className="surface rounded-xl border border-accent/40 bg-accent/5 p-5"
-      onSubmit={(e) => {
-        e.preventDefault();
-        start(async () => {
-          const res = await inviteStaff(email, role);
-          if (res.ok) {
-            toast.success(t("invite.sent"));
-            setEmail("");
-            router.refresh();
-          } else toast.error(t(`errors.${res.error}`));
-        });
-      }}
-    >
-      <p className="max-w-prose text-xs leading-relaxed text-fg-muted">
-        {t("invite.note")}
-      </p>
-
-      <div className="mt-4 flex flex-wrap items-end gap-3">
-        <label className="flex-1 basis-64 text-xs text-fg-muted">
-          {t("invite.email")}
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="field-input mt-1 w-full rounded-md px-3 py-2 text-sm"
-          />
-        </label>
-
-        <label className="basis-44 text-xs text-fg-muted">
-          {t("cols.role")}
-          <select
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            className="field-input mt-1 w-full rounded-md px-3 py-2 text-sm"
-          >
-            {selectable.map((r) => (
-              <option key={r.name} value={r.name}>
-                {r.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <button
-          type="submit"
-          disabled={pending}
-          className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-[#0A0A0A] transition-colors hover:bg-accent-hot disabled:opacity-50"
-        >
-          <Mail className="size-4" aria-hidden="true" />
-          {pending ? t("invite.sending") : t("invite.submit")}
-        </button>
-      </div>
-    </form>
-  );
-}
 
 export function InviteRow({
   invite,

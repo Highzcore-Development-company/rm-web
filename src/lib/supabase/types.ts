@@ -304,6 +304,19 @@ export type AppAdmin = {
   invited_by: string | null;
   last_login_at: string | null;
   login_count: number;
+  /** Profile, captured on the invitation (migration 20261016190000). Every
+   *  field is nullable: an invitation nobody could send because a colleague's
+   *  state was unknown is a form that gets worked around. */
+  full_name: string | null;
+  job_title: string | null;
+  phone: string | null;
+  gender: string | null;
+  city: string | null;
+  state: string | null;
+  country: string | null;
+  notes: string | null;
+  /** Permissions on top of the role. Additive only — see lib/admin.ts. */
+  extra_permissions: string[];
 };
 
 /** A pending staff invitation. The token is stored hashed, never raw. */
@@ -318,6 +331,18 @@ export type AdminInvitation = {
   accepted_at: string | null;
   accepted_by: string | null;
   revoked_at: string | null;
+  /** Profile, captured on the invitation (migration 20261016190000). Every
+   *  field is nullable: an invitation nobody could send because a colleague's
+   *  state was unknown is a form that gets worked around. */
+  full_name: string | null;
+  job_title: string | null;
+  phone: string | null;
+  gender: string | null;
+  city: string | null;
+  state: string | null;
+  country: string | null;
+  notes: string | null;
+  extra_permissions: string[];
 };
 
 /** Mirrors the crypto_invoices migration. Amounts in micro-USDT, integer. */

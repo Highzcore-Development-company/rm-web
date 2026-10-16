@@ -3,10 +3,10 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { getAdmin, requirePermission } from "@/lib/admin";
 import { createServiceClient } from "@/lib/supabase/service";
+import { InviteAdminButton } from "@/components/admin/invite-admin-modal";
 import {
   AdminRow,
   InviteRow,
-  InviteStaffForm,
 } from "@/components/admin/admin-controls";
 import type { AdminInvitation } from "@/lib/supabase/types";
 
@@ -84,19 +84,17 @@ export default async function AdminsPage() {
           stays screen-reader-only so the document still has a landmark. */}
       <h1 className="sr-only">{t("title")}</h1>
 
-      {/* INVITE FIRST. Staff no longer need a customer account, so an
-          invitation can reach somebody who has never signed up — which is what
-          inviting a colleague actually looks like. Promoting an existing
-          account is kept below for the case where they are already here. */}
-      <section className="mt-10">
-        <h2 className="text-lg font-semibold">{t("invite.title")}</h2>
-        <div className="mt-4">
-          <InviteStaffForm
-            roles={roleOptions}
-            canCreateSuper={me?.isSuper ?? false}
-          />
-        </div>
-      </section>
+      {/* A BUTTON, not a form sitting open.
+          Victor: "it will be when I click a button to create an admin that a
+          form modal will show". The form grew from two fields to nine, and
+          nine in a permanently open panel pushes the list of admins — the
+          thing people came to read — off the screen. */}
+      <div className="flex flex-wrap items-center justify-end gap-3">
+        <InviteAdminButton
+          roles={roleOptions}
+          canCreateSuper={me?.isSuper ?? false}
+        />
+      </div>
 
       {invitations.length > 0 && (
         <section className="mt-10">

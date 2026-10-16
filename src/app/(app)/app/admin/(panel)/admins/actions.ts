@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { recordAdminAction, requirePermission } from "@/lib/admin";
+import { isPermission } from "@/lib/permissions";
 import { createServiceClient } from "@/lib/supabase/service";
 import { revokeBotAdmin } from "@/lib/supabase/rm-server-session";
 import { isEmailConfigured, sendEmail, staffInviteEmail } from "@/lib/email";
@@ -225,9 +226,38 @@ export async function removeAdmin(userId: string): Promise<AdminActionResult> {
  * Nobody becomes staff by registering. The invite names the role, expires, and
  * is the only thing that can create the app_admins row.
  */
+/**
+ * Who the colleague is, as the inviter knows them.
+ *
+ * Captured HERE rather than asked of the invitee on arrival, because the
+ * person sending the invitation is the one who knows — and because the point
+ * of the form is that an admin is a person on the page rather than an address.
+ * Every field is optional; an invitation that cannot be sent for want of a
+ * state is a form people work around.
+ */
+export type StaffProfile = {
+  fullName?: string;
+  jobTitle?: string;
+  phone?: string;
+  gender?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  notes?: string;
+  /** Permissions on top of the role. Additive only. */
+  extraPermissions?: string[];
+};
+
+/** Empty string means "not given", which is null, not "". */
+function clean(value: string | undefined): string | null {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
+
 export async function inviteStaff(
   email: string,
   role: string,
+  profile: StaffProfile = {},
 ): Promise<AdminActionResult> {
   const actor = await requirePermission("admins.manage");
   if (!actor) return { ok: false, error: "forbidden" };
@@ -265,12 +295,26 @@ export async function inviteStaff(
   const token = generateInviteToken();
   const expiresAt = inviteExpiry();
 
+  // Only permissions we know about. An unrecognised string would sit in the
+  // column forever meaning nothing, and the union in getAdmin filters it out
+  // anyway — better to refuse it at the door than store a lie.
+  const extra = (profile.extraPermissions ?? []).filter(isPermission);
+
   const { error } = await service.from("admin_invitations").insert({
     email: address,
     role,
     token_hash: hashInviteToken(token),
     invited_by: actor.userId,
     expires_at: expiresAt.toISOString(),
+    full_name: clean(profile.fullName),
+    job_title: clean(profile.jobTitle),
+    phone: clean(profile.phone),
+    gender: clean(profile.gender),
+    city: clean(profile.city),
+    state: clean(profile.state),
+    country: clean(profile.country),
+    notes: clean(profile.notes),
+    extra_permissions: extra,
   });
 
   if (error) {
@@ -308,6 +352,8 @@ export async function inviteStaff(
   await recordAdminAction("admin.invited", { type: "admin" }, {
     email: address,
     role,
+    name: clean(profile.fullName),
+    extra_permissions: extra,
   });
 
   revalidatePath("/app/admin/admins");

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { PERMISSIONS, isPermission, type Permission } from "@/lib/permissions";
 
 /**
  * A2 — admin identity and permissions.
@@ -10,22 +11,17 @@ import { createServiceClient } from "@/lib/supabase/service";
  * for taking the permission away.
  */
 
-export const PERMISSIONS = [
-  "users.view",
-  "users.edit",
-  "users.disable",
-  "users.delete",
-  "bot.view",
-  "bot.configure",
-  "finance.view",
-  "admins.manage",
-] as const;
-
-export type Permission = (typeof PERMISSIONS)[number];
+// Defined in lib/permissions.ts, which has no imports — this module reaches
+// for next/headers through the server Supabase client, and the invite form is
+// a client component that needs the list. Re-exported so every existing
+// importer is unaffected.
+export { PERMISSIONS, isPermission, type Permission } from "@/lib/permissions";
 
 export type AdminIdentity = {
   userId: string;
   email: string | null;
+  /** From the profile captured on their invitation. Null for older rows. */
+  fullName: string | null;
   role: string;
   isSuper: boolean;
   mustChangePassword: boolean;
@@ -41,13 +37,56 @@ export async function getAdmin(): Promise<AdminIdentity | null> {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return null;
 
-  const { data, error } = await supabase
-    .from("app_admins")
-    .select(
-      "role, must_change_password, disabled_at, accepted_at, email_verified_at, admin_roles(permissions, is_super)",
-    )
-    .eq("user_id", auth.user.id)
-    .maybeSingle();
+  /**
+   * THE PROFILE COLUMNS ARE OPTIONAL, and this is not defensiveness for its own
+   * sake — it locked the whole panel out once already.
+   *
+   * Asking for `extra_permissions` and `full_name` before migration
+   * 20261016190000 has been applied makes PostgREST refuse the whole select.
+   * That error lands in the `return null` below, which means "not an admin",
+   * which means the layout 404s — so shipping the code a few minutes before
+   * running the SQL takes every admin's access away, including the access
+   * needed to work out why.
+   *
+   * So the new columns are asked for, and a failure falls back to the select
+   * that has always worked. An admin then simply has no name and no extra
+   * permissions until the migration lands, which is exactly right: those are
+   * additions, and nothing that existed before depends on them.
+   */
+  const BASE =
+    "role, must_change_password, disabled_at, accepted_at, email_verified_at, admin_roles(permissions, is_super)";
+
+  const query = (columns: string) =>
+    supabase
+      .from("app_admins")
+      .select(columns)
+      .eq("user_id", auth.user.id)
+      .maybeSingle();
+
+  type Row = {
+    role: string;
+    must_change_password: boolean;
+    disabled_at: string | null;
+    accepted_at: string | null;
+    email_verified_at: string | null;
+    extra_permissions?: string[] | null;
+    full_name?: string | null;
+    admin_roles: { permissions: string[]; is_super: boolean } | null;
+  };
+  type Result = { data: Row | null; error: { message: string } | null };
+
+  let { data, error } = (await query(
+    `${BASE}, extra_permissions, full_name`,
+  )) as unknown as Result;
+
+  if (error) {
+    ({ data, error } = (await query(BASE)) as unknown as Result);
+    if (!error) {
+      console.warn(
+        "[admin] profile columns missing — run migration 20261016190000_admin_profiles.sql",
+      );
+    }
+  }
 
   if (error || !data || data.disabled_at) return null;
 
@@ -64,16 +103,28 @@ export async function getAdmin(): Promise<AdminIdentity | null> {
   // change both.
   if (!data.accepted_at || !data.email_verified_at) return null;
 
-  const role = data.admin_roles as unknown as {
-    permissions: string[];
-    is_super: boolean;
-  } | null;
+  const role = data.admin_roles;
 
   const isSuper = role?.is_super === true;
+
+  /**
+   * The role's permissions, plus anything granted to this person directly.
+   *
+   * THE SAME UNION admin_has() DOES in the database (migration
+   * 20261016190000). If only one of them knew about extra_permissions, a
+   * button would appear for something the database would still refuse — which
+   * is the worst of both, because it looks like a bug in the feature rather
+   * than in the permission.
+   *
+   * Additive only. A role that cannot be trusted to mean what it says is a
+   * role to change, not one to subtract from per person.
+   */
+  const extra = ((data.extra_permissions ?? []) as string[]).filter(isPermission);
 
   return {
     userId: auth.user.id,
     email: auth.user.email ?? null,
+    fullName: (data.full_name as string | null) ?? null,
     role: data.role,
     isSuper,
     mustChangePassword: data.must_change_password,
@@ -81,7 +132,7 @@ export async function getAdmin(): Promise<AdminIdentity | null> {
     // Super admin holds everything, including permissions no role lists.
     permissions: isSuper
       ? [...PERMISSIONS]
-      : ((role?.permissions ?? []) as Permission[]),
+      : [...new Set([...((role?.permissions ?? []) as Permission[]), ...extra])],
   };
 }
 
