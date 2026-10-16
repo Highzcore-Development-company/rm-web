@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { KeyRound, ShieldCheck } from "lucide-react";
 import { getAdmin, PERMISSIONS } from "@/lib/admin";
 import { PERMISSION_LABELS } from "@/lib/permissions";
+import { EditProfileButton } from "@/components/admin/profile-form";
 import { createServiceClient } from "@/lib/supabase/service";
 
 export const metadata: Metadata = { title: "My profile", robots: { index: false } };
@@ -30,7 +31,9 @@ export default async function AdminProfilePage() {
   const [{ data: row }, { data: logins }] = await Promise.all([
     service
       .from("app_admins")
-      .select("created_at, accepted_at, last_login_at, login_count, invited_by")
+      .select(
+        "created_at, accepted_at, last_login_at, login_count, invited_by, full_name, job_title, phone, gender, city, state, country, notes",
+      )
       .eq("user_id", admin.userId)
       .maybeSingle(),
     service
@@ -40,6 +43,11 @@ export default async function AdminProfilePage() {
       .order("signed_in_at", { ascending: false })
       .limit(10),
   ]);
+
+  // "Super admin" rather than "super_admin (super admin)".
+  const roleLabel = admin.isSuper
+    ? "Super admin"
+    : admin.role.replace(/[_-]+/g, " ").replace(/^./, (c) => c.toUpperCase());
 
   return (
     <div className="max-w-3xl">
@@ -53,12 +61,49 @@ export default async function AdminProfilePage() {
           landed on, and "invisible" is not the same as "absent". */}
       <h1 className="sr-only">My profile</h1>
 
+      {/* WHO I AM, and a way to change it. Victor: "I should be able to view
+          my own name and information and also be able to edit them."
+          The page knew his role and his sign-in count and not his name. */}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-lg font-semibold">
+            {row?.full_name ?? admin.email ?? "Signed in"}
+          </p>
+          <p className="mt-0.5 text-xs text-fg-muted">
+            {[row?.job_title, roleLabel].filter(Boolean).join(" · ")}
+          </p>
+        </div>
+        <EditProfileButton
+          label="Edit my profile"
+          initial={{
+            fullName: row?.full_name ?? "",
+            jobTitle: row?.job_title ?? "",
+            phone: row?.phone ?? "",
+            gender: row?.gender ?? "",
+            city: row?.city ?? "",
+            state: row?.state ?? "",
+            country: row?.country ?? "",
+            notes: row?.notes ?? "",
+          }}
+        />
+      </div>
+
       <section className="surface rounded-xl border border-border p-5">
         <dl className="grid gap-4 sm:grid-cols-2">
           <Field label="Email" value={admin.email ?? "—"} />
+          {/* The label, not the database key. "super_admin (super admin)" said
+              the same thing twice, once in snake case. */}
+          <Field label="Role" value={roleLabel} />
+          <Field label="Full name" value={row?.full_name ?? "Not set"} />
+          <Field label="Job title" value={row?.job_title ?? "Not set"} />
+          <Field label="Phone" value={row?.phone ?? "Not set"} />
+          <Field label="Gender" value={row?.gender ?? "Not set"} />
           <Field
-            label="Role"
-            value={admin.isSuper ? `${admin.role} (super admin)` : admin.role}
+            label="Where"
+            value={
+              [row?.city, row?.state, row?.country].filter(Boolean).join(", ") ||
+              "Not set"
+            }
           />
           <Field
             label="Admin since"

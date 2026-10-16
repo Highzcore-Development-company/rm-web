@@ -12,6 +12,7 @@ import {
 } from "@/app/(app)/app/admin/(panel)/admins/actions";
 import { useToast } from "@/stores";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { EditProfileButton } from "@/components/admin/profile-form";
 
 export type RoleOption = {
   name: string;
@@ -29,6 +30,18 @@ export type AdminSummary = {
   mustChangePassword: boolean;
   lastLoginAt: string | null;
   loginCount: number;
+  /** The profile, captured on their invitation. Null on older rows. */
+  profile: {
+    fullName: string | null;
+    jobTitle: string | null;
+    phone: string | null;
+    gender: string | null;
+    city: string | null;
+    state: string | null;
+    country: string | null;
+    notes: string | null;
+    extraPermissions: string[];
+  };
 };
 
 export function AdminRow({
@@ -36,11 +49,15 @@ export function AdminRow({
   roles,
   canCreateSuper,
   isSelf,
+  canManage = false,
 }: {
   admin: AdminSummary;
   roles: RoleOption[];
   canCreateSuper: boolean;
   isSelf: boolean;
+  /** Whether this viewer holds admins.manage. Hiding a control is not a
+   *  permission — the server checks it again. */
+  canManage?: boolean;
 }) {
   const t = useTranslations("adminAdmins");
   const toast = useToast();
@@ -65,7 +82,23 @@ export function AdminRow({
   return (
     <tr className={admin.disabled ? "opacity-60" : undefined}>
       <th scope="row" className="py-3 pr-4 font-normal">
-        <span className="block">{admin.email}</span>
+        {/* THE NAME FIRST when there is one. An admin list that can only
+            identify people by their email address is a list of addresses. */}
+        {admin.profile.fullName ? (
+          <>
+            <span className="block font-medium">{admin.profile.fullName}</span>
+            <span className="block text-xs text-fg-muted">{admin.email}</span>
+            {admin.profile.jobTitle || admin.profile.city ? (
+              <span className="block text-xs text-fg-subtle">
+                {[admin.profile.jobTitle, admin.profile.city]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </span>
+            ) : null}
+          </>
+        ) : (
+          <span className="block">{admin.email}</span>
+        )}
         <span className="mt-0.5 block text-xs text-fg-muted">
           {admin.lastSignIn
             ? t("lastSeen", {
@@ -130,10 +163,47 @@ export function AdminRow({
       <td className="py-3">
         {isSelf ? (
           // Not a disabled button: there is nothing to enable. Saying why is
-          // more use than a greyed-out control with no explanation.
-          <span className="text-xs text-fg-muted">{t("thatsYou")}</span>
+          // more use than a greyed-out control with no explanation. The edit
+          // is still offered, because editing your own name is not a
+          // privileged act — it just goes through the self-service action,
+          // which cannot touch permissions.
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-fg-muted">{t("thatsYou")}</span>
+            <EditProfileButton
+              initial={{
+                fullName: admin.profile.fullName ?? "",
+                jobTitle: admin.profile.jobTitle ?? "",
+                phone: admin.profile.phone ?? "",
+                gender: admin.profile.gender ?? "",
+                city: admin.profile.city ?? "",
+                state: admin.profile.state ?? "",
+                country: admin.profile.country ?? "",
+                notes: admin.profile.notes ?? "",
+              }}
+            />
+          </div>
         ) : (
           <div className="flex flex-wrap gap-2">
+            {canManage ? (
+              <EditProfileButton
+                userId={admin.userId}
+                rolePermissions={
+                  roles.find((r) => r.name === admin.role)?.permissions ?? []
+                }
+                initial={{
+                  fullName: admin.profile.fullName ?? "",
+                  jobTitle: admin.profile.jobTitle ?? "",
+                  phone: admin.profile.phone ?? "",
+                  gender: admin.profile.gender ?? "",
+                  city: admin.profile.city ?? "",
+                  state: admin.profile.state ?? "",
+                  country: admin.profile.country ?? "",
+                  notes: admin.profile.notes ?? "",
+                  extraPermissions: admin.profile.extraPermissions,
+                }}
+              />
+            ) : null}
+
             <button
               type="button"
               disabled={pending}

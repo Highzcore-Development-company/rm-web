@@ -27,7 +27,7 @@ export default async function AdminsPage() {
       service
         .from("app_admins")
         .select(
-          "user_id, role, disabled_at, must_change_password, created_at, last_login_at, login_count, accepted_at",
+          "user_id, role, disabled_at, must_change_password, created_at, last_login_at, login_count, accepted_at, full_name, job_title, phone, gender, city, state, country, notes, extra_permissions",
         )
         .order("created_at", { ascending: true }),
       service.from("admin_roles").select("name, label, permissions, is_super"),
@@ -55,6 +55,17 @@ export default async function AdminsPage() {
         role: row.role,
         disabled: Boolean(row.disabled_at),
         mustChangePassword: row.must_change_password,
+        profile: {
+          fullName: (row.full_name as string | null) ?? null,
+          jobTitle: (row.job_title as string | null) ?? null,
+          phone: (row.phone as string | null) ?? null,
+          gender: (row.gender as string | null) ?? null,
+          city: (row.city as string | null) ?? null,
+          state: (row.state as string | null) ?? null,
+          country: (row.country as string | null) ?? null,
+          notes: (row.notes as string | null) ?? null,
+          extraPermissions: (row.extra_permissions as string[] | null) ?? [],
+        },
         lastLoginAt: row.last_login_at,
         loginCount: row.login_count ?? 0,
       };
@@ -153,9 +164,14 @@ export default async function AdminsPage() {
                   admin={admin}
                   roles={roleOptions}
                   canCreateSuper={me?.isSuper ?? false}
-                  // Your own row renders without controls. Demoting or
-                  // removing yourself locks you out of the page that would
-                  // undo it.
+                  // Whether to draw the edit control. The server checks it
+                  // again — hiding a button is not a permission.
+                  canManage={me?.permissions.includes("admins.manage") ?? false}
+                  // Your own row renders without the destructive controls.
+                  // Demoting or removing yourself locks you out of the page
+                  // that would undo it. Editing your own name is still
+                  // offered: it goes through the self-service action, which
+                  // cannot touch permissions.
                   isSelf={admin.userId === me?.userId}
                 />
               ))}
