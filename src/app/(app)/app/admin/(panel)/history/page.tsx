@@ -231,11 +231,16 @@ export default async function AdminHistoryPage({
                             ? "—"
                             : market.profitFactor.toFixed(2)}
                         </td>
+                        {/* A market with no winning trade has no "best", and
+                            one with no loser has no "worst" — zero is the
+                            absence of a trade, not a scratch one. Printing it
+                            gave "−$0.00", which reads as a tiny loss that
+                            never happened. */}
                         <td className="py-2.5 pr-4 text-right tabular-nums text-fg-muted">
-                          {money(market.best)}
+                          {market.best === 0 ? "—" : money(market.best)}
                         </td>
                         <td className="py-2.5 text-right tabular-nums text-fg-muted">
-                          −{money(market.worst)}
+                          {market.worst === 0 ? "—" : `−${money(market.worst)}`}
                         </td>
                       </tr>
                     ))}
