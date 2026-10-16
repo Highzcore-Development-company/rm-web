@@ -4,6 +4,10 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { CandlestickChart, ChevronRight, Search } from "lucide-react";
 import { Signed } from "@/components/admin/signed";
+import { MarketStateDialog } from "@/components/admin/market-state-dialog";
+import { useLiveMarkets } from "@/components/workspace/use-live-markets";
+import { TimeAgo, useStale } from "@/components/workspace/bot-bits";
+import type { BotMarket } from "@/lib/workspace/types";
 
 /**
  * The markets table — sortable and filterable on everything.
@@ -35,6 +39,8 @@ export type MarketRow = {
   /** Null when no quote was available to price it. */
   pipUsd: number | null;
   closeAtProfit: number | null;
+  /** When the bot last wrote this market's state. */
+  updatedAt: string | null;
   net: number | null;
   trades: number | null;
   wins: number | null;
@@ -92,7 +98,17 @@ const STATE_RANK: Record<string, number> = {
   monitoring: 1,
 };
 
-export function MarketsTable({ rows }: { rows: MarketRow[] }) {
+/** How long without a write before the feed is called stale. */
+const STALE_AFTER_MS = 2 * 60_000;
+
+export function MarketsTable({
+  rows,
+  liveInitial,
+}: {
+  rows: MarketRow[];
+  /** Full state rows, server-rendered, then kept current over the socket. */
+  liveInitial: BotMarket[];
+}) {
   /**
    * BEST FIRST by default.
    *
@@ -102,15 +118,62 @@ export function MarketsTable({ rows }: { rows: MarketRow[] }) {
    * that opens on its worst rows reads as bad news whatever the account is
    * doing, and the sort is one click away now either way.
    */
+  /**
+   * LIVE. Victor: "I need to see what each market is doing in real time."
+   *
+   * The page is server-rendered, so every Doing cell froze at page load and
+   * the table showed what the bot was thinking whenever you happened to
+   * navigate. The same realtime subscription the navbar bells use carries all
+   * 28 markets on one socket, and it is reference-counted — adding this reader
+   * opens nothing new.
+   */
+  const live = useLiveMarkets(liveInitial);
+  const liveBySymbol = useMemo(
+    () => new Map(live.map((m) => [m.symbol, m])),
+    [live],
+  );
+
+  // The newest write across every market. The FEED's clock, not any one row's.
+  const lastWrite = useMemo(
+    () =>
+      live
+        .map((m) => m.updated_at)
+        .filter(Boolean)
+        .sort()
+        .at(-1) ?? null,
+    [live],
+  );
+  const stale = useStale(lastWrite, STALE_AFTER_MS);
+
+  const [showing, setShowing] = useState<BotMarket | null>(null);
   const [sort, setSort] = useState<SortKey>("net");
   const [dir, setDir] = useState<Dir>("desc");
   const [filter, setFilter] = useState<FilterKey>("all");
   const [query, setQuery] = useState("");
 
+  // The performance figures come from the server (they need a range query);
+  // the state, reason and open P&L come from the socket. Merged by symbol so
+  // one row is one market rather than two half-rows.
+  const merged = useMemo(
+    () =>
+      rows.map((row) => {
+        const m = liveBySymbol.get(row.symbol);
+        if (!m) return row;
+        return {
+          ...row,
+          state: m.state ?? row.state,
+          reason: m.reason ?? row.reason,
+          openPnl: m.state === "active" ? (m.pnl ?? null) : null,
+          updatedAt: m.updated_at ?? row.updatedAt,
+        };
+      }),
+    [rows, liveBySymbol],
+  );
+
   const visible = useMemo(() => {
     const term = query.trim().toUpperCase();
 
-    const filtered = rows.filter((row) => {
+    const filtered = merged.filter((row) => {
       if (term && !row.symbol.toUpperCase().includes(term) && !row.alias.toUpperCase().includes(term)) {
         return false;
       }
@@ -156,7 +219,7 @@ export function MarketsTable({ rows }: { rows: MarketRow[] }) {
       // shuffling every time something else is clicked.
       return (dir === "asc" ? cmp : -cmp) || a.alias.localeCompare(b.alias);
     });
-  }, [rows, sort, dir, filter, query]);
+  }, [merged, sort, dir, filter, query]);
 
   function clickColumn(column: (typeof COLUMNS)[number]) {
     if (sort === column.key) {
@@ -174,7 +237,7 @@ export function MarketsTable({ rows }: { rows: MarketRow[] }) {
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <div className="flex flex-wrap gap-1 rounded-lg border border-border p-0.5">
           {FILTERS.map((f) => {
-            const n = countFor(rows, f.key);
+            const n = countFor(merged, f.key);
             return (
               <button
                 key={f.key}
@@ -196,7 +259,35 @@ export function MarketsTable({ rows }: { rows: MarketRow[] }) {
           })}
         </div>
 
-        <label className="relative ml-auto">
+        {/* THE FEED'S OWN CLOCK. "I need to know when it updated last so I
+            know the server is active in real time update." Green while writes
+            are arriving, amber once they stop — and it ticks on its own, so a
+            feed that dies while the page is open says so without a refresh. */}
+        <span
+          className={`ml-auto inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs ${
+            stale
+              ? "border-accent/40 text-accent"
+              : "border-chart-up/40 text-chart-up"
+          }`}
+          title={
+            lastWrite
+              ? new Date(lastWrite).toLocaleString("en-GB")
+              : "The bot has not written since this page loaded"
+          }
+        >
+          <span
+            aria-hidden="true"
+            className={`size-1.5 rounded-full ${
+              stale ? "bg-accent" : "animate-pulse bg-chart-up"
+            }`}
+          />
+          {stale ? "Feed quiet" : "Live"}
+          <span className="text-fg-subtle">
+            <TimeAgo iso={lastWrite} />
+          </span>
+        </span>
+
+        <label className="relative">
           <Search
             className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-fg-subtle"
             aria-hidden="true"
@@ -288,25 +379,44 @@ export function MarketsTable({ rows }: { rows: MarketRow[] }) {
                     ) : null}
                   </th>
 
+                  {/* CLICKABLE. "When I click doings it should modal to show
+                      me in full what's going on in the backend." The cell can
+                      only ever show a truncated sentence; the dialog carries
+                      both trends, the routed strategy, the broker's stop and
+                      target, and the indicator snapshot behind the reading. */}
                   <td className="py-3 pr-4">
-                    {row.state === "active" ? (
-                      <span className="inline-flex items-center gap-1.5 text-accent">
-                        In a trade
-                        {row.openPnl !== null ? (
-                          <span className="tabular-nums">
-                            ({row.openPnl >= 0 ? "+" : "−"}$
-                            {Math.abs(row.openPnl).toFixed(2)})
-                          </span>
-                        ) : null}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const m = liveBySymbol.get(row.symbol);
+                        if (m) setShowing(m);
+                      }}
+                      disabled={!liveBySymbol.has(row.symbol)}
+                      title="See the full state"
+                      className="block w-full max-w-[22rem] text-left transition-colors hover:text-fg disabled:cursor-default"
+                    >
+                      {row.state === "active" ? (
+                        <span className="inline-flex items-center gap-1.5 text-accent">
+                          In a trade
+                          {row.openPnl !== null ? (
+                            <span className="tabular-nums">
+                              ({row.openPnl >= 0 ? "+" : "−"}$
+                              {Math.abs(row.openPnl).toFixed(2)})
+                            </span>
+                          ) : null}
+                        </span>
+                      ) : (
+                        <span className="block truncate text-xs text-fg-muted">
+                          {row.reason ?? (row.state ? "Watching" : "No state")}
+                        </span>
+                      )}
+                      {/* Per row, because one market going quiet while the
+                          rest tick is a different fault from the whole feed
+                          stopping, and only a per-row clock shows it. */}
+                      <span className="mt-0.5 block text-[10px] text-fg-subtle">
+                        <TimeAgo iso={row.updatedAt} />
                       </span>
-                    ) : (
-                      <span
-                        className="block max-w-[20rem] truncate text-xs text-fg-muted"
-                        title={row.reason ?? undefined}
-                      >
-                        {row.reason ?? (row.state ? "Watching" : "No state")}
-                      </span>
-                    )}
+                    </button>
                   </td>
 
                   <td className="py-3 pr-4 text-right tabular-nums">
@@ -373,6 +483,15 @@ export function MarketsTable({ rows }: { rows: MarketRow[] }) {
         <p className="mt-6 rounded-lg border border-border bg-surface px-4 py-3 text-sm text-fg-muted">
           No market matches that.
         </p>
+      ) : null}
+
+      {showing ? (
+        // Read from the live map rather than the captured row, so the dialog
+        // keeps updating while it is open instead of freezing at the click.
+        <MarketStateDialog
+          market={liveBySymbol.get(showing.symbol) ?? showing}
+          onClose={() => setShowing(null)}
+        />
       ) : null}
     </>
   );

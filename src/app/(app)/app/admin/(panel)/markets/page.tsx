@@ -54,7 +54,7 @@ export default async function AdminMarketsPage({
     client
       ? client
           .from("bot_market_state")
-          .select("symbol, alias, state, reason, htf_trend, pnl, price, updated_at")
+          .select("*")
           .then((r) => (r.data ?? []) as BotMarket[], () => [] as BotMarket[])
       : Promise.resolve([] as BotMarket[]),
     getMarketBreakdown(range, { from: params.from, to: params.to }),
@@ -117,6 +117,7 @@ export default async function AdminMarketsPage({
       lots: config?.lot_size ?? null,
       pipUsd: pip.kind === "known" ? pip.usd : null,
       closeAtProfit: config?.close_at_profit ?? null,
+      updatedAt: state?.updated_at ?? null,
       net: perf?.net ?? null,
       trades: perf?.trades ?? null,
       wins: perf?.wins ?? null,
@@ -158,7 +159,7 @@ export default async function AdminMarketsPage({
         </p>
       </dl>
 
-      <MarketsTable rows={rows} />
+      <MarketsTable rows={rows} liveInitial={states} />
     </Shell>
   );
 }
