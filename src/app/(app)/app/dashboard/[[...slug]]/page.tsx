@@ -30,9 +30,14 @@ export const dynamic = "force-dynamic";
  * walks where you have been, and a link names what you are looking at. A
  * folder per section would have duplicated this shell eleven times.
  */
-// No params destructured: the catch-all exists only so old section links
-// still resolve here rather than 404ing. Nothing reads the slug any more.
-export default async function WorkspacePage() {
+// The slug is not read: the catch-all exists only so old section links still
+// resolve here rather than 404ing. `searchParams` IS read — see the admin
+// redirect below.
+export default async function WorkspacePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string }>;
+}) {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   // The (app) layout already gates this, but the page reads the user directly
@@ -43,6 +48,24 @@ export default async function WorkspacePage() {
   const data = await getWorkspaceData();
   // Null for everybody who is not an admin, which is almost everybody.
   const admin = await getAdmin();
+
+  /**
+   * AN ADMIN LANDS IN THE ADMIN AREA. Victor: "It should re-route the user to
+   * admin if the user is an admin."
+   *
+   * Here rather than in the login form, because this is where everything
+   * arrives: the form pushes to /app/dashboard, so does the OAuth callback, so
+   * does the home page's redirect for a signed-in visitor, and so does a
+   * bookmark. Putting it in one of those would leave the other three landing
+   * on the investor desk.
+   *
+   * `?view=investor` IS THE WAY BACK. An admin is also a user and sometimes
+   * needs to see what one sees — without the escape hatch the "Investor view"
+   * link in the admin profile menu would bounce straight back here, which is
+   * the bug this redirect would otherwise introduce.
+   */
+  const { view } = await searchParams;
+  if (admin && view !== "investor") redirect("/app/admin");
 
 
   // The route is no longer read. The desk has three tabs held in component
