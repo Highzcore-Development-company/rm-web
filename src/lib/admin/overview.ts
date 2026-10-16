@@ -5,6 +5,12 @@ import { liquidityFrom, type Liquidity } from "@/lib/admin/liquidity";
 import { entitlementFrom } from "@/lib/entitlement";
 import { progressOf, type Granularity, type ProgressPoint } from "@/lib/admin/progress";
 import { totalsFor, type HistoryTotals } from "@/lib/admin/history";
+import {
+  directionSplit,
+  howTradesEnd,
+  outcomeSplit,
+  type Composition,
+} from "@/lib/admin/composition";
 import type { Investor, Subscription } from "@/lib/supabase/types";
 import type { BotEquity, BotMarket, BotTrade } from "@/lib/workspace/types";
 
@@ -53,6 +59,18 @@ export type BotOverviewFigures = {
    * stop being the sum of its weeks.
    */
   progress: Record<Granularity, ProgressPoint[]>;
+  /**
+   * The part-to-whole breakdowns behind the doughnuts.
+   *
+   * Counts, never signed money — see lib/admin/composition.ts for why a pie of
+   * P&L is a broken chart. Computed from the same read as everything else, so
+   * they cannot disagree with the totals above them.
+   */
+  composition: {
+    outcome: Composition;
+    closeReason: Composition;
+    direction: Composition;
+  };
   /** The newest equity snapshot's timestamp — what the staleness badge reads. */
   lastSnapshotAt: string | null;
   /** The newest write of any kind from the bot. */
@@ -108,6 +126,11 @@ const NOT_CONNECTED: BotOverviewFigures = {
   today: { net: 0, trades: 0, wins: 0, losses: 0, profitFactor: null },
   markets: { total: 0, enabled: 0, trading: 0 },
   progress: { day: [], week: [], month: [] },
+  composition: {
+    outcome: { slices: [], total: 0 },
+    closeReason: { slices: [], total: 0 },
+    direction: { slices: [], total: 0 },
+  },
   lastSnapshotAt: null,
   lastSeenAt: null,
   tradingEnabled: null,
@@ -153,7 +176,9 @@ export async function getBotFigures(): Promise<BotOverviewFigures> {
     // snapshots are large JSON the overview never looks at.
     client
       .from("bot_trades")
-      .select("symbol, side, volume, open_ts, close_ts, pnl, commission, swap")
+      .select(
+        "symbol, side, volume, open_ts, close_ts, pnl, commission, swap, close_reason",
+      )
       .not("close_ts", "is", null)
       .order("close_ts", { ascending: false })
       .limit(20_000)
@@ -206,6 +231,11 @@ export async function getBotFigures(): Promise<BotOverviewFigures> {
       day: progressOf(closedAll, "day"),
       week: progressOf(closedAll, "week"),
       month: progressOf(closedAll, "month"),
+    },
+    composition: {
+      outcome: outcomeSplit(closedAll),
+      closeReason: howTradesEnd(closedAll),
+      direction: directionSplit(closedAll),
     },
     lastSnapshotAt: snapshot?.ts ?? null,
     // The newest write of ANY kind. A market row ticks every cycle while a

@@ -4,6 +4,7 @@ import { ArrowUpRight, Wallet } from "lucide-react";
 import { getAdmin } from "@/lib/admin";
 import { getAdminOverview } from "@/lib/admin/overview";
 import { ProgressChart } from "@/components/admin/progress-chart";
+import { CompositionChart } from "@/components/admin/composition-chart";
 import { Signed } from "@/components/admin/signed";
 import { formatUsd } from "@/lib/pricing";
 import { formatNgn, formatUsdt } from "@/lib/money";
@@ -156,6 +157,27 @@ export default async function AdminOverviewPage() {
 
               <div className="mt-6">
                 <ProgressChart series={bot.progress} />
+              </div>
+
+              {/* The compositions. Each answers a question the totals above
+                  cannot: a net figure nets the stop-outs against the winners,
+                  so "how do our trades actually end" is invisible in it. */}
+              <div className="mt-6 grid gap-4 xl:grid-cols-3">
+                <CompositionChart
+                  title="Won, lost, scratched"
+                  note="Every closed trade, judged on net result after costs. The win rate above divides by decided trades only — scratches are visible here."
+                  composition={bot.composition.outcome}
+                />
+                <CompositionChart
+                  title="How trades end"
+                  note="The bot's own close reason. If stop-outs dominate, that is the story about the strategy, and a net total hides it."
+                  composition={bot.composition.closeReason}
+                />
+                <CompositionChart
+                  title="Long or short"
+                  note="Direction against result. Your first rule is never to trade against the trend — this is how you tell whether it is doing any work."
+                  composition={bot.composition.direction}
+                />
               </div>
             </>
           )}
