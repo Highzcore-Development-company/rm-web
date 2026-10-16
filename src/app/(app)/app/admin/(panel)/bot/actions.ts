@@ -2,11 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { recordAdminAction, requirePermission } from "@/lib/admin";
-import {
-  endBotSession,
-  getBotWriteClient,
-  startBotSession,
-} from "@/lib/supabase/rm-server-session";
+import { getBotWriteClient } from "@/lib/supabase/rm-server-session";
 
 export type BotActionResult = { ok: true } | { ok: false; error: string };
 
@@ -49,44 +45,6 @@ function refused(what: string, message?: string): BotActionResult {
       "check the rm-server policy and that this admin is in bot_admins",
   );
   return { ok: false, error: "refused" };
-}
-
-/**
- * Connect this admin to rm-server.
- *
- * Their own rm-server credentials, never stored — only the resulting refresh
- * token, in an httpOnly cookie for this browser session.
- */
-export async function connectToBot(
-  email: string,
-  password: string,
-): Promise<BotActionResult> {
-  const admin = await requirePermission("bot.configure");
-  if (!admin) return { ok: false, error: "forbidden" };
-
-  const result = await startBotSession(email, password);
-  if (!result.ok) return { ok: false, error: result.error };
-
-  // Recorded because it is the moment an admin gained the ability to stop
-  // trading for everybody. The rm-server identity is noted alongside ours:
-  // the two are different accounts and may well be different emails.
-  await recordAdminAction("bot.connected", { type: "bot" }, {
-    rm_server_email: result.email,
-  });
-
-  revalidatePath("/app/admin/bot");
-  return { ok: true };
-}
-
-export async function disconnectFromBot(): Promise<BotActionResult> {
-  const admin = await requirePermission("bot.configure");
-  if (!admin) return { ok: false, error: "forbidden" };
-
-  await endBotSession();
-  await recordAdminAction("bot.disconnected", { type: "bot" });
-
-  revalidatePath("/app/admin/bot");
-  return { ok: true };
 }
 
 export async function setLotSize(

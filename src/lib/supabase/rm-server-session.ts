@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { envOr } from "@/lib/env";
 
@@ -27,46 +26,19 @@ import { envOr } from "@/lib/env";
  * set it; we cannot read it back. Nothing here should try.
  */
 
-const COOKIE = "rm_bot_session";
-
-/**
- * Which paths send the session.
+/*
+ * THE BOT SESSION COOKIE IS GONE, with the sign-in that set it.
  *
- * "/app", not "/app/admin". It was the narrower path, which looked like good
- * hygiene and was a bug: the Close button lives on the DASHBOARD, and a server
- * action posts to the page it was invoked from. So the cookie was never sent
- * from /app/dashboard, and closing a trade failed with "you are not signed in
- * to the bot" however many times somebody signed in on the Bot page.
+ * There used to be an `rm_bot_session` cookie holding a refresh token for the
+ * bot's project, so each admin could act on rm-server as themselves. Victor,
+ * 16 Oct: "I don't need this 'Sign in to the bot to make changes', because the
+ * bot shouldn't have a different login." Writes now go through the service key
+ * and are attributed from the rm-web session — see the note on
+ * getBotWriteClient below for what that trades away.
  *
- * Still not "/" — the marketing pages, the API routes and /auth have no
- * business carrying a credential for the bot's database.
+ * Anyone still holding the old cookie is harmless: nothing reads it, and it is
+ * scoped to /app where it will expire on its own.
  */
-const COOKIE_PATH = "/app";
-
-/**
- * Where the cookie used to live.
- *
- * Anybody who connected before the path changed still has one at /app/admin.
- * The browser would send BOTH on an admin request and the older, narrower one
- * can win — so a stale refresh token would quietly outlive its replacement.
- * Cleared whenever a session starts or ends. Removable once nobody can still
- * be holding one, which is thirty days from this landing.
- */
-const LEGACY_COOKIE_PATH = "/app/admin";
-
-/**
- * How long a bot session lasts, in seconds.
- *
- * Without this it was a SESSION cookie — gone when the browser closed, so an
- * operator re-entered their rm-server password several times a day. That is
- * not security, it is friction that trains people to pick a shorter password.
- *
- * Thirty days, and the exposure is smaller than it looks: the cookie is
- * httpOnly, scoped to /app/admin, and useless without an rm-web admin session
- * to reach that path at all. The refresh token also rotates on every use, so a
- * stale copy stops working as soon as the real one is used.
- */
-const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
 
 /** Writable columns, as granted. Anything outside this list will be refused. */
 export const WRITABLE = {
@@ -85,62 +57,6 @@ export const WRITABLE = {
     "updated_by",
   ],
 } as const;
-
-function anonClient(): SupabaseClient | null {
-  const url = envOr(process.env.RM_SERVER_SUPABASE_URL, "");
-  const anonKey = envOr(process.env.RM_SERVER_SUPABASE_ANON_KEY, "");
-  if (!url || !anonKey) return null;
-
-  // persistSession off: we move the refresh token ourselves, into a cookie
-  // scoped to this app. Letting the SDK manage storage on the server would
-  // share one session between every admin hitting the same process.
-  return createClient(url, anonKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-}
-
-export type BotSessionResult =
-  | { ok: true; email: string }
-  | { ok: false; error: "unconfigured" | "bad_credentials" };
-
-/** Sign this admin in to rm-server and keep the session for their browser. */
-export async function startBotSession(
-  email: string,
-  password: string,
-): Promise<BotSessionResult> {
-  const client = anonClient();
-  if (!client) return { ok: false, error: "unconfigured" };
-
-  const { data, error } = await client.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (error || !data.session) {
-    // Not logged with the message attached: this runs on a form an admin can
-    // retry, and provider text has a habit of ending up on screen.
-    console.error("[rm-server] admin sign-in refused");
-    return { ok: false, error: "bad_credentials" };
-  }
-
-  const jar = await cookies();
-  jar.delete({ name: COOKIE, path: LEGACY_COOKIE_PATH });
-  jar.set(COOKIE, data.session.refresh_token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: COOKIE_PATH,
-    maxAge: SESSION_MAX_AGE,
-  });
-
-  return { ok: true, email: data.user?.email ?? email };
-}
-
-export async function endBotSession(): Promise<void> {
-  const jar = await cookies();
-  jar.delete({ name: COOKIE, path: COOKIE_PATH });
-  jar.delete({ name: COOKIE, path: LEGACY_COOKIE_PATH });
-}
 
 /**
  * ONE USER, OURS. The bot's project does not get its own login.
@@ -219,52 +135,52 @@ export function hasServiceAccess(): boolean {
   return Boolean(serviceUrl() && serviceRoleKey());
 }
 
-/** Whether this admin has a live rm-server session. Cheap — no network. */
-export async function hasBotSession(): Promise<boolean> {
-  const jar = await cookies();
-  return Boolean(jar.get(COOKIE)?.value);
+/**
+ * Can an admin change anything on the bot?
+ *
+ * ONE QUESTION, ONE ANSWER. The panel used to ask three — permission, is
+ * rm-server reachable, has THIS admin signed in to it — and the third is the
+ * one Victor threw out: "As long as you are an admin, I should be able to
+ * change the settings... I don't need extra logins to do that."
+ *
+ * So this is now purely "is the server key configured". Permission is still
+ * checked separately, by requirePermission, because that is a role decision of
+ * ours rather than a second credential.
+ */
+export function canWriteToBot(): boolean {
+  return hasServiceAccess();
 }
 
 /**
- * The write client, or null if this admin has not connected.
+ * Why a write would be refused, or null when it would not be.
  *
- * Refreshing rotates the token, so the cookie is rewritten. When it is
- * rejected — revoked, expired, Victor deleted the account — the cookie is
- * cleared so the page offers the sign-in again instead of failing silently
- * every time somebody touches a control.
+ * Exists so the page can name the real cause. The thing it replaced told an
+ * admin to "sign in to the bot", which was wrong twice over: there is nothing
+ * to sign in to, and the actual problem is a variable missing from the
+ * deployment — something no amount of clicking will fix, and something only
+ * this message will tell anyone.
+ */
+export function writeBlockedReason(): "no_url" | "no_key" | null {
+  if (!serviceUrl()) return "no_url";
+  if (!serviceRoleKey()) return "no_key";
+  return null;
+}
+
+/**
+ * The write client, or null when the service key is not configured.
+ *
+ * THE PER-ADMIN FALLBACK IS GONE. It refreshed a bot refresh token out of an
+ * httpOnly cookie, and with the sign-in form removed nothing could set that
+ * cookie any more — so it was unreachable code holding the design Victor threw
+ * out. Leaving it would also have left a long-lived bot credential in a cookie
+ * for anyone still carrying one, which is the single most valuable thing an
+ * attacker could take from this app. Dead and deleted beats dead and dormant.
+ *
+ * Null here is a DEPLOYMENT problem, not a user one. Nothing an admin clicks
+ * will fix it; see writeBlockedReason, which is what the page shows instead.
  */
 export async function getBotWriteClient(): Promise<SupabaseClient | null> {
-  // The configured key wins. With it there is nothing to sign in to, so the
-  // per-admin session below is only a fallback for an environment that has
-  // not been given one.
-  const service = serviceClient();
-  if (service) return service;
-
-  const jar = await cookies();
-  const refreshToken = jar.get(COOKIE)?.value;
-  if (!refreshToken) return null;
-
-  const client = anonClient();
-  if (!client) return null;
-
-  const { data, error } = await client.auth.refreshSession({
-    refresh_token: refreshToken,
-  });
-
-  if (error || !data.session) {
-    jar.delete({ name: COOKIE, path: COOKIE_PATH });
-    return null;
-  }
-
-  jar.set(COOKIE, data.session.refresh_token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: COOKIE_PATH,
-    maxAge: SESSION_MAX_AGE,
-  });
-
-  return client;
+  return serviceClient();
 }
 
 /** Whether rm-server is configured at all, regardless of who is signed in. */

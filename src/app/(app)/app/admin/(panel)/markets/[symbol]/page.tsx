@@ -5,9 +5,8 @@ import { ArrowLeft, CandlestickChart } from "lucide-react";
 import { getAdmin, requirePermission } from "@/lib/admin";
 import { createRmServerClient } from "@/lib/supabase/rm-server";
 import {
-  hasBotSession,
-  hasServiceAccess,
-  isBotReachable,
+  canWriteToBot,
+  writeBlockedReason,
 } from "@/lib/supabase/rm-server-session";
 import { MarketSettings } from "@/components/admin/market-settings";
 import { Signed } from "@/components/admin/signed";
@@ -45,9 +44,13 @@ export default async function AdminMarketPage({
   if (!client) notFound();
 
   const admin = await getAdmin();
+  // Permission, and whether the deployment can write at all. No second login:
+  // "As long as you are an admin, I should be able to change the settings...
+  // I don't need extra logins to do that."
   const canConfigure = admin?.permissions.includes("bot.configure") ?? false;
-  const connected = hasServiceAccess() || (await hasBotSession());
-  const configurable = canConfigure && isBotReachable() && connected;
+  const configurable = canConfigure && canWriteToBot();
+  // Permission first: it is the one an admin cannot resolve themselves.
+  const blocked = !canConfigure ? "no_permission" : writeBlockedReason();
 
   const [config, state, trades, snapshot] = await Promise.all([
     client
@@ -247,6 +250,7 @@ export default async function AdminMarketPage({
             closeAtProfit={config?.close_at_profit ?? null}
             enabled={config?.enabled ?? true}
             configurable={configurable}
+            blocked={blocked}
             balance={snapshot?.balance ?? null}
           />
         </div>

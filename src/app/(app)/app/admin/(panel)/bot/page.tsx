@@ -9,33 +9,36 @@ import {
 } from "@/components/admin/bot-controls";
 import { getAdmin, requirePermission } from "@/lib/admin";
 import { getWorkspaceData } from "@/lib/workspace/data";
-import { BotConnect } from "@/components/admin/bot-connect";
-import {
-  ApprovalMode,
-  ProposalQueue,
-  type PendingProposal,
-} from "@/components/admin/proposal-queue";
-import { createRmServerClient } from "@/lib/supabase/rm-server";
-import {
-  hasBotSession,
-  hasServiceAccess,
-  isBotReachable,
-} from "@/lib/supabase/rm-server-session";
+import { canWriteToBot, writeBlockedReason } from "@/lib/supabase/rm-server-session";
 import type { BotConfig } from "@/lib/workspace/types";
 
 export const metadata: Metadata = { title: "Bot", robots: { index: false } };
 export const dynamic = "force-dynamic";
 
 /**
- * A8 — the admin desk.
+ * Bot controls — the trading switch, and the markets.
  *
- * Live, Activities and History come from the same <Desk> the investor sees,
- * with showChart off. Not a fork: the two must agree about what the bot is
- * doing, and a copy drifts the first time either is touched.
+ * TWO THINGS, and nothing else. Victor, 16 Oct: "In bot control, is not going
+ * to be more than switching off the bot to stop trading and markets settings.
+ * anything else should removed."
  *
- * The chart is out of scope, so the centre column holds the configuration
- * instead — which is the one thing this page has that the investor desk must
- * never grow.
+ * Gone with it:
+ *
+ *   - THE rm-server SIGN-IN. "I don't need this 'Sign in to the bot to make
+ *     changes', because the bot shouldn't have a different login." He is right,
+ *     and he had already ruled this way once — see the note on getBotWriteClient.
+ *     An admin is an admin; being asked for a second password to use a button
+ *     in our own panel is a login nobody should be shown. Writes go through the
+ *     rm-server service key, as that ruling intended.
+ *   - APPROVAL MODE and the PROPOSAL QUEUE. The bot has not rested a proposal
+ *     since --pending came off every launcher on 14 Oct, so the queue could
+ *     only ever say "nothing waiting" and the switch only ever armed something
+ *     that does not happen. decideProposal() is still in actions.ts if the
+ *     feature comes back.
+ *
+ * The desk still wraps it — Live, History and the market feed on the right are
+ * the same component the investor sees, so the two cannot disagree about what
+ * the bot is doing.
  */
 export default async function AdminBotPage() {
   if (!(await requirePermission("bot.view"))) notFound();
@@ -44,43 +47,12 @@ export default async function AdminBotPage() {
   const admin = await getAdmin();
   const data = await getWorkspaceData();
 
-  // Viewing and configuring are separate permissions: support can watch the
-  // bot without being able to touch it.
+  // Viewing and configuring are still separate permissions: support can watch
+  // the bot without being able to touch it. That is a role decision of ours,
+  // not a second login — which is the part Victor objected to.
   const canConfigure = admin?.permissions.includes("bot.configure") ?? false;
-  // Three separate conditions, because they fail for different reasons and an
-  // admin needs to know which: no permission, rm-server not configured, or
-  // configured but this admin has not signed in to it yet.
-  // With the key configured there is nothing for an admin to sign in to, so
-  // the form is not rendered at all. Asking somebody to log in to a system
-  // they are already an admin of is the thing Victor objected to.
-  const viaServiceKey = hasServiceAccess();
-  const connected = viaServiceKey || (await hasBotSession());
-  const configurable = canConfigure && isBotReachable() && connected;
-
-  // Pending proposals. Read with the ordinary read client: deciding one needs
-  // the admin's own rm-server session, but seeing the queue does not.
-  const reader = createRmServerClient();
-  const proposals: PendingProposal[] = reader
-    ? (
-        (
-          await reader
-            .from("bot_proposals")
-            .select("id, symbol, side, level, sl, tp, rr, created_at")
-            .eq("status", "pending")
-            .order("created_at", { ascending: true })
-            .limit(50)
-        ).data ?? []
-      ).map((p) => ({
-        id: p.id as string,
-        symbol: p.symbol as string,
-        side: p.side as string,
-        level: p.level as number,
-        sl: p.sl as number | null,
-        tp: p.tp as number | null,
-        rr: p.rr as number | null,
-        createdAt: p.created_at as string,
-      }))
-    : [];
+  const writable = canWriteToBot();
+  const configurable = canConfigure && writable;
 
   const markets: MarketConfig[] = (data.configs as BotConfig[]).map((c) => ({
     symbol: c.symbol,
@@ -90,38 +62,42 @@ export default async function AdminBotPage() {
     enabled: c.enabled ?? false,
   }));
 
+  const blocked = writeBlockedReason();
+
   const centre = (
     <div className="mx-auto w-full max-w-3xl px-4 py-8">
       {/* No visible page title — see the note on the overview page. The h1
           stays screen-reader-only so the document still has a landmark. */}
       <h1 className="sr-only">{t("title")}</h1>
 
-      {/* Said plainly rather than leaving an admin to wonder why a control
-          does nothing. Reading and writing fail independently — the panels can
-          be full while changes are refused, and the reverse. */}
-      {!data.connected && (
-        <p className="mt-6 rounded-lg border border-border bg-surface px-4 py-3 text-sm text-fg-muted">
+      {/* Said plainly rather than leaving an admin to wonder why a control does
+          nothing. Reading and writing fail independently — the panels can be
+          full while changes are refused, and the reverse. */}
+      {!data.connected ? (
+        <p className="rounded-lg border border-border bg-surface px-4 py-3 text-sm text-fg-muted">
           {t("notReadable")}
         </p>
-      )}
+      ) : null}
 
-      {canConfigure ? (
-        viaServiceKey ? null : isBotReachable() ? (
-          <div className="mt-6">
-            <BotConnect connected={connected} />
-          </div>
-        ) : (
-          <p className="mt-6 rounded-lg border border-accent/40 bg-accent/5 px-4 py-3 text-sm">
-            {t("notConfigured")}
-          </p>
-        )
-      ) : (
-        <p className="mt-6 rounded-lg border border-border bg-surface px-4 py-3 text-sm text-fg-muted">
+      {/* The one thing worth saying when a control will not work, and it names
+          the actual cause — a missing server key — rather than asking somebody
+          to log in to something they are already an admin of. */}
+      {canConfigure && blocked ? (
+        <p className="mb-6 rounded-lg border border-accent/40 bg-accent/5 px-4 py-3 text-sm leading-relaxed">
+          <strong className="font-medium">Changes cannot be saved yet.</strong>{" "}
+          {blocked === "no_url"
+            ? "rm-server is not configured — RM_SERVER_SUPABASE_URL is unset."
+            : "The rm-server service key is not set on this deployment, so every write would be refused. Add BOT_SUPABASE_SERVICE_ROLE_KEY (the bot project's service_role key) and restart. Nothing else is needed — no separate login."}
+        </p>
+      ) : null}
+
+      {!canConfigure ? (
+        <p className="mb-6 rounded-lg border border-border bg-surface px-4 py-3 text-sm text-fg-muted">
           {t("viewOnly")}
         </p>
-      )}
+      ) : null}
 
-      <section className="mt-8">
+      <section>
         <h2 className="text-xs uppercase tracking-wide text-fg-muted">
           {t("settings")}
         </h2>
@@ -130,28 +106,6 @@ export default async function AdminBotPage() {
             enabled={data.settings?.trading_enabled ?? false}
             configurable={configurable}
           />
-        </div>
-      </section>
-
-      {/* BEFORE a trade goes live. Placed directly under the settings and
-          above the markets, because an unanswered proposal is the only thing
-          on this page that is actively waiting on a human. */}
-      <section className="mt-10">
-        <h2 className="text-xs uppercase tracking-wide text-fg-muted">
-          {t("approval.title")}
-        </h2>
-        <div className="mt-3">
-          <ApprovalMode
-            required={data.settings?.require_approval ?? false}
-            configurable={configurable}
-          />
-        </div>
-
-        <h3 className="mt-6 text-xs uppercase tracking-wide text-fg-muted">
-          {t("proposals.title", { count: proposals.length })}
-        </h3>
-        <div className="mt-3">
-          <ProposalQueue proposals={proposals} configurable={configurable} />
         </div>
       </section>
 

@@ -5,11 +5,7 @@ import { ArrowUpRight } from "lucide-react";
 import { getAdmin } from "@/lib/admin";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { createRmServerClient } from "@/lib/supabase/rm-server";
-import {
-  hasBotSession,
-  hasServiceAccess,
-  isBotReachable,
-} from "@/lib/supabase/rm-server-session";
+import { canWriteToBot, writeBlockedReason } from "@/lib/supabase/rm-server-session";
 import { isAlatPayConfigured } from "@/lib/alatpay";
 import { envOr } from "@/lib/env";
 
@@ -38,8 +34,8 @@ export default async function AdminSettingsPage() {
   const canSeeFinance = admin.permissions.includes("finance.view");
 
   const feedConfigured = createRmServerClient() !== null;
-  const writeReady =
-    canSeeBot && (hasServiceAccess() || (await hasBotSession()));
+  const writeReady = canSeeBot && canWriteToBot();
+  const blocked = writeBlockedReason();
   const cryptoTestnet = envOr(process.env.TRON_API_URL, "").includes("nile");
 
   return (
@@ -90,11 +86,11 @@ export default async function AdminSettingsPage() {
                 label="Bot writes"
                 ok={writeReady}
                 detail={
-                  !isBotReachable()
-                    ? "rm-server is unreachable, so no setting can be written to the bot."
-                    : writeReady
-                      ? "Ready. Market settings and the trading switch can be written."
-                      : "You can read the bot but not write to it — connect on Bot controls first. Until then every write is refused."
+                  writeReady
+                    ? "Ready. Market settings and the trading switch can be written."
+                    : blocked === "no_url"
+                      ? "rm-server is not configured — RM_SERVER_SUPABASE_URL is unset, so nothing can be written."
+                      : "BOT_SUPABASE_SERVICE_ROLE_KEY is not set, so every write to the bot is refused. It is a deployment variable, not a login — nobody needs to sign in to anything."
                 }
               />
             </>

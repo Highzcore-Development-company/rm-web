@@ -34,6 +34,15 @@ export type MarketSettingsProps = {
   enabled: boolean;
   configurable: boolean;
   /**
+   * Why settings are locked, when they are.
+   *
+   * "no_permission" is a role decision and the admin can do nothing about it.
+   * The others are deployment variables — so the message names the variable
+   * rather than telling somebody to log in to a system they are already an
+   * admin of, which is exactly what it used to do.
+   */
+  blocked?: "no_permission" | "no_url" | "no_key" | null;
+  /**
    * Account balance, for turning a percentage into a dollar figure.
    *
    * Null when rm-server has no snapshot — the percentage control is then
@@ -159,10 +168,34 @@ export function MarketSettings(props: MarketSettingsProps) {
 
   if (!configurable) {
     return (
-      <p className="rounded-lg border border-border bg-surface px-4 py-3 text-sm leading-relaxed text-fg-muted">
-        You can see this market but not change it. Changing settings needs the
-        <span className="font-medium"> bot.configure</span> permission and an
-        rm-server connection.
+      <p className="rounded-lg border border-accent/40 bg-accent/5 px-4 py-3 text-sm leading-relaxed">
+        {props.blocked === "no_permission" ? (
+          <>
+            <strong className="font-medium">Read only.</strong> Your role does
+            not include <span className="font-mono text-xs">bot.configure</span>
+            , so you can watch this market but not change it. An admin with{" "}
+            <span className="font-mono text-xs">admins.manage</span> can grant
+            it.
+          </>
+        ) : props.blocked === "no_url" ? (
+          <>
+            <strong className="font-medium">Changes cannot be saved.</strong>{" "}
+            rm-server is not configured —{" "}
+            <span className="font-mono text-xs">RM_SERVER_SUPABASE_URL</span> is
+            unset on this deployment.
+          </>
+        ) : (
+          <>
+            <strong className="font-medium">Changes cannot be saved yet.</strong>{" "}
+            The bot project&rsquo;s service key is missing, so every write would
+            be refused. Add{" "}
+            <span className="font-mono text-xs">
+              BOT_SUPABASE_SERVICE_ROLE_KEY
+            </span>{" "}
+            and restart. It is a deployment variable, not a login — there is
+            nothing for you to sign in to.
+          </>
+        )}
       </p>
     );
   }
