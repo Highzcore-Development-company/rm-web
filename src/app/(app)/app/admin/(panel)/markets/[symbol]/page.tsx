@@ -140,7 +140,9 @@ export default async function AdminMarketPage({
         ) : (
           <dl className="mt-3 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <Cell label="State" value={state.state ?? "—"} />
-            <Cell label="Reading" value={state.reason ?? "—"} />
+            {/* Spans the row and wraps: this is the one place the full
+                structure reading belongs, and it is prose, not a figure. */}
+            <Cell label="Reading" value={state.reason ?? "—"} wide />
             <Cell
               label="Price"
               value={state.price === null ? "—" : state.price.toString()}
@@ -332,14 +334,27 @@ export default async function AdminMarketPage({
 function Cell({
   label,
   value,
+  wide = false,
 }: {
   label: string;
   value: React.ReactNode;
+  /** Prose rather than a figure: spans the grid and drops tabular-nums. */
+  wide?: boolean;
 }) {
   return (
-    <div className="surface rounded-xl border border-border p-4">
+    <div
+      className={`surface rounded-xl border border-border p-4 ${
+        wide ? "sm:col-span-2 xl:col-span-3" : ""
+      }`}
+    >
       <dt className="text-xs uppercase tracking-wide text-fg-muted">{label}</dt>
-      <dd className="mt-1.5 text-sm font-medium tabular-nums">{value}</dd>
+      <dd
+        className={`mt-1.5 text-sm font-medium ${
+          wide ? "leading-relaxed" : "tabular-nums"
+        }`}
+      >
+        {value}
+      </dd>
     </div>
   );
 }

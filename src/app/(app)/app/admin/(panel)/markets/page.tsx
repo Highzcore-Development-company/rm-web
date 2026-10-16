@@ -219,7 +219,15 @@ function Row({
             ) : null}
           </span>
         ) : (
-          <span className="text-xs text-fg-muted">
+          /* TRUNCATED, with the whole thing on hover. `reason` is free text
+             since the bot started reporting the structure it read, and that
+             runs to a sentence or two — "RANGE | HH/HL | eff 0.05 | sup
+             1.11518x4 | ..." in a table cell stretches the column past every
+             other one on the page. The market's own page shows it in full. */
+          <span
+            className="block max-w-[18rem] truncate text-xs text-fg-muted"
+            title={state?.reason ?? undefined}
+          >
             {state?.reason ?? (state ? "Watching" : "No state")}
           </span>
         )}
