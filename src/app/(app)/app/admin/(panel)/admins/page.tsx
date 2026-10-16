@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { getAdmin, requirePermission } from "@/lib/admin";
 import { createServiceClient } from "@/lib/supabase/service";
 import { InviteAdminButton } from "@/components/admin/invite-admin-modal";
+import { describePermissions } from "@/lib/permissions";
 import {
   AdminRow,
   InviteRow,
@@ -176,7 +177,7 @@ export default async function AdminsPage() {
                   ? t("roles.superNote")
                   : role.permissions.length === 0
                     ? t("roles.none")
-                    : role.permissions.join(" · ")}
+                    : describePermissions(role.permissions)}
               </dd>
             </div>
           ))}

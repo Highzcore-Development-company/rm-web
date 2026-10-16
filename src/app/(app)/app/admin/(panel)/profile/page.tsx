@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { KeyRound, ShieldCheck } from "lucide-react";
 import { getAdmin, PERMISSIONS } from "@/lib/admin";
+import { PERMISSION_LABELS } from "@/lib/permissions";
 import { createServiceClient } from "@/lib/supabase/service";
 
 export const metadata: Metadata = { title: "My profile", robots: { index: false } };
@@ -93,7 +94,7 @@ export default async function AdminProfilePage() {
             return (
               <li
                 key={permission}
-                className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${
+                className={`flex items-start gap-2 rounded-lg border px-3 py-2 text-sm ${
                   held
                     ? "border-border"
                     : "border-border/60 text-fg-subtle"
@@ -101,12 +102,22 @@ export default async function AdminProfilePage() {
               >
                 <span
                   aria-hidden="true"
-                  className={`size-1.5 shrink-0 rounded-full ${
+                  className={`mt-1.5 size-1.5 shrink-0 rounded-full ${
                     held ? "bg-chart-up" : "bg-fg-subtle/40"
                   }`}
                 />
-                <span className="font-mono text-xs">{permission}</span>
-                <span className="ml-auto text-[11px]">
+                {/* The action, with the key beside it: this page answers
+                    "why can't I do that", and the dotted name is what somebody
+                    would quote when asking for it. */}
+                <span className="min-w-0 flex-1">
+                  <span className="block">
+                    {PERMISSION_LABELS[permission].label}
+                  </span>
+                  <span className="block font-mono text-[10px] text-fg-subtle">
+                    {permission}
+                  </span>
+                </span>
+                <span className="shrink-0 self-start text-[11px]">
                   {held ? "yes" : "no"}
                 </span>
               </li>

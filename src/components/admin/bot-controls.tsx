@@ -11,6 +11,7 @@ import {
   setTradingEnabled,
 } from "@/app/(app)/app/admin/(panel)/bot/actions";
 import { useToast } from "@/stores";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { pipLineFor, type Quotes } from "@/lib/admin/pip-value";
 
 export type MarketConfig = {
@@ -42,6 +43,18 @@ export function TradingSwitch({
   const toast = useToast();
   const router = useRouter();
   const [pending, start] = useTransition();
+  const [confirmOff, setConfirmOff] = useState(false);
+
+  // One place that actually flips it, so the confirmed path and the
+  // straight-through path cannot drift apart.
+  const apply = () =>
+    start(async () => {
+      const res = await setTradingEnabled(!enabled);
+      if (res.ok) {
+        toast.success(enabled ? t("switch.stopped") : t("switch.started"));
+        router.refresh();
+      } else toast.error(t(`errors.${res.error}`));
+    });
 
   return (
     <div
@@ -73,18 +86,14 @@ export function TradingSwitch({
         type="button"
         disabled={pending || !configurable}
         onClick={() => {
-          // Blocking confirm on the way OFF only. Stopping the book is the
+          // Confirmed on the way OFF only. Stopping the book is the
           // consequential direction; starting it again is recoverable by
           // pressing the same button.
-          if (enabled && !window.confirm(t("switch.confirmOff"))) return;
-
-          start(async () => {
-            const res = await setTradingEnabled(!enabled);
-            if (res.ok) {
-              toast.success(enabled ? t("switch.stopped") : t("switch.started"));
-              router.refresh();
-            } else toast.error(t(`errors.${res.error}`));
-          });
+          if (enabled) {
+            setConfirmOff(true);
+            return;
+          }
+          apply();
         }}
         className={`inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold disabled:opacity-50 ${
           enabled
@@ -104,6 +113,22 @@ export function TradingSwitch({
           </>
         )}
       </button>
+
+      {confirmOff ? (
+        <ConfirmDialog
+          title="Stop the bot trading?"
+          subject="The master account, and every linked investor"
+          body="It opens nothing new. Anything already open keeps running and is still managed — stops, targets and the profit ladder all stay active. You can start it again from the same button."
+          action="Stop trading"
+          destructive
+          pending={pending}
+          onCancel={() => setConfirmOff(false)}
+          onConfirm={() => {
+            setConfirmOff(false);
+            apply();
+          }}
+        />
+      ) : null}
     </div>
   );
 }

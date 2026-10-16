@@ -9,7 +9,11 @@ import {
   inviteStaff,
   type StaffProfile,
 } from "@/app/(app)/app/admin/(panel)/admins/actions";
-import { PERMISSIONS } from "@/lib/permissions";
+import {
+  PERMISSIONS,
+  PERMISSION_LABELS,
+  describePermissions,
+} from "@/lib/permissions";
 
 /**
  * Invite an admin — a button, and a form in a dialog.
@@ -296,9 +300,7 @@ function InviteDialog({
               <p className="mt-1.5 text-xs text-fg-muted">
                 {chosen?.isSuper
                   ? "Everything, including managing admins. Cannot be disabled or removed — step the role down first."
-                  : fromRole.size === 0
-                    ? "This role grants nothing on its own."
-                    : [...fromRole].join(" · ")}
+                  : describePermissions([...fromRole])}
               </p>
             </Field>
 
@@ -315,7 +317,7 @@ function InviteDialog({
                   return (
                     <label
                       key={permission}
-                      className={`flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs ${
+                      className={`flex items-start gap-2 rounded-md border px-2.5 py-2 text-xs ${
                         granted
                           ? "border-border/60 text-fg-subtle"
                           : "border-border"
@@ -328,6 +330,7 @@ function InviteDialog({
                         // would imply a subtract that does not exist.
                         checked={granted || extra.includes(permission)}
                         disabled={granted}
+                        className="mt-0.5 shrink-0"
                         onChange={(event) =>
                           setExtra((list) =>
                             event.target.checked
@@ -336,9 +339,22 @@ function InviteDialog({
                           )
                         }
                       />
-                      <span className="font-mono">{permission}</span>
+                      {/* The action, not the database key. The dotted name
+                          stays the identifier in code and in the audit log;
+                          this is the form where somebody decides what a
+                          colleague may do, and it should read like English. */}
+                      <span className="min-w-0 flex-1">
+                        <span className="block font-medium">
+                          {PERMISSION_LABELS[permission].label}
+                        </span>
+                        <span className="block text-[11px] text-fg-subtle">
+                          {PERMISSION_LABELS[permission].hint}
+                        </span>
+                      </span>
                       {granted ? (
-                        <span className="ml-auto opacity-70">from role</span>
+                        <span className="shrink-0 self-start opacity-70">
+                          from role
+                        </span>
                       ) : null}
                     </label>
                   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { X } from "lucide-react";
 import {
@@ -11,6 +11,7 @@ import {
   setAdminRole,
 } from "@/app/(app)/app/admin/(panel)/admins/actions";
 import { useToast } from "@/stores";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 
 export type RoleOption = {
   name: string;
@@ -45,6 +46,7 @@ export function AdminRow({
   const toast = useToast();
   const router = useRouter();
   const [pending, start] = useTransition();
+  const [confirmRemove, setConfirmRemove] = useState(false);
 
   const role = roles.find((r) => r.name === admin.role);
   const isSuper = role?.isSuper ?? false;
@@ -149,20 +151,31 @@ export function AdminRow({
             <button
               type="button"
               disabled={pending}
-              onClick={() => {
-                // Confirmed because it is instant and silent from the other
-                // person's side: they simply find the panel gone.
-                if (!window.confirm(t("confirmRemove", { email: admin.email }))) {
-                  return;
-                }
-                run(() => removeAdmin(admin.userId), t("removed"));
-              }}
+              onClick={() => setConfirmRemove(true)}
               className="rounded-md border border-chart-down/50 px-2.5 py-1.5 text-xs transition-colors hover:border-chart-down disabled:opacity-50"
             >
               {t("remove")}
             </button>
           </div>
         )}
+
+        {/* Confirmed because it is instant and silent from the other person's
+            side: they simply find the panel gone. */}
+        {confirmRemove ? (
+          <ConfirmDialog
+            title="Remove admin rights?"
+            subject={admin.email}
+            body="They keep their account and subscription — they only lose this panel. Invite them again to put it back."
+            action="Remove rights"
+            destructive
+            pending={pending}
+            onCancel={() => setConfirmRemove(false)}
+            onConfirm={() => {
+              setConfirmRemove(false);
+              run(() => removeAdmin(admin.userId), t("removed"));
+            }}
+          />
+        ) : null}
       </td>
     </tr>
   );
