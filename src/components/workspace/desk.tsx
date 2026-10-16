@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { signOutAndGoHome } from "@/lib/sign-out";
 import {
   useDeskTab,
@@ -77,15 +77,44 @@ import type { BotMarket, BotSettings, BotTrade } from "@/lib/workspace/types";
  */
 type Tab = DeskTab;
 
-const TABS: { key: Tab; label: string; Icon: typeof Activity }[] = [
-  { key: "market", label: "Market", Icon: Sparkles },
-  // Before a trade goes live. Sits next to Live on purpose: the two are the
-  // same question a minute apart — what is about to happen, and what is.
-  // An hourglass, not a shield: nothing here is waiting on a person.
-  { key: "pending", label: "Pending", Icon: Hourglass },
-  { key: "live", label: "Live", Icon: Activity },
-  { key: "history", label: "History", Icon: HistoryIcon },
-  { key: "performance", label: "Performance", Icon: TrendingUp },
+/**
+ * HS-BOT-v4 §2 — the sections, and who each one is for.
+ *
+ * The brief's table has two columns, and they are not the same list:
+ *
+ *   trader    "Scora chat and market analysis"
+ *   investor  "Chart, their trades, performance"
+ *
+ * A trader has no broker account and never will, so Live, History and
+ * Performance are three screens of nothing for them — not empty because the
+ * bot is quiet, empty because those trades cannot exist. Showing them reads as
+ * "your trades will appear here", which is the one thing a trader has
+ * explicitly not bought.
+ *
+ * `forTrader` is therefore which sections survive for an account that only
+ * bought the analysis. Chart is the centre column and Settings is in the
+ * profile menu, which are the other two of the brief's six.
+ *
+ * PENDING STAYS, though it is not one of the brief's six. It was added after,
+ * on Esther's note that "we are not approving trades again but we can notify
+ * some pending trades", and it is live: a market is pending when the bot has
+ * found its level and is waiting for price, which the market-state publisher
+ * still computes on every cycle.
+ */
+const TABS: {
+  key: Tab;
+  label: string;
+  Icon: typeof Activity;
+  forTrader: boolean;
+}[] = [
+  { key: "market", label: "Market", Icon: Sparkles, forTrader: true },
+  // Next to Live on purpose: the same question a minute apart — what is about
+  // to happen, and what is. An hourglass, not a shield; nothing here waits on
+  // a person.
+  { key: "pending", label: "Pending", Icon: Hourglass, forTrader: false },
+  { key: "live", label: "Live", Icon: Activity, forTrader: false },
+  { key: "history", label: "History", Icon: HistoryIcon, forTrader: false },
+  { key: "performance", label: "Performance", Icon: TrendingUp, forTrader: false },
 ];
 
 const money = (n: number | null | undefined, dp = 2) =>
@@ -211,6 +240,25 @@ export function Desk({
   const tab = useDeskTab();
   const setTab = useSetDeskTab();
 
+  // showScora is the account type, as far as this component needs it: §1 gives
+  // Scora to traders and withholds it from investors, so the flag and "is this
+  // a trader" are the same question. Passing account_type as well would be two
+  // sources for one fact, and they would disagree the first time one moved.
+  const traderOnly = showScora && !embedded;
+  const visibleTabs = traderOnly ? TABS.filter((t) => t.forTrader) : TABS;
+
+  // The tab lives in the store and survives navigation, so it can be holding a
+  // section this account cannot see — a trader arriving on "live" because they
+  // were an investor a moment ago, or a stored value from before Pending was
+  // removed. Fall back to the first one they do have rather than render a
+  // header with nothing selected.
+  const activeTab = visibleTabs.some((t) => t.key === tab)
+    ? tab
+    : visibleTabs[0].key;
+  useEffect(() => {
+    if (activeTab !== tab) setTab(activeTab);
+  }, [activeTab, tab, setTab]);
+
   const live = markets.filter((m) => m.state === "active" && m.volume != null);
   // The chart follows whatever the bot is closest to acting on, so the page
   // opens on a market worth looking at rather than alphabetically first.
@@ -314,8 +362,8 @@ export function Desk({
       >
         <header className="flex h-14 shrink-0 items-center gap-1 border-b border-border px-2">
           <div role="tablist" aria-label="Bot" className="flex min-w-0 items-center gap-0.5">
-            {TABS.map(({ key, label, Icon }) => {
-              const on = tab === key;
+            {visibleTabs.map(({ key, label, Icon }) => {
+              const on = activeTab === key;
               return (
                 <button
                   key={key}
@@ -352,13 +400,13 @@ export function Desk({
         <div className="min-h-0 flex-1 overflow-y-auto">
           {!connected ? (
             <Empty text="rm-server is not configured, so the bot cannot be read from here." />
-          ) : tab === "pending" ? (
+          ) : activeTab === "pending" ? (
             <PendingTab rows={markets} />
-          ) : tab === "live" ? (
+          ) : activeTab === "live" ? (
             <LiveTab rows={live} isAdmin={isAdmin} />
-          ) : tab === "market" ? (
+          ) : activeTab === "market" ? (
             <ActivitiesTab rows={markets} settings={settings} isAdmin={isAdmin} />
-          ) : tab === "performance" ? (
+          ) : activeTab === "performance" ? (
             <PerformanceTab rows={closedTrades} />
           ) : (
             <HistoryTab rows={closedTrades} />
