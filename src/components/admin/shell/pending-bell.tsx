@@ -30,13 +30,13 @@ import type { BotMarket } from "@/lib/workspace/types";
  */
 export function PendingBell({ initial }: { initial: BotMarket[] }) {
   const markets = useLiveMarkets(initial);
-  const { open, setOpen, ref } = useDismissable();
+  const { open, setOpen, ref, hoverProps } = useDismissable();
 
   const waiting = markets.filter((m) => m.state === "ready");
   const count = waiting.length;
 
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative" ref={ref} {...hoverProps}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -60,7 +60,7 @@ export function PendingBell({ initial }: { initial: BotMarket[] }) {
       {open ? (
         <div
           role="menu"
-          className="surface-raised absolute right-0 top-12 z-50 w-80 rounded-xl border border-border shadow-elev-2"
+          className="surface-raised absolute right-0 top-12 z-50 w-[min(34rem,calc(100vw-2rem))] rounded-xl border border-border shadow-elev-2"
         >
           <div className="flex items-baseline justify-between gap-3 border-b border-border px-4 py-3">
             <p className="text-xs uppercase tracking-wide text-fg-muted">
@@ -98,14 +98,28 @@ export function PendingBell({ initial }: { initial: BotMarket[] }) {
                         {market.level !== null ? market.level : "—"}
                       </span>
                     </span>
-                    {/* Truncated: `reason` is the bot's full structure reading
-                        and runs to a sentence or two. The market's own page
-                        shows it in full. */}
+                    {/* IN FULL, wrapped. Victor: "the column still have more
+                        to display but the space is small, expand the width so
+                        everything will display boldly." `reason` is the bot's
+                        whole structure reading — regime, swings, both levels
+                        and why it has not entered — and every one of those is
+                        the reason somebody opened this menu. A 34rem panel
+                        fits it in three lines; the old 20rem one stopped at
+                        "sup…", which is the half that says nothing.
+
+                        No line clamp. An earlier version clamped at two and
+                        the clamp did not apply, so the code said one thing and
+                        the screen did another — and the screen was right. */}
                     <span
-                      className="mt-0.5 block truncate text-[11px] text-fg-subtle"
+                      className="mt-1 block text-[11px] leading-relaxed text-fg-muted"
                       title={market.reason ?? undefined}
                     >
-                      {market.strategy ? `${market.strategy} · ` : ""}
+                      {market.strategy ? (
+                        <span className="font-medium text-fg">
+                          {market.strategy}
+                        </span>
+                      ) : null}
+                      {market.strategy ? " · " : ""}
                       {market.reason ?? "ready"}
                     </span>
                   </Link>

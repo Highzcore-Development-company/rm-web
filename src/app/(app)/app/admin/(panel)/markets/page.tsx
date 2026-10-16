@@ -97,11 +97,15 @@ export default async function AdminMarketsPage({
   });
 
   const enabled = rows.filter((r) => r.config?.enabled !== false).length;
+  const live = rows.filter((r) => r.state?.state === "active").length;
+  const pending = rows.filter((r) => r.state?.state === "ready").length;
 
   return (
     <Shell range={range}>
       <p className="mb-4 text-xs text-fg-muted">
-        {rows.length} configured · {enabled} enabled · results for{" "}
+        {rows.length} configured · {enabled} enabled
+        {live > 0 ? ` · ${live} live` : ""}
+        {pending > 0 ? ` · ${pending} pending` : ""} · results for{" "}
         {RANGE_LABELS[range].toLowerCase()}
         {breakdown.truncated
           ? " · figures cover the most recent 20,000 trades"
@@ -195,6 +199,22 @@ function Row({
         <Link href={href} className="font-medium hover:text-accent">
           {alias}
         </Link>
+        {/* WHAT THIS MARKET IS DOING, as a tag. Victor: "In the market page
+            it should also tag it if the market is pending or live." The Doing
+            column carries the bot's full reading, which is a sentence and is
+            truncated — so the one-word answer was only available by reading
+            prose, or by opening the navbar notification and comparing lists.
+            Live first: a market with money on it outranks one still waiting. */}
+        {state?.state === "active" ? (
+          <span className="ml-2 inline-flex items-center gap-1 rounded border border-accent/40 bg-accent/10 px-1.5 py-0.5 align-middle text-[10px] font-medium uppercase tracking-wide text-accent">
+            <span className="size-1 rounded-full bg-accent" aria-hidden="true" />
+            Live
+          </span>
+        ) : state?.state === "ready" ? (
+          <span className="ml-2 rounded border border-brand/40 bg-brand/10 px-1.5 py-0.5 align-middle text-[10px] font-medium uppercase tracking-wide text-brand">
+            Pending
+          </span>
+        ) : null}
         {off ? (
           <span className="ml-2 rounded border border-border px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-fg-muted">
             Off

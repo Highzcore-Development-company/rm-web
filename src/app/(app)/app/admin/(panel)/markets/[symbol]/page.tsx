@@ -113,6 +113,18 @@ export default async function AdminMarketPage({
         </div>
 
         <div className="flex items-center gap-2">
+          {/* The same tag the markets table carries, so the two pages answer
+              "what is this market doing" in the same word. */}
+          {state?.state === "active" ? (
+            <span className="inline-flex items-center gap-1.5 rounded-lg border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent">
+              <span className="size-1.5 rounded-full bg-accent" aria-hidden="true" />
+              Live
+            </span>
+          ) : state?.state === "ready" ? (
+            <span className="rounded-lg border border-brand/40 bg-brand/10 px-3 py-1.5 text-xs font-medium text-brand">
+              Pending
+            </span>
+          ) : null}
           {config?.enabled === false ? (
             <span className="rounded-lg border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent">
               Turned off

@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
 import {
   ChevronDown,
   LayoutDashboard,
@@ -11,6 +10,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { signOutAndGoHome } from "@/lib/sign-out";
+import { useDismissable } from "@/components/admin/shell/use-dismissable";
 
 export type AdminProfile = {
   email: string | null;
@@ -35,31 +35,12 @@ export type AdminProfile = {
  * accident, and this one sits over the figures.
  */
 export function AdminProfileMenu({ profile }: { profile: AdminProfile }) {
-  const [open, setOpen] = useState(false);
-  const container = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
-    };
-    // Pointer rather than click: a mousedown outside should dismiss before the
-    // click lands, so dismissing never also presses whatever is underneath.
-    const onPointer = (event: PointerEvent) => {
-      if (!container.current?.contains(event.target as Node)) setOpen(false);
-    };
-
-    document.addEventListener("keydown", onKey);
-    document.addEventListener("pointerdown", onPointer);
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.removeEventListener("pointerdown", onPointer);
-    };
-  }, [open]);
+  // Same hook as the two bells beside it — hover on desktop, click everywhere,
+  // Escape and click-outside to dismiss. See use-dismissable.ts.
+  const { open, setOpen, ref: container, hoverProps } = useDismissable();
 
   return (
-    <div className="relative" ref={container}>
+    <div className="relative" ref={container} {...hoverProps}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}

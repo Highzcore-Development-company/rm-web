@@ -32,7 +32,7 @@ import type { BotMarket } from "@/lib/workspace/types";
  */
 export function LiveBell({ initial }: { initial: BotMarket[] }) {
   const markets = useLiveMarkets(initial);
-  const { open, setOpen, ref: container } = useDismissable();
+  const { open, setOpen, ref: container, hoverProps } = useDismissable();
 
   const live = markets.filter((m) => m.state === "active");
   const floating = live.reduce((sum, m) => sum + (m.pnl ?? 0), 0);
@@ -50,7 +50,7 @@ export function LiveBell({ initial }: { initial: BotMarket[] }) {
           : "border border-border text-fg-muted";
 
   return (
-    <div className="relative" ref={container}>
+    <div className="relative" ref={container} {...hoverProps}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -85,7 +85,7 @@ export function LiveBell({ initial }: { initial: BotMarket[] }) {
       {open ? (
         <div
           role="menu"
-          className="surface-raised absolute right-0 top-12 z-50 w-80 rounded-xl border border-border shadow-elev-2"
+          className="surface-raised absolute right-0 top-12 z-50 w-[min(30rem,calc(100vw-2rem))] rounded-xl border border-border shadow-elev-2"
         >
           <div className="flex items-baseline justify-between gap-3 border-b border-border px-4 py-3">
             <p className="text-xs uppercase tracking-wide text-fg-muted">
