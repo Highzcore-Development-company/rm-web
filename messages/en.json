@@ -624,7 +624,6 @@
   "performance": {
     "title": "The record",
     "intro": "Every trade the bot has made on the master account. Published in full, including the losing ones.",
-    "sampleWarning": "SAMPLE DATA — this is generated for development and is not a record of any real trading.",
     "unavailable": "The performance feed is unavailable right now, so there is nothing to show. We would rather show you nothing than a figure we cannot stand behind.",
     "equity": {
       "title": "Account equity"

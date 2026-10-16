@@ -71,150 +71,42 @@ export function isStale(summary: PerformanceSummary, now = Date.now()): boolean 
 }
 
 /**
- * Sample data, so the page can be built and reviewed before the feed exists.
+ * NO SAMPLE DATA. Removed 16 Oct 2026, Victor: "we shouldn't show sample
+ * again, we are trading live account."
  *
- * Gated on NODE_ENV so it can never reach production — and the page labels it
- * loudly when it is on. A sample equity curve on a public performance page
- * would be an invented track record, which is the single worst thing this
- * product could publish.
+ * There used to be a generated equity curve, monthly series and trade list,
+ * gated on NODE_ENV, so the page could be built before the feed existed. It
+ * had already caused the failure it was meant to avoid: because every getter
+ * began `if (!SHOW_SAMPLE) return real`, sample did not fall back, it WON, and
+ * the real feed was never read locally. The account went live and the site
+ * kept publishing a generated 18.0% return and a 70.8% win rate under a banner.
+ *
+ * Making it a fallback fixed the override and was still the wrong shape: an
+ * invented track record on a performance page is the single worst thing this
+ * product can publish, and the only safe number of ways to produce one is
+ * none. The page now shows the real record or its unavailable state. If the
+ * figures are missing, that is a feed to fix, not a gap to fill.
+ *
+ * Callers must handle null — do not default to 0.
  */
-const SHOW_SAMPLE = process.env.NODE_ENV === "development";
-
-/**
- * Whether what is on screen is invented, for THIS request.
- *
- * It used to be `SHOW_SAMPLE` — a constant, true in development full stop. That
- * was accurate while sample data OVERRODE the feed, which it did: every getter
- * began `if (!SHOW_SAMPLE) return real`, so the real record was never read
- * locally. The account went live, rm-server filled with real trades, and the
- * site kept publishing a generated 18.0% because nothing ever asked.
- *
- * Sample is a fallback now, so the banner has to ask whether the fallback
- * actually fired rather than whether it could. A warning that is always on is
- * a warning nobody reads, and worse, one that stays on over real figures
- * teaches people to ignore it.
- */
-export async function usingSampleData(): Promise<boolean> {
-  if (!SHOW_SAMPLE) return false;
-  return (await bundle()) === null;
-}
-
-/** Deterministic pseudo-random so the sample does not change every reload. */
-function seeded(seed: number) {
-  let s = seed;
-  return () => {
-    s = (s * 1664525 + 1013904223) % 4294967296;
-    return s / 4294967296;
-  };
-}
-
-function sampleEquity(): EquityPoint[] {
-  const rand = seeded(42);
-  const points: EquityPoint[] = [];
-  let equity = 10_000;
-  const start = Date.UTC(2026, 0, 1);
-
-  for (let day = 0; day < 240; day += 1) {
-    // Mild upward drift with real drawdowns — a straight line would make the
-    // chart look like a lie even as a placeholder.
-    equity *= 1 + (rand() - 0.46) * 0.012;
-    points.push({
-      t: new Date(start + day * 86_400_000).toISOString().slice(0, 10),
-      equity: Math.round(equity),
-    });
-  }
-  return points;
-}
-
-function sampleMonthly(points: EquityPoint[]): MonthlyReturn[] {
-  const byMonth = new Map<string, EquityPoint[]>();
-  for (const p of points) {
-    const m = p.t.slice(0, 7);
-    byMonth.set(m, [...(byMonth.get(m) ?? []), p]);
-  }
-  return [...byMonth.entries()].map(([month, ps]) => ({
-    month,
-    ret: ps[ps.length - 1].equity / ps[0].equity - 1,
-  }));
-}
-
-function sampleTrades(): PublicTrade[] {
-  const rand = seeded(7);
-  const markets = ["EURUSD+", "GBPJPY+", "BTCUSD", "USDCAD+", "ETHUSD", "AUDUSD+"];
-  return Array.from({ length: 24 }, (_, i) => {
-    const r = (rand() - 0.42) * 3;
-    return {
-      id: `sample-${i}`,
-      market: markets[i % markets.length],
-      side: rand() > 0.5 ? ("buy" as const) : ("sell" as const),
-      durationHours: Math.round(rand() * 40) + 1,
-      resultR: Math.round(r * 10) / 10,
-      resultPct: Math.round(r * 10) / 1000,
-      closedAt: new Date(Date.UTC(2026, 7, 20) - i * 7_200_000).toISOString(),
-    };
-  });
-}
 
 /** One read per request, shared by the four getters below. */
 const bundle = cache(() => loadPerformanceBundle());
 
 export async function getPerformanceSummary(): Promise<PerformanceSummary | null> {
-  // THE REAL RECORD FIRST, always. See performance-feed.ts for the source and
-  // performance-math.ts for the health rules that decide when it goes dark.
-  //
-  // This was `if (!SHOW_SAMPLE) return real` — sample won outright in
-  // development and the feed was never consulted. Now it is only reached when
-  // there is genuinely nothing: an unconfigured project, or a feed that failed
-  // its own health checks.
-  const real = (await bundle())?.summary ?? null;
-  if (real || !SHOW_SAMPLE) return real;
-
-  const points = sampleEquity();
-  const first = points[0].equity;
-  const last = points[points.length - 1].equity;
-
-  let peak = first;
-  let maxDd = 0;
-  for (const p of points) {
-    peak = Math.max(peak, p.equity);
-    maxDd = Math.max(maxDd, 1 - p.equity / peak);
-  }
-
-  const trades = sampleTrades();
-  // The sample always has a stop, so resultR is set; `?? 0` is for the type.
-  const wins = trades.filter((t) => (t.resultR ?? 0) > 0);
-  const grossWin = wins.reduce((a, t) => a + (t.resultR ?? 0), 0);
-  const grossLoss = Math.abs(
-    trades
-      .filter((t) => (t.resultR ?? 0) < 0)
-      .reduce((a, t) => a + (t.resultR ?? 0), 0),
-  );
-
-  return {
-    totalReturn: last / first - 1,
-    maxDrawdown: maxDd,
-    winRate: wins.length / trades.length,
-    profitFactor: grossLoss === 0 ? null : grossWin / grossLoss,
-    tradeCount: trades.length,
-    monthsLive: sampleMonthly(points).length,
-    asOf: new Date().toISOString(),
-  };
+  // The real record, or null. performance-feed.ts is the source and
+  // performance-math.ts holds the health rules that decide when it goes dark.
+  return (await bundle())?.summary ?? null;
 }
 
 export async function getEquityCurve(): Promise<EquityPoint[] | null> {
-  const real = (await bundle())?.equity ?? null;
-  if (real || !SHOW_SAMPLE) return real;
-  return sampleEquity();
+  return (await bundle())?.equity ?? null;
 }
 
 export async function getMonthlyReturns(): Promise<MonthlyReturn[] | null> {
-  const real = (await bundle())?.monthly ?? null;
-  if (real || !SHOW_SAMPLE) return real;
-  return sampleMonthly(sampleEquity());
+  return (await bundle())?.monthly ?? null;
 }
 
 export async function getRecentTrades(): Promise<PublicTrade[] | null> {
-  const real = (await bundle())?.trades ?? null;
-  if (real || !SHOW_SAMPLE) return real;
-  return sampleTrades();
+  return (await bundle())?.trades ?? null;
 }

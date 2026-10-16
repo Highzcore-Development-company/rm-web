@@ -17,8 +17,8 @@ import {
  * that fails, more rows than we are willing to page through, a value that is
  * not a number, a feed that fails its health checks (see feedHealth). The page
  * and the API already have an unavailable state; this is what feeds it. Nothing
- * here falls back to sample data. That path stays in performance.ts, and only
- * in development.
+ * here falls back to sample data, and nothing anywhere does: that path was
+ * removed on 16 Oct 2026. The record is real or it is absent.
  *
  * Reads only. rm-server is the bot's project and we write nothing to it.
  */
