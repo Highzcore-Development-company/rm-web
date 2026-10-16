@@ -5,6 +5,32 @@
 [build.environment]
   NODE_VERSION = "22"
 
+  # ---------------------------------------------------------------------------
+  # Secrets scanning: skip the BUILD CACHE, and only the build cache.
+  #
+  # Every deploy has failed since at least 13 Oct with "Exposed secrets
+  # detected" — GROQ_API_KEY and CRON_SECRET found in
+  # `.netlify/.next/cache/turbopack/**/*.sst`. That is Turbopack's persistent
+  # compilation cache: it records what the build read, including env values, so
+  # the next build can skip work. Netlify restores it between builds and scans
+  # it along with everything else.
+  #
+  # IT IS NOT A LEAK, and that was checked rather than assumed. Both are read
+  # only in server code — GROQ_API_KEY in the Scora route handler, CRON_SECRET
+  # in lib/job-auth.ts — and neither carries a NEXT_PUBLIC_ prefix, which is
+  # the only way Next inlines a value into a client bundle. The scanner
+  # reported them in the .sst files and nowhere else: not in a served asset,
+  # not in the repo.
+  #
+  # SCOPED, NOT DISABLED. SECRETS_SCAN_ENABLED=false would have turned the
+  # check off everywhere and made the next genuine leak silent — and a real one
+  # would look exactly like this in the log. Omitting the cache path leaves the
+  # scan running over every file that actually ships.
+  #
+  # Both spellings, because the cache is `.next/cache` during the build and
+  # `.netlify/.next/cache` once Netlify has moved it.
+  SECRETS_SCAN_OMIT_PATHS = ".next/cache/**,.netlify/.next/cache/**"
+
 # Netlify installs @netlify/plugin-nextjs automatically for Next.js sites.
 # Pinned here so the build does not change underneath us without a commit.
 [[plugins]]
