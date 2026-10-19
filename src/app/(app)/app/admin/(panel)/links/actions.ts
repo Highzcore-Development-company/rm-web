@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/service";
-import { isAdmin } from "@/lib/admin";
+import { requirePermission } from "@/lib/admin";
 import { accountLinkedEmail, sendEmail } from "@/lib/email";
 import { entitlementFrom } from "@/lib/entitlement";
 import type { Subscription } from "@/lib/supabase/types";
@@ -19,7 +19,12 @@ export type AdminResult = { ok: true } | { ok: false; error: string };
  * Automate this only when Vantage gives us something to automate against.
  */
 export async function confirmLink(investorId: string): Promise<AdminResult> {
-  if (!(await isAdmin())) return { ok: false, error: "forbidden" };
+  // users.edit. Confirming a claim is what makes an investor's account
+  // tradeable — the bot starts copying to it. That is the most consequential
+  // thing on this page and it was behind "any admin", which included support.
+  if (!(await requirePermission("users.edit"))) {
+    return { ok: false, error: "forbidden" };
+  }
 
   const service = createServiceClient();
 
@@ -110,7 +115,12 @@ async function notifyLinked(investorId: string, vantageAccountId: string) {
  * suspension is a status that should mean something.
  */
 export async function rejectLink(investorId: string): Promise<AdminResult> {
-  if (!(await isAdmin())) return { ok: false, error: "forbidden" };
+  // users.edit. Confirming a claim is what makes an investor's account
+  // tradeable — the bot starts copying to it. That is the most consequential
+  // thing on this page and it was behind "any admin", which included support.
+  if (!(await requirePermission("users.edit"))) {
+    return { ok: false, error: "forbidden" };
+  }
 
   const service = createServiceClient();
   const { error } = await service

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { LinkActions } from "@/components/admin/link-actions";
-import { isAdmin } from "@/lib/admin";
+import { requirePermission } from "@/lib/admin";
 import { createServiceClient } from "@/lib/supabase/service";
 
 export const metadata: Metadata = {
@@ -21,7 +21,10 @@ export const dynamic = "force-dynamic";
  * rendered "forbidden" page: a non-admin should not learn this URL exists.
  */
 export default async function AdminLinksPage() {
-  if (!(await isAdmin())) notFound();
+  // users.view, not "is an admin". This page lists investors and their broker
+  // account numbers, which is their data — a finance admin has no business in
+  // it, and "any admin" is not a permission.
+  if (!(await requirePermission("users.view"))) notFound();
 
   const t = await getTranslations("adminLinks");
   const service = createServiceClient();
