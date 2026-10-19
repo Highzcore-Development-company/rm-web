@@ -22,6 +22,54 @@ export type Investor = {
   user_id: string;
   /** Never null. Which of the two products this account is. */
   account_type: AccountType;
+
+  // ---- The investor application (HS-BOT-v4 item 9) ------------------------
+  //
+  // All nullable: the form is filled over several visits, because nobody has
+  // their RC number and a scan of the certificate of incorporation to hand in
+  // one sitting. `submitted_at` is what says it is finished.
+  //
+  // Only meaningful when account_type is 'investor'. A trader has none of it.
+  company_name: string | null;
+  /** The only field that uniquely identifies a company. Names are not unique. */
+  company_reg_number: string | null;
+  company_country: string | null;
+  company_state: string | null;
+  company_address: string | null;
+  company_tax_id: string | null;
+  company_nature: string | null;
+  company_website: string | null;
+
+  /** The human being we deal with. This is the name the admin user list shows. */
+  contact_name: string | null;
+  contact_role: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  /** False means they relay but cannot instruct; instructing_party names who can. */
+  contact_may_instruct: boolean | null;
+  instructing_party: string | null;
+
+  /** Minor units, like every amount here. Never a float — this goes on an agreement. */
+  intended_amount_usd: number | null;
+  source_of_funds: string | null;
+  preferred_currency: string | null;
+  /** True = open one for them. False = they have one. Null = not asked yet. */
+  wants_account_opened: boolean | null;
+
+  /** Storage path, not a file. Null while documents are collected on the call. */
+  incorporation_cert_path: string | null;
+
+  /** Same shape as risk_acknowledged_at: RLS permits only null -> a value. */
+  management_agreement_at: string | null;
+  terms_accepted_at: string | null;
+
+  /**
+   * Submitted for review. Null means still being filled in.
+   *
+   * Submitting activates NOTHING — an admin reviews it and links the broker
+   * account, and only then does status become 'linked'.
+   */
+  submitted_at: string | null;
   /** Set when OUR code was accepted. Supabase auto-confirms, so its flag is not meaningful. */
   email_verified_at: string | null;
   /** P2-104. Server-written, and the RLS policy only allows null -> a value. */

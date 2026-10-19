@@ -18,6 +18,20 @@ export type AdminUserRow = {
   investorId: string;
   userId: string;
   email: string;
+  /**
+   * Who to call them, when we know.
+   *
+   * An INVESTOR gives a company and a contact person; the contact is the human
+   * being, so that is the name. A trader has not been asked for one yet — the
+   * shared signup collects an email and nothing else — so this is null for
+   * them and the list falls back to the address.
+   *
+   * Null is therefore "not collected", never "they have no name". The
+   * difference matters: one is a gap in the form, the other would be a bug.
+   */
+  displayName: string | null;
+  /** The company, for an investor. Null for a trader. */
+  companyName: string | null;
   signedUpAt: string;
   verified: boolean;
   riskAcknowledged: boolean;
@@ -175,6 +189,8 @@ export async function listUsers(filter: UserListFilter = {}): Promise<{
       // A deleted investor's auth account is anonymised, so there may be no
       // address to show. Saying so is better than an empty cell.
       email: account?.email || (investor.deleted_at ? "(deleted)" : "(unknown)"),
+      displayName: investor.contact_name,
+      companyName: investor.company_name,
       signedUpAt: investor.created_at,
       verified: Boolean(investor.email_verified_at),
       riskAcknowledged: Boolean(investor.risk_acknowledged_at),
@@ -256,6 +272,8 @@ export async function getUser(investorId: string): Promise<AdminUserDetail | nul
       investorId: investor.id,
       userId: investor.user_id,
       email: account?.data?.user?.email || "(unknown)",
+      displayName: investor.contact_name,
+      companyName: investor.company_name,
       signedUpAt: investor.created_at,
       verified: Boolean(investor.email_verified_at),
       riskAcknowledged: Boolean(investor.risk_acknowledged_at),

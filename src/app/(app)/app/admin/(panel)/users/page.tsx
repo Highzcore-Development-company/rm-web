@@ -101,12 +101,25 @@ export default async function AdminUsersPage({
                     className={row.deletedAt ? "opacity-50" : undefined}
                   >
                     <th scope="row" className="py-3 pr-4 font-normal">
+                      {/* THE NAME LEADS, when we have one.
+                          An investor gives a company and a contact person, and
+                          the contact is the human being you would ring. A
+                          trader has never been asked — the shared signup takes
+                          an email and nothing else — so theirs falls back to
+                          the address rather than showing a blank where a name
+                          should be. */}
                       <Link
                         href={`/app/admin/users/${row.investorId}`}
                         className="text-accent underline underline-offset-2"
                       >
-                        {row.email}
+                        {row.displayName ?? row.email}
                       </Link>
+                      {row.displayName ? (
+                        <span className="mt-0.5 block text-xs font-normal text-fg-muted">
+                          {row.companyName ? `${row.companyName} · ` : ""}
+                          {row.email}
+                        </span>
+                      ) : null}
                       {/* An admin is an in-house person who was invited into
                           this panel — not every colleague is one. They may
                           also be a customer, so the badge is how you avoid
