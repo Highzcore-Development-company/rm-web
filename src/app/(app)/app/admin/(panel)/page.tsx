@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowUpRight, Wallet } from "lucide-react";
 import { getAdmin } from "@/lib/admin";
+import { notFound, redirect } from "next/navigation";
+import { firstVisibleAdminPath } from "@/lib/admin/landing";
 import { getAdminOverview } from "@/lib/admin/overview";
 import { ProgressChart } from "@/components/admin/progress-chart";
 import { CompositionChart } from "@/components/admin/composition-chart";
@@ -26,6 +28,24 @@ export const dynamic = "force-dynamic";
  */
 export default async function AdminOverviewPage() {
   const admin = await getAdmin();
+
+  // overview.view can be withheld, so somebody may arrive here without it.
+  //
+  // REDIRECTED, NOT 404'd. This is the page an admin lands on after signing
+  // in, and a 404 there reads as a broken product rather than as a decision
+  // somebody made about them. They go to the first section they CAN open,
+  // in the order the sidebar lists it, so the destination matches the first
+  // item in their own nav rather than looking arbitrary.
+  if (admin && !admin.permissions.includes("overview.view")) {
+    const elsewhere = firstVisibleAdminPath(admin.permissions);
+
+    // Null means a role with nothing granted — possible, because
+    // admin_roles.permissions defaults to an empty array. Sending them back
+    // here would be a redirect loop, so say it plainly instead.
+    if (!elsewhere) notFound();
+    redirect(elsewhere);
+  }
+
   const canSeeBot = admin?.permissions.includes("bot.view") ?? false;
   const canSeeFinance = admin?.permissions.includes("finance.view") ?? false;
 
