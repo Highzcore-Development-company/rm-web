@@ -120,9 +120,28 @@ export function TradeReview({ data }: { data: TradeReviewData }) {
 
       {open && (
         <div className="mt-3 rounded-lg border border-border bg-surface p-4 text-left">
+          {/* WHAT THIS FIELD ACTUALLY IS, until Victor aligns it.
+              (Victor, 19 Oct) The gate reads trend on the last CLOSED bar;
+              this snapshot is taken at FILL, on a frame that still holds the
+              forming bar. Same function, different bar. So it is the reading
+              at the moment of filling — NOT what the bot decided on, and it
+              cannot prove the bot entered without a trend.
+
+              Said on screen because the mislabel is actively misleading: it
+              reads as "the bot entered with no trend", which is the wrong
+              conclusion and nearly became a filed bug. Remove this note when
+              the snapshot is aligned to the signal bar. */}
+          <p className="mb-3 rounded-md border border-accent/30 bg-accent/5 px-3 py-2 text-[11px] leading-relaxed text-fg-muted">
+            Trend below is read <strong className="text-fg">at the fill</strong>,
+            not at the moment the bot decided. A reading of Sideways here does
+            not mean it entered without a trend — the decision was made on the
+            previous closed bar. Treat a disagreement as a possible late entry,
+            not a broken rule.
+          </p>
+
           <div className="flex flex-wrap gap-x-6 gap-y-2 border-b border-border pb-3 text-xs">
             <span>
-              <span className="text-fg-muted">Trend at entry </span>
+              <span className="text-fg-muted">Trend at fill </span>
               <span className="font-medium">{trend(data.entryTrend)}</span>
               {data.htf ? (
                 <span className="text-fg-muted">
@@ -132,7 +151,7 @@ export function TradeReview({ data }: { data: TradeReviewData }) {
               ) : null}
             </span>
             <span>
-              <span className="text-fg-muted">Agreement </span>
+              <span className="text-fg-muted">Agreement at fill </span>
               <span className="font-medium">{data.trendAgreement ?? "—"}</span>
             </span>
             {data.strategy ? (
