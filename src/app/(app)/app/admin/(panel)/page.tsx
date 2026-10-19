@@ -96,6 +96,25 @@ export default async function AdminOverviewPage() {
                       : `${bot.today.trades} closed · ${bot.today.wins}W / ${bot.today.losses}L`
                   }
                 />
+                {/* The TRADING week, Monday to Friday — not a rolling seven
+                    days. Read at the weekend it still describes the week that
+                    just closed, because the market is shut and rolling forward
+                    on Saturday would swap a full week for an empty one. */}
+                <Stat
+                  label="This week"
+                  value={
+                    bot.week.trades === 0 ? (
+                      "—"
+                    ) : (
+                      <Signed value={bot.week.net} format={money} />
+                    )
+                  }
+                  note={
+                    bot.week.trades === 0
+                      ? "Nothing closed this week"
+                      : `${bot.week.trades} closed · ${bot.week.wins}W / ${bot.week.losses}L`
+                  }
+                />
               </div>
 
               <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

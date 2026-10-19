@@ -1,3 +1,4 @@
+import { rangeFor } from "@/lib/admin/ranges";
 import { createServiceClient } from "@/lib/supabase/service";
 import { createRmServerClient } from "@/lib/supabase/rm-server";
 import { summarise, type BillingSummary } from "@/lib/billing-summary";
@@ -47,6 +48,14 @@ export type BotOverviewFigures = {
   closed: HistoryTotals;
   /** Same, for the current calendar day (UTC). */
   today: HistoryTotals;
+  /**
+   * The TRADING week, Monday to Friday — not a rolling seven days.
+   *
+   * Read at the weekend it still describes the week that just closed: the
+   * market is shut, so rolling forward on Saturday would replace a full week
+   * with an empty one.
+   */
+  week: HistoryTotals;
   markets: { total: number; enabled: number; trading: number };
   /**
    * The progress series behind the chart — ALL THREE granularities.
@@ -124,6 +133,7 @@ const NOT_CONNECTED: BotOverviewFigures = {
   openPnl: 0,
   closed: { net: 0, trades: 0, wins: 0, losses: 0, profitFactor: null },
   today: { net: 0, trades: 0, wins: 0, losses: 0, profitFactor: null },
+  week: { net: 0, trades: 0, wins: 0, losses: 0, profitFactor: null },
   markets: { total: 0, enabled: 0, trading: 0 },
   progress: { day: [], week: [], month: [] },
   composition: {
@@ -193,6 +203,18 @@ export async function getBotFigures(): Promise<BotOverviewFigures> {
   const since = startOfTodayIso();
   const today = closedAll.filter((t) => (t.close_ts ?? "") >= since);
 
+  // Both bounds, because the week ENDS on Saturday once it has closed —
+  // filtering on `from` alone would quietly fold the next week in from Monday.
+  const thisWeek = rangeFor("week");
+  const week = closedAll.filter((t) => {
+    const at = t.close_ts ?? "";
+    if (!at) return false;
+    if (thisWeek.from && at < thisWeek.from) return false;
+    // Exclusive upper bound, matching how every other range here is applied.
+    if (thisWeek.to && at >= thisWeek.to) return false;
+    return true;
+  });
+
   // Floating P&L from the live market rows rather than from equity − balance:
   // the two should agree, but the market rows also say WHICH markets are open,
   // which is what the navbar bell drops down to show.
@@ -222,6 +244,7 @@ export async function getBotFigures(): Promise<BotOverviewFigures> {
     openPnl,
     closed: totalsFor(closedAll),
     today: totalsFor(today),
+    week: totalsFor(week),
     markets: {
       total: configs.length || markets.length,
       enabled: configs.filter((c) => c.enabled).length,
