@@ -40,7 +40,10 @@ export default async function AdminMarketsPage({
   if (!(await requirePermission("bot.view"))) notFound();
 
   const params = await searchParams;
-  const range: RangeKey = isRangeKey(params.range) ? params.range : "all";
+  // TODAY by default, for the same reason as History. "All time" answered a
+  // different question — how has this market done ever — when the one being
+  // asked on open is what it is doing now.
+  const range: RangeKey = isRangeKey(params.range) ? params.range : "today";
 
   const client = createRmServerClient();
 

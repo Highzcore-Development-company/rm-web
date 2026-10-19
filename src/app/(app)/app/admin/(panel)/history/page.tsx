@@ -76,7 +76,11 @@ export default async function AdminHistoryPage({
   if (!(await requirePermission("bot.view"))) notFound();
 
   const params = await searchParams;
-  const range: RangeKey = isRangeKey(params.range) ? params.range : "7d";
+  // TODAY by default. Esther: opening History should land on today, not on a
+  // week — somebody opening it has just watched something happen and wants to
+  // see that, and a week of rows buries it. The range is in the URL, so a
+  // wider view is one click and a shareable link away.
+  const range: RangeKey = isRangeKey(params.range) ? params.range : "today";
   const view: View = params.view === "trades" ? "trades" : "markets";
   const sort: SortKey = isSortKey(params.sort) ? params.sort : "closed";
   const dir: SortDir = params.dir === "asc" ? "asc" : "desc";
