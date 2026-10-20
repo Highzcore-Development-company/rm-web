@@ -217,11 +217,20 @@ export async function listUsers(filter: UserListFilter = {}): Promise<{
   return { rows: filtered, total: count ?? 0, page, perPage };
 }
 
+export type InvestorOwner = {
+  id: string;
+  fullName: string;
+  sharePercent: number | null;
+  isDirector: boolean;
+};
+
 export type AdminUserDetail = {
   row: AdminUserRow;
   investor: Investor;
   subscriptions: Subscription[];
   disabledByEmail: string | null;
+  /** Directors and owners over 25%. Empty for a trader, who has no company. */
+  owners: InvestorOwner[];
 };
 
 /** A4 — one investor, everything about them. */
@@ -264,7 +273,22 @@ export async function getUser(investorId: string): Promise<AdminUserDetail | nul
     disabledByEmail = actor?.user?.email ?? null;
   }
 
+  // The company's directors and owners, for the application panel. Fetched
+  // here rather than in the page so one call returns everything about a
+  // person — an admin opening this is reviewing, not browsing.
+  const { data: ownerRows } = await service
+    .from("investor_owners")
+    .select("id, full_name, share_percent, is_director")
+    .eq("investor_id", investorId)
+    .order("created_at", { ascending: true });
+
   return {
+    owners: (ownerRows ?? []).map((o) => ({
+      id: o.id as string,
+      fullName: o.full_name as string,
+      sharePercent: o.share_percent as number | null,
+      isDirector: o.is_director as boolean,
+    })),
     investor: investor as Investor,
     subscriptions,
     disabledByEmail,

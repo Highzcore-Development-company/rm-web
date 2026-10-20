@@ -10,6 +10,7 @@ import {
   EditUser,
 } from "@/components/admin/user-controls";
 import { getAdmin, requirePermission } from "@/lib/admin";
+import { InvestorApplication } from "@/components/admin/investor-application";
 import { getUser } from "@/lib/admin/users";
 import { formatUsd } from "@/lib/pricing";
 
@@ -78,7 +79,7 @@ export default async function AdminUserPage({
   const detail = await getUser(id);
   if (!detail) notFound();
 
-  const { row, investor, subscriptions, disabledByEmail } = detail;
+  const { row, investor, subscriptions, disabledByEmail, owners } = detail;
 
   // Each control is rendered only with its own permission — and refuses again
   // on the server, because hiding it is presentation, not enforcement.
@@ -221,6 +222,10 @@ export default async function AdminUserPage({
           />
         </div>
       ) : null}
+
+      {/* The application. Submitting emails an admin a link to this page, so
+          what they are being asked to review has to be ON it. */}
+      <InvestorApplication investor={investor} owners={owners} />
     </div>
   );
 }

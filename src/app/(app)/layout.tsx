@@ -30,6 +30,7 @@ import { ensureInvestor, getInvestor } from "@/lib/investors";
  * policy is the permission.
  */
 const INVESTOR_ONLY = [
+  "/app/apply",
   "/app/link-account",
   "/app/onboarding",
   "/app/risk-acknowledgement",
@@ -146,7 +147,7 @@ export default async function AppLayout({
         investor?.account_type === "investor" &&
         TRADER_ONLY.some((p) => pathname.startsWith(p))
       ) {
-        redirect("/app/enquiry");
+        redirect("/app/apply");
       }
 
       // The risk acknowledgement is an INVESTOR's. Asking a trader to

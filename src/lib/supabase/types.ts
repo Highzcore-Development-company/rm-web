@@ -258,6 +258,29 @@ export type ServiceDatabase = {
         Update: never;
         Relationships: [];
       };
+      /** Directors and anyone over 25% of an investor company (item 9). */
+      investor_owners: {
+        Row: {
+          id: string;
+          investor_id: string;
+          full_name: string;
+          share_percent: number | null;
+          is_director: boolean;
+          created_at: string;
+        };
+        Insert: {
+          investor_id: string;
+          full_name: string;
+          share_percent?: number | null;
+          is_director?: boolean;
+        };
+        Update: {
+          full_name?: string;
+          share_percent?: number | null;
+          is_director?: boolean;
+        };
+        Relationships: [];
+      };
       sent_reminders: {
         Row: { subscription_id: string; milestone: number; sent_at: string };
         Insert: { subscription_id: string; milestone: number };
@@ -435,9 +458,44 @@ export type Database = {
         // Status and account are not insertable: the column grants in the
         // migration omit them, so they take their defaults whatever we send.
         Insert: { user_id: string; account_type?: AccountType };
+        /**
+         * EXACTLY THE COLUMN GRANTS, and that is the point of listing them.
+         *
+         * investors uses column-level grants, so Postgres refuses anything
+         * absent from them whatever the policy says. Mirroring that here means
+         * the compiler refuses it first, with the column named, instead of a
+         * runtime error that arrives as an empty object.
+         *
+         * status, linked_at and vantage_account_id's confirmation are NOT
+         * here: they are how an application becomes a live trading
+         * relationship and they belong to the admin who reviews it.
+         */
         Update: {
           vantage_account_id?: string | null;
           risk_acknowledged_at?: string | null;
+          // The investor application (item 9).
+          company_name?: string | null;
+          company_reg_number?: string | null;
+          company_country?: string | null;
+          company_state?: string | null;
+          company_address?: string | null;
+          company_tax_id?: string | null;
+          company_nature?: string | null;
+          company_website?: string | null;
+          contact_name?: string | null;
+          contact_role?: string | null;
+          contact_email?: string | null;
+          contact_phone?: string | null;
+          contact_may_instruct?: boolean | null;
+          instructing_party?: string | null;
+          intended_amount_usd?: number | null;
+          source_of_funds?: string | null;
+          preferred_currency?: string | null;
+          wants_account_opened?: boolean | null;
+          incorporation_cert_path?: string | null;
+          management_agreement_at?: string | null;
+          terms_accepted_at?: string | null;
+          submitted_at?: string | null;
         };
         Relationships: [];
       };
@@ -533,6 +591,29 @@ export type Database = {
           content: string;
         };
         Update: never;
+        Relationships: [];
+      };
+      /** Directors and anyone over 25% of an investor company (item 9). */
+      investor_owners: {
+        Row: {
+          id: string;
+          investor_id: string;
+          full_name: string;
+          share_percent: number | null;
+          is_director: boolean;
+          created_at: string;
+        };
+        Insert: {
+          investor_id: string;
+          full_name: string;
+          share_percent?: number | null;
+          is_director?: boolean;
+        };
+        Update: {
+          full_name?: string;
+          share_percent?: number | null;
+          is_director?: boolean;
+        };
         Relationships: [];
       };
       api_usage: {
