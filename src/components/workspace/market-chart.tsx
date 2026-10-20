@@ -1774,7 +1774,7 @@ export function MarketChart({
         supabase.from('bot_quotes').select('digits').eq('symbol', symbol).maybeSingle(),
         // bot_trades only carries orders the bot placed itself. A position it
         // adopted from the broker exists only here, as state='active'.
-        supabase.from('bot_market_state').select('state,level,latest_signal,sl,tp')
+        supabase.from('bot_market_state').select('state,level,latest_signal,sl,tp,pending_ticket')
           .eq('symbol', symbol).maybeSingle(),
       ]);
       if (!alive) return;
@@ -1855,10 +1855,21 @@ export function MarketChart({
         // the profit lock ratchets the stop. bot_trades is the fallback.
         const openRow = trades.find((t) => !t.close_ts);
         const live = stateRes.data as
-          { state?: string; level?: number; latest_signal?: string; sl?: number | null; tp?: number | null } | null;
+          { state?: string; level?: number; latest_signal?: string; sl?: number | null; tp?: number | null; pending_ticket?: number | null } | null;
 
         const hasPosition = live?.state === 'active' || !!openRow;   // a trade is open
-        const hasPending = live?.level != null && !hasPosition;      // limit order resting, not yet filled
+        // A REAL resting order, not just a level the bot is watching.
+        // pending_ticket is non-null only when an order is actually resting on
+        // the broker, which the bot rarely does now (it enters at market on
+        // confirmation). Keying "pending" off `level` instead drew a BUY ·
+        // pending at a range floor the bot had merely identified, nothing placed
+        // (Victor, 20 Oct 2026).
+        const hasPending = live?.pending_ticket != null && !hasPosition;
+        // Parked at a level, watching for confirmation, nothing placed. Still
+        // worth drawing — it is where the next trade would go — but labelled
+        // "waiting", not "pending", because no order exists. Victor, 20 Oct:
+        // the "waiting to enter" markets need their level ON the chart.
+        const hasWatch = live?.level != null && !hasPosition && !hasPending;
 
         const entry = live?.level != null ? Number(live.level)
           : openRow ? Number(openRow.open_price) : null;
@@ -1867,17 +1878,29 @@ export function MarketChart({
         tradeSL.current = sl != null ? Number(sl) : null;
         tradeTP.current = tp != null ? Number(tp) : null;
 
-        if (entry != null && (hasPosition || hasPending)) {
+        if (entry != null && (hasPosition || hasPending || hasWatch)) {
           const sig = (live?.latest_signal ?? '').toUpperCase();
+          const lastClose = bars.length ? bars[bars.length - 1].close : null;
           activeSide.current = openRow
             ? (openRow.side === 'sell' ? 'sell' : 'buy')
-            : (sig.startsWith('SHORT') || sig.startsWith('SELL') ? 'sell' : 'buy');
+            : sig.startsWith('SHORT') || sig.startsWith('SELL') ? 'sell'
+            : sig.startsWith('LONG') || sig.startsWith('BUY') ? 'buy'
+            // A watched level carries no signal string, so infer from geometry:
+            // the bot buys a level BELOW price and sells one ABOVE it — true for
+            // a range floor/ceiling and a trend's support/resistance alike.
+            : (lastClose != null && entry > lastClose) ? 'sell' : 'buy';
           const sideStr = activeSide.current === 'sell' ? 'SELL' : 'BUY';
-          // Entry line: solid once filled, dashed while the order is still pending.
+          // Solid once filled, dashed for a resting order, dotted while merely
+          // watching the level.
+          const lineStyle = hasPosition ? LineStyle.Solid
+            : hasPending ? LineStyle.Dashed
+            : LineStyle.Dotted;
+          const title = hasPosition ? sideStr
+            : hasPending ? `${sideStr} · pending`
+            : `${sideStr} · waiting`;
           overlayLines.current.push(series.createPriceLine({
             price: entry, color: '#3b9de7', lineWidth: 2,
-            lineStyle: hasPending ? LineStyle.Dashed : LineStyle.Solid,
-            axisLabelVisible: true, title: hasPending ? `${sideStr} · pending` : sideStr,
+            lineStyle, axisLabelVisible: true, title,
           }));
           // SL / TP are now drawn by default (pending and open alike) — no click needed.
           if (tradeSL.current != null) overlayLines.current.push(series.createPriceLine({ price: tradeSL.current, color: palette.down, lineWidth: 1, lineStyle: LineStyle.Dashed, axisLabelVisible: true, title: 'SL' }));
