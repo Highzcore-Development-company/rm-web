@@ -120,7 +120,11 @@ export async function recordRefund(
 export async function recheckPayment(
   subscriptionId: string,
 ): Promise<{ ok: boolean; paid: boolean }> {
-  if (!(await isAdmin())) return { ok: false, paid: false };
+  // finance.view: this asks the provider about a specific payment. Support
+  // has no reason to, and the rest of this file already requires it.
+  if (!(await requirePermission("finance.view"))) {
+    return { ok: false, paid: false };
+  }
 
   const service = createServiceClient();
 

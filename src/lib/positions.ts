@@ -98,7 +98,12 @@ export async function getClosedTrades(): Promise<ClosedTrade[] | null> {
 
   const { data, error } = await client
     .from("bot_trades")
-    .select("ticket, symbol, side, open_ts, close_ts, profit")
+    // `pnl`, not `profit` — there is no profit column and the whole query was
+    // failing, so this list has been empty since it shipped. commission and
+    // swap come with it because the result has to be NET: they are 0.00 on
+    // every Deriv fill, so a gross figure looks right today and starts
+    // flattering us the moment the bot reaches Vantage Raw ECN (P2-705).
+    .select("ticket, symbol, side, open_ts, close_ts, pnl, commission, swap")
     .eq(LIVE_ONLY.column, LIVE_ONLY.value)
     .not("close_ts", "is", null)
     .order("close_ts", { ascending: false })
@@ -115,6 +120,14 @@ export async function getClosedTrades(): Promise<ClosedTrade[] | null> {
     side: r.side as string,
     openedAt: (r.open_ts as string | null) ?? null,
     closedAt: (r.close_ts as string | null) ?? null,
-    profit: (r.profit as number | null) ?? null,
+    // Costs are stored negative, so they are ADDED. Null pnl stays null
+    // rather than becoming 0 — "we do not know" and "it broke even" are
+    // different answers and only one of them is honest here.
+    profit:
+      r.pnl == null
+        ? null
+        : (r.pnl as number) +
+          ((r.commission as number | null) ?? 0) +
+          ((r.swap as number | null) ?? 0),
   }));
 }

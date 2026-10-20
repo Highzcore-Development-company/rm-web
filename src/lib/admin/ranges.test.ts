@@ -86,3 +86,49 @@ it("labels every key", () => {
   // A key with no label renders as blank in the picker.
   for (const key of RANGE_KEYS) expect(RANGE_LABELS[key]).toBeTruthy();
 });
+
+/**
+ * The trading week, Monday to Friday (Victor, 19 Oct).
+ *
+ * The weekend is where this gets interesting: a figure read on Saturday or
+ * Sunday has to describe the week that just CLOSED. Roll forward on Saturday
+ * and a full week is replaced by an empty one, which reads as a dead week
+ * rather than a shut market.
+ */
+describe("the Monday-to-Friday trading week", () => {
+  // 19 Oct 2026 is a Monday.
+  const MON = new Date("2026-10-19T10:00:00Z");
+  const WED = new Date("2026-10-21T10:00:00Z");
+  const FRI = new Date("2026-10-23T22:00:00Z");
+  const SAT = new Date("2026-10-24T10:00:00Z");
+  const SUN = new Date("2026-10-25T10:00:00Z");
+
+  const week = (now: Date) => rangeFor("week", now);
+
+  it("starts on Monday midnight, whatever day it is read", () => {
+    for (const now of [MON, WED, FRI, SAT, SUN]) {
+      expect(week(now).from).toBe("2026-10-19T00:00:00.000Z");
+    }
+  });
+
+  it("mid-week runs to tomorrow, so today is included", () => {
+    // An exclusive bound of tonight's midnight would drop everything that
+    // happened today — on the day somebody is most likely looking.
+    expect(week(WED).to).toBe("2026-10-22T00:00:00.000Z");
+  });
+
+  it("stops at Saturday once the week has closed", () => {
+    expect(week(SAT).to).toBe("2026-10-24T00:00:00.000Z");
+    expect(week(SUN).to).toBe("2026-10-24T00:00:00.000Z");
+  });
+
+  it("treats Sunday as the week that just ended, not a new one", () => {
+    // getUTCDay puts Sunday at 0. Counting back one day would start the week
+    // on Saturday; counting back six keeps Sunday with the week it follows.
+    expect(week(SUN).from).toBe(week(FRI).from);
+  });
+
+  it("is not the rolling 1w, which is the reason it is a separate key", () => {
+    expect(rangeFor("1w", WED).from).not.toBe(week(WED).from);
+  });
+});

@@ -14,6 +14,10 @@
  */
 
 export const PERMISSIONS = [
+  // Victor's own example of what should be withholdable: "I disable an admin
+  // from seeing the overview". It sits first because it is the landing page —
+  // an admin without it needs somewhere else to go, not a 404 after signing in.
+  "overview.view",
   "users.view",
   "users.edit",
   "users.disable",
@@ -46,6 +50,13 @@ export function isPermission(value: string): value is Permission {
  * before ticking it.
  */
 export const PERMISSION_LABELS: Record<Permission, { label: string; hint: string }> = {
+  "overview.view": {
+    label: "See the overview",
+    hint:
+      "The admin home page. Without it they land on the first section they " +
+      "can see instead. The figures on it are still gated individually — " +
+      "the bot needs bot.view and the money needs finance.view.",
+  },
   "users.view": {
     label: "View users",
     hint: "See the customer list and anyone's account",

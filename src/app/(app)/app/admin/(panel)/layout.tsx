@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { Logo } from "@/components/logo";
 import { notFound, redirect } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
@@ -160,11 +161,12 @@ export default async function AdminLayout({
       <header className="sticky top-0 z-40 border-b border-border bg-bg/90 backdrop-blur">
         <div className="flex h-16 items-center justify-between gap-4 px-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
-            <Link
-              href="/app/admin"
-              className="shrink-0 text-lg font-semibold tracking-tight"
-            >
-              Highzcore
+            {/* The mark, not the word. It is the company's logo everywhere
+                else on the site; the admin panel was the one place still
+                spelling it out. Links to the panel root rather than the
+                marketing home — from in here, "home" is the dashboard. */}
+            <Link href="/app/admin" aria-label="Admin home" className="shrink-0">
+              <Logo width={132} priority />
             </Link>
             <span className="shrink-0 rounded-md border border-accent/30 bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
               Admin
@@ -202,7 +204,14 @@ export default async function AdminLayout({
 
       <div className="mx-auto flex w-full max-w-[100rem] gap-8 px-4 py-6 sm:px-6 lg:py-8">
         <aside className="shrink-0 lg:w-56">
-          <div className="lg:sticky lg:top-24">
+          {/* SCROLLS ON ITS OWN. The nav has outgrown a short laptop screen,
+              and a sticky column taller than the viewport simply hides its
+              last items with no way to reach them — the page scroll moves the
+              main column, not this one.
+
+              Bounded by the viewport minus the 6rem header, so it is the list
+              that scrolls rather than the page. */}
+          <div className="lg:sticky lg:top-24 lg:max-h-[calc(100dvh-7rem)] lg:overflow-y-auto lg:pr-1">
             <AdminSidebar groups={groups} />
           </div>
         </aside>

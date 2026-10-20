@@ -23,6 +23,11 @@ export const RANGE_KEYS = [
   "3d",
   "7d",
   "1w",
+  // THE TRADING WEEK, Monday to Friday — not the rolling seven days "1w"
+  // means. Victor, 19 Oct. Deliberately a separate key rather than a
+  // redefinition: "1w" is already in URLs people have shared, and quietly
+  // changing what a saved link returns is worse than adding a name.
+  "week",
   "1m",
   "3m",
   "all",
@@ -95,6 +100,30 @@ export function rangeFor(
     };
   }
 
+  // The trading week. Monday 00:00 UTC up to Saturday 00:00, so a figure read
+  // at the weekend still describes the week that just closed — the market is
+  // shut and the weekend adds nothing, so rolling forward on Saturday would
+  // replace a full week with an empty one.
+  //
+  // Mid-week it is Monday to NOW, which is what "this week so far" means to
+  // somebody looking on a Wednesday.
+  if (key === "week") {
+    // getUTCDay: 0 is Sunday. Sunday belongs to the week that just ended, so
+    // it counts back six days rather than starting a new one.
+    const day = midnight.getUTCDay();
+    const backToMonday = day === 0 ? 6 : day - 1;
+    const monday = new Date(midnight.getTime() - backToMonday * 86_400_000);
+    const saturday = new Date(monday.getTime() + 5 * 86_400_000);
+
+    return {
+      from: monday.toISOString(),
+      // Whichever comes first: tomorrow mid-week, Saturday once the week is
+      // done. Never past Saturday, or a Sunday reading would include nothing
+      // and look like a dead week.
+      to: (saturday < tomorrow ? saturday : tomorrow).toISOString(),
+    };
+  }
+
   const days = DAYS[key];
   if (days !== undefined) {
     const from = new Date(midnight.getTime() - (days - 1) * 86_400_000);
@@ -120,6 +149,7 @@ export const RANGE_LABELS: Record<RangeKey, string> = {
   "3d": "3 days",
   "7d": "7 days",
   "1w": "1 week",
+  week: "This week (Mon–Fri)",
   "1m": "1 month",
   "3m": "3 months",
   all: "All time",
