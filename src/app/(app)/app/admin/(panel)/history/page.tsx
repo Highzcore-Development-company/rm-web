@@ -12,6 +12,7 @@ import {
 } from "@/lib/admin/history";
 import { isRangeKey, RANGE_LABELS, type RangeKey } from "@/lib/admin/ranges";
 import { RangePicker } from "@/components/admin/range-picker";
+import { TradeReview } from "@/components/admin/trade-review";
 import { Signed } from "@/components/admin/signed";
 import {
   HistoryFilters,
@@ -305,8 +306,13 @@ export default async function AdminHistoryPage({
                             <th scope="col" className="py-2 pr-4 font-medium">
                               Side
                             </th>
-                            <th scope="col" className="py-2 text-right font-medium">
+                            <th scope="col" className="py-2 pr-4 text-right font-medium">
                               Why
+                            </th>
+                            <th scope="col" className="py-2 font-medium">
+                              {/* Named, not blank: a column with no header is
+                                  one a screen reader announces as nothing. */}
+                              <span className="sr-only">Trade review</span>
                             </th>
                           </tr>
                         </thead>
@@ -338,8 +344,30 @@ export default async function AdminHistoryPage({
                               <td className="py-2.5 pr-4 uppercase text-fg-muted">
                                 {row.side}
                               </td>
-                              <td className="py-2.5 text-right text-xs text-fg-muted">
+                              <td className="py-2.5 pr-4 text-right text-xs text-fg-muted">
                                 {row.close_reason ?? "—"}
+                              </td>
+                              {/* The review the bot already publishes and
+                                  nothing rendered. Collapsed: the method is
+                                  chart first, verdict written, THEN open this
+                                  — a panel that answers before it is asked
+                                  turns a review into agreement. */}
+                              <td className="py-2.5">
+                                <TradeReview
+                                  data={{
+                                    entry: row.entry_snapshot,
+                                    exit: row.exit_snapshot,
+                                    entryTrend: row.entry_trend,
+                                    entryHtfTrend: row.entry_htf_trend,
+                                    trendAgreement: row.trend_agreement,
+                                    mfe: row.mfe ?? null,
+                                    mae: row.mae ?? null,
+                                    rMultiple: row.r_multiple ?? null,
+                                    entrySpread: row.entry_spread,
+                                    strategy: row.strategy,
+                                    timeframe: row.timeframe,
+                                  }}
+                                />
                               </td>
                             </tr>
                           ))}

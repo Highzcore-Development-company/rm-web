@@ -22,6 +22,54 @@ export type Investor = {
   user_id: string;
   /** Never null. Which of the two products this account is. */
   account_type: AccountType;
+
+  // ---- The investor application (HS-BOT-v4 item 9) ------------------------
+  //
+  // All nullable: the form is filled over several visits, because nobody has
+  // their RC number and a scan of the certificate of incorporation to hand in
+  // one sitting. `submitted_at` is what says it is finished.
+  //
+  // Only meaningful when account_type is 'investor'. A trader has none of it.
+  company_name: string | null;
+  /** The only field that uniquely identifies a company. Names are not unique. */
+  company_reg_number: string | null;
+  company_country: string | null;
+  company_state: string | null;
+  company_address: string | null;
+  company_tax_id: string | null;
+  company_nature: string | null;
+  company_website: string | null;
+
+  /** The human being we deal with. This is the name the admin user list shows. */
+  contact_name: string | null;
+  contact_role: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  /** False means they relay but cannot instruct; instructing_party names who can. */
+  contact_may_instruct: boolean | null;
+  instructing_party: string | null;
+
+  /** Minor units, like every amount here. Never a float — this goes on an agreement. */
+  intended_amount_usd: number | null;
+  source_of_funds: string | null;
+  preferred_currency: string | null;
+  /** True = open one for them. False = they have one. Null = not asked yet. */
+  wants_account_opened: boolean | null;
+
+  /** Storage path, not a file. Null while documents are collected on the call. */
+  incorporation_cert_path: string | null;
+
+  /** Same shape as risk_acknowledged_at: RLS permits only null -> a value. */
+  management_agreement_at: string | null;
+  terms_accepted_at: string | null;
+
+  /**
+   * Submitted for review. Null means still being filled in.
+   *
+   * Submitting activates NOTHING — an admin reviews it and links the broker
+   * account, and only then does status become 'linked'.
+   */
+  submitted_at: string | null;
   /** Set when OUR code was accepted. Supabase auto-confirms, so its flag is not meaningful. */
   email_verified_at: string | null;
   /** P2-104. Server-written, and the RLS policy only allows null -> a value. */
@@ -210,6 +258,29 @@ export type ServiceDatabase = {
         Update: never;
         Relationships: [];
       };
+      /** Directors and anyone over 25% of an investor company (item 9). */
+      investor_owners: {
+        Row: {
+          id: string;
+          investor_id: string;
+          full_name: string;
+          share_percent: number | null;
+          is_director: boolean;
+          created_at: string;
+        };
+        Insert: {
+          investor_id: string;
+          full_name: string;
+          share_percent?: number | null;
+          is_director?: boolean;
+        };
+        Update: {
+          full_name?: string;
+          share_percent?: number | null;
+          is_director?: boolean;
+        };
+        Relationships: [];
+      };
       sent_reminders: {
         Row: { subscription_id: string; milestone: number; sent_at: string };
         Insert: { subscription_id: string; milestone: number };
@@ -387,9 +458,44 @@ export type Database = {
         // Status and account are not insertable: the column grants in the
         // migration omit them, so they take their defaults whatever we send.
         Insert: { user_id: string; account_type?: AccountType };
+        /**
+         * EXACTLY THE COLUMN GRANTS, and that is the point of listing them.
+         *
+         * investors uses column-level grants, so Postgres refuses anything
+         * absent from them whatever the policy says. Mirroring that here means
+         * the compiler refuses it first, with the column named, instead of a
+         * runtime error that arrives as an empty object.
+         *
+         * status, linked_at and vantage_account_id's confirmation are NOT
+         * here: they are how an application becomes a live trading
+         * relationship and they belong to the admin who reviews it.
+         */
         Update: {
           vantage_account_id?: string | null;
           risk_acknowledged_at?: string | null;
+          // The investor application (item 9).
+          company_name?: string | null;
+          company_reg_number?: string | null;
+          company_country?: string | null;
+          company_state?: string | null;
+          company_address?: string | null;
+          company_tax_id?: string | null;
+          company_nature?: string | null;
+          company_website?: string | null;
+          contact_name?: string | null;
+          contact_role?: string | null;
+          contact_email?: string | null;
+          contact_phone?: string | null;
+          contact_may_instruct?: boolean | null;
+          instructing_party?: string | null;
+          intended_amount_usd?: number | null;
+          source_of_funds?: string | null;
+          preferred_currency?: string | null;
+          wants_account_opened?: boolean | null;
+          incorporation_cert_path?: string | null;
+          management_agreement_at?: string | null;
+          terms_accepted_at?: string | null;
+          submitted_at?: string | null;
         };
         Relationships: [];
       };
@@ -485,6 +591,29 @@ export type Database = {
           content: string;
         };
         Update: never;
+        Relationships: [];
+      };
+      /** Directors and anyone over 25% of an investor company (item 9). */
+      investor_owners: {
+        Row: {
+          id: string;
+          investor_id: string;
+          full_name: string;
+          share_percent: number | null;
+          is_director: boolean;
+          created_at: string;
+        };
+        Insert: {
+          investor_id: string;
+          full_name: string;
+          share_percent?: number | null;
+          is_director?: boolean;
+        };
+        Update: {
+          full_name?: string;
+          share_percent?: number | null;
+          is_director?: boolean;
+        };
         Relationships: [];
       };
       api_usage: {

@@ -112,7 +112,7 @@ export function SignupForm() {
         // has no broker account to onboard; an investor cannot finish on
         // their own and goes to the enquiry form.
         emailRedirectTo: `${window.location.origin}/auth/callback?next=${
-          accountType === "trader" ? "/app/checkout" : "/app/enquiry"
+          accountType === "trader" ? "/app/checkout" : "/app/apply"
         }`,
       },
     });
