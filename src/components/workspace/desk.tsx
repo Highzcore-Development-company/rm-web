@@ -522,6 +522,31 @@ function PendingTab({ rows }: { rows: BotMarket[] }) {
             <Cell label="away" value={distance(m.price, m.level)} />
           </div>
 
+          {/* STOP AND TARGET.
+              The bot publishes these on bot_market_state only once an order
+              exists — on a market still waiting for its level they are null,
+              because nothing has been placed and the bot has not committed to
+              a stop yet.
+              They are rendered anyway rather than hidden: a row that silently
+              omits the two numbers that bound the risk reads as a screen that
+              forgot them. When they are absent it SAYS they are set on entry,
+              which is the true answer, and the moment the bot publishes them
+              they appear here with no further change.
+              Deliberately NOT estimated from ATR. The multiplier differs per
+              market and lives in the bot's own presets; a projected stop on a
+              trading screen is a number somebody acts on, and it would be
+              ours rather than the bot's. */}
+          <div className="mt-2 grid grid-cols-2 gap-2 font-mono text-xs text-fg-subtle">
+            <Cell
+              label="stop"
+              value={m.sl == null ? "on entry" : px(m.sl)}
+            />
+            <Cell
+              label="target"
+              value={m.tp == null ? "on entry" : px(m.tp)}
+            />
+          </div>
+
           {m.latest_signal && (
             <p className="mt-2 font-mono text-[11px] text-fg-subtle">
               {m.latest_signal}
