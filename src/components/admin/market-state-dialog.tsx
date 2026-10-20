@@ -126,6 +126,16 @@ export function MarketStateDialog({
                 label="Watching"
                 value={market.level === null ? "—" : String(market.level)}
               />
+              {/* The second rung up, FIRST — an analyst reads top-down, and
+                  this is the chart they start on. Only rendered once the bot
+                  publishes it (its migration 020); an older row would show a
+                  dash that looks like "no trend" rather than "not recorded". */}
+              {market.htf2_trend ? (
+                <Cell
+                  label={`${market.htf2 ?? "H4"} trend`}
+                  value={market.htf2_trend}
+                />
+              ) : null}
               <Cell label={`${market.htf ?? "H1"} trend`} value={market.htf_trend ?? "—"} />
               <Cell
                 label={`${market.timeframe ?? "M15"} trend`}

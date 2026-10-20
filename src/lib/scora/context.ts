@@ -28,6 +28,11 @@ export type MarketFacts = {
   htf: string | null;
   trend: string | null;
   htfTrend: string | null;
+  /** The second rung up — H4 when the bot trades M15 (bot migration 020).
+   *  Given to Scora because people ask about the 4H constantly, and without
+   *  it the honest answer was that the bot had no reading at all. */
+  htf2: string | null;
+  htf2Trend: string | null;
   state: string | null;
   /** The bot's own sentence for why it is in that state. */
   reason: string | null;
@@ -66,6 +71,8 @@ type ScoraMarketRow = {
   htf: string | null;
   entry_trend: string | null;
   htf_trend: string | null;
+  htf2: string | null;
+  htf2_trend: string | null;
   trend_strength: string | null;
   state: string | null;
   reason: string | null;
@@ -152,7 +159,7 @@ export async function getScoraContext(): Promise<ScoraContext> {
     client
       .from("bot_market_state")
       .select(
-        "symbol, alias, timeframe, htf, entry_trend, htf_trend, trend_strength, state, reason, price, level, latest_signal, snapshot, updated_at",
+        "symbol, alias, timeframe, htf, entry_trend, htf_trend, htf2, htf2_trend, trend_strength, state, reason, price, level, latest_signal, snapshot, updated_at",
       )
       // Only the columns Scora may state as fact. Not `select *`: a narrower
       // query is also a list of what the model is allowed to know.
@@ -184,6 +191,8 @@ export async function getScoraContext(): Promise<ScoraContext> {
     alias: m.alias,
     timeframe: m.timeframe,
     htf: m.htf,
+    htf2: m.htf2,
+    htf2Trend: m.htf2_trend,
     trend: m.entry_trend,
     htfTrend: m.htf_trend,
     state: m.state,
@@ -255,6 +264,7 @@ export function renderContext(ctx: ScoraContext, question: string): string {
       m.reason ? `because=${m.reason}` : null,
       m.timeframe && m.trend ? `${m.timeframe}trend=${m.trend}` : null,
       m.htf && m.htfTrend ? `${m.htf}trend=${m.htfTrend}` : null,
+      m.htf2 && m.htf2Trend ? `${m.htf2}trend=${m.htf2Trend}` : null,
       m.price != null ? `price=${m.price}` : null,
       m.level != null ? `entry=${m.level}` : null,
       // Volatility, which is what the brief asks for first. ATR in price

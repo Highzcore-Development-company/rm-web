@@ -768,6 +768,13 @@ function ActivitiesTab({
                 in a strong downtrend" is what someone actually wants to read. */}
             <p className="mt-1.5 text-sm text-fg-muted">
               {m.reason ?? "—"}
+              {/* Top-down: the highest chart first, the way it is read.
+                  Only when it differs from the rung below — three timeframes
+                  all saying "sideways" is a longer sentence that says the
+                  same thing once. */}
+              {m.htf2_trend && m.htf2_trend !== m.htf_trend
+                ? ` · ${m.htf2} ${m.htf2_trend.toLowerCase()}`
+                : ""}
               {m.htf_trend ? ` · ${m.htf} ${m.htf_trend.toLowerCase()}` : ""}
               {m.entry_trend && m.entry_trend !== m.htf_trend
                 ? ` · ${m.timeframe} ${m.entry_trend.toLowerCase()}`

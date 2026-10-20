@@ -32,6 +32,14 @@ export interface BotMarket {
   htf: string | null;
   entry_trend: BotTrend | null;
   htf_trend: BotTrend | null;
+  /** The SECOND rung up — H4 when trading M15 (bot migration 020).
+   *
+   *  Reporting only. htf_trend is what gates an entry; this is here because
+   *  our analyst reads 4H, and without it a review cannot tell "the bot
+   *  disagreed" apart from "the bot was not looking at that chart". Null on a
+   *  row written before the migration, or when the feed could not be read. */
+  htf2: string | null;
+  htf2_trend: BotTrend | null;
   state: BotState | null;
   reason: BotReason | null;
   /** Latest signal, e.g. `BUY @ 1.15250`. Null when there is none. */
@@ -126,6 +134,10 @@ export interface BotTrade {
   exit_trend: number | null;
   entry_htf_trend: number | null;
   exit_htf_trend: number | null;
+  /** The second rung up — H4 when trading M15 (bot migration 020). Recorded,
+   *  never gated on. Null on every trade that filled before it shipped. */
+  entry_htf2_trend: number | null;
+  exit_htf2_trend: number | null;
   /** 'with trend' | 'against trend' | 'no trend', judged at entry. */
   trend_agreement: string | null;
   /** Best excursion in favour and worst against, in PRICE units, measured on

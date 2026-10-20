@@ -359,6 +359,7 @@ export default async function AdminHistoryPage({
                                     exit: row.exit_snapshot,
                                     entryTrend: row.entry_trend,
                                     entryHtfTrend: row.entry_htf_trend,
+                                    entryHtf2Trend: row.entry_htf2_trend,
                                     trendAgreement: row.trend_agreement,
                                     mfe: row.mfe ?? null,
                                     mae: row.mae ?? null,

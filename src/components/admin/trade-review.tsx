@@ -28,6 +28,9 @@ export type TradeReviewData = {
   exit: BotSnapshot | null;
   entryTrend: number | null;
   entryHtfTrend: number | null;
+  /** Second rung up — H4 when trading M15 (bot migration 020). Recorded only;
+   *  the entry gate reads entryHtfTrend. Null before that shipped. */
+  entryHtf2Trend?: number | null;
   trendAgreement: string | null;
   mfe: number | null;
   mae: number | null;
@@ -36,6 +39,7 @@ export type TradeReviewData = {
   strategy: string | null;
   timeframe: string | null;
   htf?: string | null;
+  htf2?: string | null;
 };
 
 /** The bot stores trend as -2..+2. These are its own words for them. */
@@ -50,6 +54,33 @@ const TREND_WORDS: Record<number, string> = {
 function trend(value: number | null): string {
   if (value === null) return "—";
   return TREND_WORDS[value] ?? String(value);
+}
+
+/**
+ * The two rungs above an entry timeframe, mirroring _HIGHER_TF and
+ * _HIGHER_TF2 in the bot's trader.py.
+ *
+ * Derived rather than read from a column because bot_trades does not HAVE one
+ * — only the trend integers are stored. The label was therefore missing
+ * entirely on the history table, so a trade review showed "Trend at fill
+ * Sideways" with no indication of which chart the second reading described.
+ *
+ * It is a duplicated mapping, which is a real cost. The alternative is a
+ * migration adding two text columns that would hold the same four values on
+ * every row forever, and the bot's own map is the thing that would have to
+ * change first in either case.
+ */
+const HIGHER: Record<string, [string, string]> = {
+  M1: ["M15", "H1"],
+  M5: ["H1", "H4"],
+  M15: ["H1", "H4"],
+  H1: ["H4", "D1"],
+  H4: ["D1", "D1"],
+  D1: ["D1", "D1"],
+};
+
+function rungs(timeframe: string | null): [string, string] {
+  return HIGHER[timeframe ?? ""] ?? ["H1", "H4"];
 }
 
 function num(value: number | null | undefined, dp = 2): string {
@@ -120,33 +151,49 @@ export function TradeReview({ data }: { data: TradeReviewData }) {
 
       {open && (
         <div className="mt-3 rounded-lg border border-border bg-surface p-4 text-left">
-          {/* WHAT THIS FIELD ACTUALLY IS, until Victor aligns it.
-              (Victor, 19 Oct) The gate reads trend on the last CLOSED bar;
-              this snapshot is taken at FILL, on a frame that still holds the
-              forming bar. Same function, different bar. So it is the reading
-              at the moment of filling — NOT what the bot decided on, and it
-              cannot prove the bot entered without a trend.
+          {/* FIXED IN THE BOT, STILL TRUE OF OLD ROWS — which is why this
+              note is narrowed rather than deleted.
 
-              Said on screen because the mislabel is actively misleading: it
-              reads as "the bot entered with no trend", which is the wrong
-              conclusion and nearly became a filed bug. Remove this note when
-              the snapshot is aligned to the signal bar. */}
+              (Victor, 19 Oct) The gate read trend on the last CLOSED bar
+              while this snapshot was taken at FILL, on a frame that still
+              held the forming bar. Same function, different bar — so a
+              Sideways reading here did NOT mean the bot entered without a
+              trend, and that mislabel nearly became a filed bug.
+
+              Victor's `_drop_forming_bar` now feeds both paths from one
+              definition of "the latest bar", so trades filling after that
+              shipped are honest. Every trade recorded BEFORE it still carries
+              the old reading and is not backfillable, and this table shows
+              both — so the caveat stays until the last affected trade has
+              aged out of the ranges anyone reviews. */}
           <p className="mb-3 rounded-md border border-accent/30 bg-accent/5 px-3 py-2 text-[11px] leading-relaxed text-fg-muted">
-            Trend below is read <strong className="text-fg">at the fill</strong>,
-            not at the moment the bot decided. A reading of Sideways here does
-            not mean it entered without a trend — the decision was made on the
-            previous closed bar. Treat a disagreement as a possible late entry,
-            not a broken rule.
+            On trades older than 19 Oct, the trend below was read{" "}
+            <strong className="text-fg">at the fill</strong> rather than at the
+            moment the bot decided, so a reading of Sideways does not prove it
+            entered without a trend. That is fixed for trades since — on those,
+            a disagreement is real and worth asking about.
           </p>
 
           <div className="flex flex-wrap gap-x-6 gap-y-2 border-b border-border pb-3 text-xs">
             <span>
               <span className="text-fg-muted">Trend at fill </span>
               <span className="font-medium">{trend(data.entryTrend)}</span>
-              {data.htf ? (
+              {data.entryHtfTrend != null ? (
                 <span className="text-fg-muted">
                   {" "}
-                  · {data.htf} {trend(data.entryHtfTrend)}
+                  · {data.htf ?? rungs(data.timeframe)[0]}{" "}
+                  {trend(data.entryHtfTrend)}
+                </span>
+              ) : null}
+              {/* The chart the analyst marks up. Shown only when the bot
+                  actually recorded it — a dash here would read as "Sideways
+                  on the 4H", which is a claim we cannot make about a trade
+                  that filled before migration 020. */}
+              {data.entryHtf2Trend != null ? (
+                <span className="text-fg-muted">
+                  {" "}
+                  · {data.htf2 ?? rungs(data.timeframe)[1]}{" "}
+                  {trend(data.entryHtf2Trend)}
                 </span>
               ) : null}
             </span>
