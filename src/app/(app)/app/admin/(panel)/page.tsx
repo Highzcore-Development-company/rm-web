@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowUpRight, Wallet } from "lucide-react";
 import { getAdmin } from "@/lib/admin";
 import { notFound, redirect } from "next/navigation";
+import { LiveStats } from "@/components/admin/live-stats";
 import { firstVisibleAdminPath } from "@/lib/admin/landing";
 import { getAdminOverview } from "@/lib/admin/overview";
 import { ProgressChart } from "@/components/admin/progress-chart";
@@ -68,10 +69,17 @@ export default async function AdminOverviewPage() {
 
       {canSeeBot ? (
         <section>
-          <SectionHead
-            title="Trading account"
-            note="The master account the bot trades. This money belongs to the investors mirroring it — it is not company revenue."
-          />
+          <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+            <SectionHead
+              title="Trading account"
+              note="The master account the bot trades. This money belongs to the investors mirroring it — it is not company revenue."
+            />
+            {/* These figures used to freeze at page load, so an admin was
+                reading whenever they last pressed refresh. LiveStats listens
+                to bot_trades — the thing that changes them — and refreshes the
+                server component when it does. */}
+            <LiveStats />
+          </div>
 
           {!bot.connected ? (
             <Unavailable>
