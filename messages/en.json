@@ -1155,6 +1155,8 @@
     "switch": {
       "on": "The bot is trading",
       "off": "The bot is stopped",
+      "unknown": "Can't tell if the bot is trading",
+      "unknownHint": "The settings could not be read, so this is not a reading — it is a missing answer. Do not treat it as stopped.",
       "hint": "Applies to the master account, and so to every linked investor.",
       "start": "Start trading",
       "stop": "Stop trading",

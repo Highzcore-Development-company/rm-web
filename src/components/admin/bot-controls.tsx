@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState, useSyncExternalStore, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { Pause, Play, Power } from "lucide-react";
 import {
@@ -63,22 +63,55 @@ function labelFor(minutes: number): string {
  * The time is what matters operationally, so it leads. The date is added
  * only when it is not today — "08:00" is unambiguous this morning and badly
  * ambiguous on Friday for a bot stopped on Wednesday.
+ *
+ * ONLY EVER CALLED AFTER MOUNT. See `useMounted` below: this reads the
+ * browser's locale and today's date, and the server has neither, so rendering
+ * it during SSR is a guaranteed hydration mismatch.
  */
 function formatResume(iso: string): string {
   const when = new Date(iso);
   if (Number.isNaN(when.getTime())) return "at a scheduled time";
 
-  const time = when.toLocaleTimeString("en-GB", {
+  const time = when.toLocaleTimeString([], {
     hour: "2-digit",
     minute: "2-digit",
   });
   const sameDay = when.toDateString() === new Date().toDateString();
   if (sameDay) return `at ${time}`;
-  return `${when.toLocaleDateString("en-GB", {
+  return `${when.toLocaleDateString([], {
     weekday: "short",
     day: "numeric",
     month: "short",
   })} at ${time}`;
+}
+
+/**
+ * True once the browser has taken over.
+ *
+ * Anything derived from the local clock or locale — "is this today", what
+ * 08:00 looks like here — differs between the server that rendered the HTML
+ * and the browser that hydrates it, and React treats that as a corrupted
+ * tree rather than a cosmetic difference. Gating on this renders a stable
+ * placeholder on the server and the real answer a tick later.
+ */
+function useMounted(): boolean {
+  // useSyncExternalStore rather than useState+useEffect: it has a server
+  // snapshot built in, so this is one render with the right answer instead
+  // of a setState in an effect that re-renders the whole card.
+  return useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+}
+
+/** `datetime-local` wants the LOCAL wall clock, not an ISO instant. */
+function toLocalInput(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return (
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+    `T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  );
 }
 
 /** The global switch. Given its own treatment because it stops everything. */
@@ -88,16 +121,38 @@ export function TradingSwitch({
   /** A resume already scheduled, so the card can say so. */
   resumeAt = null,
 }: {
-  enabled: boolean;
+  /**
+   * NULL MEANS WE COULD NOT READ IT, and it is not the same as false.
+   *
+   * This card previously took `trading_enabled ?? false`, so a failed select
+   * rendered as "The bot is stopped". On 22 Oct it said exactly that for two
+   * hours while the bot was trading normally. A kill switch that cannot
+   * distinguish "off" from "don't know" is worse than one that admits it.
+   */
+  enabled: boolean | null;
   configurable: boolean;
   resumeAt?: string | null;
 }) {
   const t = useTranslations("adminBot");
   const toast = useToast();
   const router = useRouter();
+  const mounted = useMounted();
   const [pending, start] = useTransition();
   const [confirmOff, setConfirmOff] = useState(false);
   const [resumeMinutes, setResumeMinutes] = useState<number | null>(null);
+  /** A specific wall-clock time, when the presets are not the answer. */
+  const [resumeExact, setResumeExact] = useState("");
+  /**
+   * The bounds for the time field, fixed when the dialog opens.
+   *
+   * Stored rather than derived in render: `new Date()` during render is an
+   * impure call, it would make the attributes change on every keystroke, and
+   * on the server it would not match the browser at all.
+   */
+  const [bounds, setBounds] = useState<{ min: string; max: string } | null>(null);
+
+  const unknown = enabled === null;
+  const on = enabled === true;
 
   // One place that actually flips it, so the confirmed path and the
   // straight-through path cannot drift apart.
@@ -105,13 +160,17 @@ export function TradingSwitch({
   // The time is computed HERE, at the moment of confirming, not when the
   // dialog opened. Somebody who picks "1 hour" and then reads the warning
   // for five minutes means an hour from pressing the button.
-  const apply = (minutes: number | null = null) =>
+  const apply = (minutes: number | null = null, exact = "") =>
     start(async () => {
-      const resume =
-        minutes === null
+      // An exact time wins when one is set — it is the more specific thing
+      // the person said. datetime-local gives local wall clock; new Date()
+      // reads it in the browser's zone, which is the one they typed it in.
+      const resume = exact
+        ? new Date(exact).toISOString()
+        : minutes === null
           ? null
           : new Date(Date.now() + minutes * 60_000).toISOString();
-      const res = await setTradingEnabled(!enabled, resume);
+      const res = await setTradingEnabled(!on, resume);
       if (res.ok) {
         // Stopped, but the resume could not be stored. Said as a warning
         // rather than a success: somebody who walks away believing the bot
@@ -119,7 +178,7 @@ export function TradingSwitch({
         if (res.scheduledResume === false) {
           toast.error(t("switch.resumeUnavailable"));
         } else {
-          toast.success(enabled ? t("switch.stopped") : t("switch.started"));
+          toast.success(on ? t("switch.stopped") : t("switch.started"));
         }
         router.refresh();
       } else toast.error(t(`errors.${res.error}`));
@@ -127,28 +186,49 @@ export function TradingSwitch({
 
   return (
     <div
-      className={`surface flex flex-wrap items-center justify-between gap-4 rounded-xl border p-5 ${
-        enabled ? "border-chart-up/40" : "border-chart-down/40"
+      // STACKS ON A PHONE. flex-wrap alone left the button on its own row
+      // but still shrink-wrapped and left-aligned under the text, which reads
+      // as a stray control rather than the action for this card.
+      className={`surface flex flex-col gap-4 rounded-xl border p-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:p-5 ${
+        unknown
+          ? "border-border"
+          : on
+            ? "border-chart-up/40"
+            : "border-chart-down/40"
       }`}
     >
-      <div className="flex items-center gap-4">
+      <div className="flex min-w-0 items-center gap-3 sm:gap-4">
         <span
           className={`flex size-11 shrink-0 items-center justify-center rounded-lg ${
-            enabled
-              ? "bg-chart-up/10 text-chart-up"
-              : "bg-chart-down/10 text-chart-down"
+            unknown
+              ? "bg-fg-subtle/10 text-fg-muted"
+              : on
+                ? "bg-chart-up/10 text-chart-up"
+                : "bg-chart-down/10 text-chart-down"
           }`}
         >
           <Power className="size-5" aria-hidden="true" />
         </span>
-        <div>
+        <div className="min-w-0">
           <p className="text-sm font-medium">
-            {enabled ? t("switch.on") : t("switch.off")}
+            {unknown
+              ? t("switch.unknown")
+              : on
+                ? t("switch.on")
+                : t("switch.off")}
           </p>
           {/* A pending resume replaces the generic hint. When the bot is
               coming back on its own, that is the only thing anyone looking
-              at this card needs to read. */}
-          {!enabled && resumeAt ? (
+              at this card needs to read.
+
+              `mounted` gates it because the text is the reader's local
+              time — rendering it on the server guarantees a hydration
+              mismatch. The hint shows for one tick instead. */}
+          {unknown ? (
+            <p className="mt-0.5 text-xs text-fg-muted">
+              {t("switch.unknownHint")}
+            </p>
+          ) : !on && resumeAt && mounted ? (
             <p className="mt-0.5 text-xs text-accent">
               Starts again {formatResume(resumeAt)}
             </p>
@@ -160,27 +240,35 @@ export function TradingSwitch({
 
       <button
         type="button"
-        disabled={pending || !configurable}
+        disabled={pending || !configurable || unknown}
         onClick={() => {
           // Confirmed on the way OFF only. Stopping the book is the
           // consequential direction; starting it again is recoverable by
           // pressing the same button.
-          if (enabled) {
+          if (on) {
             // Fresh every time: a choice left over from the last stop is not
             // a choice anyone made about this one.
             setResumeMinutes(null);
+            setResumeExact("");
+            const now = Date.now();
+            setBounds({
+              // A minute out, so the field cannot offer a time the server
+              // will reject for being in the past.
+              min: toLocalInput(new Date(now + 60_000)),
+              max: toLocalInput(new Date(now + 14 * 86_400_000)),
+            });
             setConfirmOff(true);
             return;
           }
           apply();
         }}
-        className={`inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold disabled:opacity-50 ${
-          enabled
+        className={`inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold disabled:opacity-50 sm:w-auto ${
+          on
             ? "border border-chart-down/50 text-fg hover:border-chart-down"
             : "bg-accent text-[#0A0A0A] hover:bg-accent-hot"
         }`}
       >
-        {enabled ? (
+        {on ? (
           <>
             <Pause className="size-4" aria-hidden="true" />
             {t("switch.stop")}
@@ -199,16 +287,18 @@ export function TradingSwitch({
           subject="The master account, and every linked investor"
           body="It opens nothing new. Anything already open keeps running and is still managed — stops, targets and the profit ladder all stay active."
           action={
-            resumeMinutes === null
-              ? "Stop trading"
-              : `Stop, back on in ${labelFor(resumeMinutes)}`
+            resumeExact
+              ? "Stop, back on at that time"
+              : resumeMinutes === null
+                ? "Stop trading"
+                : `Stop, back on in ${labelFor(resumeMinutes)}`
           }
           destructive
           pending={pending}
           onCancel={() => setConfirmOff(false)}
           onConfirm={() => {
             setConfirmOff(false);
-            apply(resumeMinutes);
+            apply(resumeMinutes, resumeExact);
           }}
         >
           {/* ASKED ON THE WAY OFF, which is the only moment anyone knows the
@@ -222,13 +312,18 @@ export function TradingSwitch({
             </legend>
             <div className="mt-2 flex flex-wrap gap-2">
               {RESUME_PRESETS.map((p) => {
-                const active = resumeMinutes === p.minutes;
+                // An exact time overrides the presets, so none of them reads
+                // as chosen while one is typed.
+                const active = !resumeExact && resumeMinutes === p.minutes;
                 return (
                   <button
                     key={p.label}
                     type="button"
                     aria-pressed={active}
-                    onClick={() => setResumeMinutes(p.minutes)}
+                    onClick={() => {
+                      setResumeMinutes(p.minutes);
+                      setResumeExact("");
+                    }}
                     className={`rounded-lg border px-3 py-1.5 text-xs ${
                       active
                         ? "border-accent bg-accent/10 text-accent"
@@ -240,11 +335,50 @@ export function TradingSwitch({
                 );
               })}
             </div>
+
+            {/* A SPECIFIC TIME, because "30 minutes" is not how people
+                actually think about this. "Back at 08:00 before London" is,
+                and the presets cannot express it — the nearest they get is
+                arithmetic the person has to do in their head at the moment
+                they are trying to stop a bot.
+
+                Rendered only after mount: `min` is derived from the local
+                clock, and an attribute the server computes differently is a
+                hydration mismatch. */}
+            {mounted ? (
+              <label className="mt-3 flex flex-wrap items-center gap-2 text-xs text-fg-muted">
+                <span>or at</span>
+                <input
+                  type="datetime-local"
+                  value={resumeExact}
+                  // The browser refuses a time in the past, so the message
+                  // arrives before the server has to say no.
+                  min={bounds?.min}
+                  max={bounds?.max}
+                  onChange={(e) => setResumeExact(e.target.value)}
+                  // min-w-0 so a phone keyboard's wide date control cannot
+                  // push the dialog into a horizontal scroll.
+                  className="min-w-0 flex-1 rounded-lg border border-border bg-transparent px-2.5 py-1.5 text-xs text-fg [color-scheme:dark]"
+                />
+                {resumeExact ? (
+                  <button
+                    type="button"
+                    onClick={() => setResumeExact("")}
+                    className="text-fg-muted underline underline-offset-2 hover:text-fg"
+                  >
+                    clear
+                  </button>
+                ) : null}
+              </label>
+            ) : null}
+
             <p className="mt-2 text-[11px] leading-relaxed text-fg-muted">
-              {resumeMinutes === null
-                ? "It stays off until somebody starts it. Nothing will start it for you."
-                : `It turns itself back on ${labelFor(resumeMinutes)} from now. ` +
-                  "Quiet hours still apply, so it waits for the window to end."}
+              {resumeExact
+                ? "It turns itself back on at that time. Quiet hours still apply, so it waits for the window to end."
+                : resumeMinutes === null
+                  ? "It stays off until somebody starts it. Nothing will start it for you."
+                  : `It turns itself back on ${labelFor(resumeMinutes)} from now. ` +
+                    "Quiet hours still apply, so it waits for the window to end."}
             </p>
           </fieldset>
         </ConfirmDialog>

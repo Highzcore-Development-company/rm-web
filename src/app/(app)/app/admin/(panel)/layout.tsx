@@ -202,7 +202,13 @@ export default async function AdminLayout({
         </div>
       </header>
 
-      <div className="mx-auto flex w-full max-w-[100rem] gap-8 px-4 py-6 sm:px-6 lg:py-8">
+      {/* STACKED UNTIL lg, SIDE BY SIDE AFTER.
+          Below lg the sidebar collapses to a single "Menu" button, but the
+          row kept it as a COLUMN beside the content — so on a phone a 2rem
+          gap and a button were taking a third of the width, leaving the
+          tables a ~250px well to scroll inside. The button belongs above the
+          content there, not next to it. */}
+      <div className="mx-auto flex w-full max-w-[100rem] flex-col gap-4 px-4 py-6 sm:px-6 lg:flex-row lg:gap-8 lg:py-8">
         <aside className="shrink-0 lg:w-56">
           {/* SCROLLS ON ITS OWN. The nav has outgrown a short laptop screen,
               and a sticky column taller than the viewport simply hides its
