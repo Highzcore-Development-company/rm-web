@@ -92,7 +92,9 @@ export async function getWorkspaceData(): Promise<WorkspaceData> {
     // entirely instead of leaking an address.
     client
       .from("bot_settings")
-      .select("id, trading_enabled, require_approval, cutover_at, seen_by_bot_at, updated_at")
+      // resume_at is read; resume_by deliberately is not. It holds an admin's
+      // email, same as updated_by, and this payload reaches the investor desk.
+      .select("id, trading_enabled, require_approval, cutover_at, seen_by_bot_at, updated_at, resume_at")
       .maybeSingle()
       .then((r) => r.data ?? null),
   ]).catch(() => [[], [], [], [], [], null] as const);

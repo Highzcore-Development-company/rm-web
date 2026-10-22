@@ -31,27 +31,96 @@ export type MarketConfig = {
  * switch. The power belongs here, behind bot.configure.
  */
 
+/**
+ * How long the desk is standing down for.
+ *
+ * Presets rather than a date picker, because these are the reasons people
+ * actually stop the bot: a news release in half an hour, the rest of the
+ * session, the weekend. "Until I start it again" is first and is the
+ * default — a deadline nobody chose would be worse than no deadline.
+ *
+ * Kept as minutes-from-now rather than wall-clock times so none of it
+ * depends on which timezone the admin is in.
+ */
+const RESUME_PRESETS: { label: string; minutes: number | null }[] = [
+  { label: "Until I start it again", minutes: null },
+  { label: "30 minutes", minutes: 30 },
+  { label: "1 hour", minutes: 60 },
+  { label: "4 hours", minutes: 240 },
+  { label: "Tomorrow", minutes: 24 * 60 },
+];
+
+function labelFor(minutes: number): string {
+  if (minutes < 60) return `${minutes} minutes`;
+  if (minutes === 24 * 60) return "24 hours";
+  const hours = minutes / 60;
+  return hours === 1 ? "1 hour" : `${hours} hours`;
+}
+
+/**
+ * A scheduled resume, in the reader's own timezone.
+ *
+ * The time is what matters operationally, so it leads. The date is added
+ * only when it is not today — "08:00" is unambiguous this morning and badly
+ * ambiguous on Friday for a bot stopped on Wednesday.
+ */
+function formatResume(iso: string): string {
+  const when = new Date(iso);
+  if (Number.isNaN(when.getTime())) return "at a scheduled time";
+
+  const time = when.toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const sameDay = when.toDateString() === new Date().toDateString();
+  if (sameDay) return `at ${time}`;
+  return `${when.toLocaleDateString("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  })} at ${time}`;
+}
+
 /** The global switch. Given its own treatment because it stops everything. */
 export function TradingSwitch({
   enabled,
   configurable,
+  /** A resume already scheduled, so the card can say so. */
+  resumeAt = null,
 }: {
   enabled: boolean;
   configurable: boolean;
+  resumeAt?: string | null;
 }) {
   const t = useTranslations("adminBot");
   const toast = useToast();
   const router = useRouter();
   const [pending, start] = useTransition();
   const [confirmOff, setConfirmOff] = useState(false);
+  const [resumeMinutes, setResumeMinutes] = useState<number | null>(null);
 
   // One place that actually flips it, so the confirmed path and the
   // straight-through path cannot drift apart.
-  const apply = () =>
+  //
+  // The time is computed HERE, at the moment of confirming, not when the
+  // dialog opened. Somebody who picks "1 hour" and then reads the warning
+  // for five minutes means an hour from pressing the button.
+  const apply = (minutes: number | null = null) =>
     start(async () => {
-      const res = await setTradingEnabled(!enabled);
+      const resume =
+        minutes === null
+          ? null
+          : new Date(Date.now() + minutes * 60_000).toISOString();
+      const res = await setTradingEnabled(!enabled, resume);
       if (res.ok) {
-        toast.success(enabled ? t("switch.stopped") : t("switch.started"));
+        // Stopped, but the resume could not be stored. Said as a warning
+        // rather than a success: somebody who walks away believing the bot
+        // restarts at 08:00 is worse off than somebody who knows it will not.
+        if (res.scheduledResume === false) {
+          toast.error(t("switch.resumeUnavailable"));
+        } else {
+          toast.success(enabled ? t("switch.stopped") : t("switch.started"));
+        }
         router.refresh();
       } else toast.error(t(`errors.${res.error}`));
     });
@@ -76,9 +145,16 @@ export function TradingSwitch({
           <p className="text-sm font-medium">
             {enabled ? t("switch.on") : t("switch.off")}
           </p>
-          <p className="mt-0.5 text-xs text-fg-muted">
-            {t("switch.hint")}
-          </p>
+          {/* A pending resume replaces the generic hint. When the bot is
+              coming back on its own, that is the only thing anyone looking
+              at this card needs to read. */}
+          {!enabled && resumeAt ? (
+            <p className="mt-0.5 text-xs text-accent">
+              Starts again {formatResume(resumeAt)}
+            </p>
+          ) : (
+            <p className="mt-0.5 text-xs text-fg-muted">{t("switch.hint")}</p>
+          )}
         </div>
       </div>
 
@@ -90,6 +166,9 @@ export function TradingSwitch({
           // consequential direction; starting it again is recoverable by
           // pressing the same button.
           if (enabled) {
+            // Fresh every time: a choice left over from the last stop is not
+            // a choice anyone made about this one.
+            setResumeMinutes(null);
             setConfirmOff(true);
             return;
           }
@@ -118,16 +197,57 @@ export function TradingSwitch({
         <ConfirmDialog
           title="Stop the bot trading?"
           subject="The master account, and every linked investor"
-          body="It opens nothing new. Anything already open keeps running and is still managed — stops, targets and the profit ladder all stay active. You can start it again from the same button."
-          action="Stop trading"
+          body="It opens nothing new. Anything already open keeps running and is still managed — stops, targets and the profit ladder all stay active."
+          action={
+            resumeMinutes === null
+              ? "Stop trading"
+              : `Stop, back on in ${labelFor(resumeMinutes)}`
+          }
           destructive
           pending={pending}
           onCancel={() => setConfirmOff(false)}
           onConfirm={() => {
             setConfirmOff(false);
-            apply();
+            apply(resumeMinutes);
           }}
-        />
+        >
+          {/* ASKED ON THE WAY OFF, which is the only moment anyone knows the
+              answer. "Back at 8" is a thought you have while stopping it;
+              an hour later it is just a bot that is off and nobody is sure
+              why. The old flow had no place to put that, so the bot stayed
+              down until somebody noticed. */}
+          <fieldset className="mt-4">
+            <legend className="text-xs font-medium text-fg">
+              Start again
+            </legend>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {RESUME_PRESETS.map((p) => {
+                const active = resumeMinutes === p.minutes;
+                return (
+                  <button
+                    key={p.label}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => setResumeMinutes(p.minutes)}
+                    className={`rounded-lg border px-3 py-1.5 text-xs ${
+                      active
+                        ? "border-accent bg-accent/10 text-accent"
+                        : "border-border text-fg-muted hover:border-fg-subtle"
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-[11px] leading-relaxed text-fg-muted">
+              {resumeMinutes === null
+                ? "It stays off until somebody starts it. Nothing will start it for you."
+                : `It turns itself back on ${labelFor(resumeMinutes)} from now. ` +
+                  "Quiet hours still apply, so it waits for the window to end."}
+            </p>
+          </fieldset>
+        </ConfirmDialog>
       ) : null}
     </div>
   );

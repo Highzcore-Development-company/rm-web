@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { TriangleAlert, X } from "lucide-react";
 
 /**
@@ -45,6 +45,16 @@ export type ConfirmProps = {
   pending?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  /**
+   * Controls that belong to the decision itself — a choice the confirming
+   * person makes in the same breath as confirming.
+   *
+   * Rendered under the body and INSIDE the focus trap, so anything put here
+   * is reachable by keyboard without tabbing out of the dialog. Deliberately
+   * not a general slot for content: prose belongs in `body`, where it is tied
+   * to the dialog by aria-describedby.
+   */
+  children?: ReactNode;
 };
 
 export function ConfirmDialog({
@@ -56,6 +66,7 @@ export function ConfirmDialog({
   pending = false,
   onConfirm,
   onCancel,
+  children,
 }: ConfirmProps) {
   const cancelRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -143,6 +154,7 @@ export function ConfirmDialog({
             >
               {body}
             </p>
+            {children}
           </div>
 
           <button

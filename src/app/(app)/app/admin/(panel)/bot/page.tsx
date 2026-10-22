@@ -122,6 +122,7 @@ export default async function AdminBotPage() {
           <TradingSwitch
             enabled={data.settings?.trading_enabled ?? false}
             configurable={configurable}
+            resumeAt={data.settings?.resume_at ?? null}
           />
         </div>
       </section>
