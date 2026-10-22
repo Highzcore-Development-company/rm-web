@@ -43,7 +43,11 @@ export function UserFilters({
       }}
       className="flex flex-wrap items-end gap-3"
     >
-      <div className="min-w-[16rem] flex-1">
+      {/* basis, not min-width. A 16rem floor is wider than a small phone
+          once the form's padding is taken off, so it stopped being "prefer
+          this width" and became "overflow the page". basis asks for the same
+          width and still shrinks when there is less. */}
+      <div className="min-w-0 flex-1 basis-64">
         <label htmlFor="q" className="block text-sm font-medium">
           {t("search")}
         </label>

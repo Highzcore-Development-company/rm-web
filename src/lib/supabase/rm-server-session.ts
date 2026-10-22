@@ -55,6 +55,10 @@ export const WRITABLE = {
     "cutover_at",
     "updated_at",
     "updated_by",
+    // When the desk asked trading to switch itself back on, and who asked
+    // (bot migration 024). The bot clears resume_at once it fires.
+    "resume_at",
+    "resume_by",
   ],
 } as const;
 

@@ -119,9 +119,14 @@ export default async function AdminBotPage() {
           {t("settings")}
         </h2>
         <div className="mt-3">
+          {/* NOT `?? false`. A settings row we could not read is not a bot
+              that is stopped, and on 22 Oct this card said "The bot is
+              stopped" for two hours while it was trading — the select had
+              failed. On a kill switch, "unknown" must look like unknown. */}
           <TradingSwitch
-            enabled={data.settings?.trading_enabled ?? false}
+            enabled={data.settings ? data.settings.trading_enabled : null}
             configurable={configurable}
+            resumeAt={data.settings?.resume_at ?? null}
           />
         </div>
       </section>
