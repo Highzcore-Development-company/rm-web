@@ -74,7 +74,12 @@ export function LiveBell({ initial }: { initial: BotMarket[] }) {
             </span>
           ) : null}
         </span>
-        <span className="font-medium">
+        {/* "Flat" is hidden on a phone, the P&L is never hidden.
+            The header ran out of room and started overlapping the logo;
+            the word that means "nothing is happening" is the cheapest thing
+            to drop, and the dim icon already says it. A live figure is the
+            whole reason this control exists, so it always shows. */}
+        <span className={`font-medium ${hasPositions ? "" : "hidden sm:inline"}`}>
           {hasPositions ? money(floating) : "Flat"}
         </span>
         {hasPositions ? (

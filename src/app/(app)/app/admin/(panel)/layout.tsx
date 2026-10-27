@@ -159,21 +159,33 @@ export default async function AdminLayout({
   return (
     <div className="min-h-dvh bg-bg text-fg">
       <header className="sticky top-0 z-40 border-b border-border bg-bg/90 backdrop-blur">
-        <div className="flex h-16 items-center justify-between gap-4 px-4 sm:px-6">
-          <div className="flex min-w-0 items-center gap-3">
+        <div className="flex h-16 items-center justify-between gap-2 px-3 sm:gap-4 sm:px-6">
+          {/* THE LOGO SHRINKS, THE CONTROLS DO NOT.
+              At 132px fixed, the mark plus the Admin badge plus two bells,
+              the theme toggle and the avatar came to more than a phone is
+              wide — so they overlapped the logo instead of wrapping. The
+              name is the one thing here nobody needs to read to use the
+              page, so it is what gives way. */}
+          <div className="flex min-w-0 shrink items-center gap-2 sm:gap-3">
             {/* The mark, not the word. It is the company's logo everywhere
                 else on the site; the admin panel was the one place still
                 spelling it out. Links to the panel root rather than the
                 marketing home — from in here, "home" is the dashboard. */}
-            <Link href="/app/admin" aria-label="Admin home" className="shrink-0">
-              <Logo width={132} priority />
+            <Link
+              href="/app/admin"
+              aria-label="Admin home"
+              className="block w-[96px] min-w-0 shrink sm:w-[132px]"
+            >
+              <Logo width={132} priority className="h-auto w-full" />
             </Link>
-            <span className="shrink-0 rounded-md border border-accent/30 bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
+            {/* Hidden on a phone. The profile menu already states the role,
+                and a badge that overlaps the logo is worse than no badge. */}
+            <span className="hidden shrink-0 rounded-md border border-accent/30 bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent sm:inline-block">
               Admin
             </span>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
             {/* Only for an admin who may see the bot at all. Both read the
                 bot's live state, which is bot.view's business.
 
