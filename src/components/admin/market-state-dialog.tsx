@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { CandlestickChart, X } from "lucide-react";
 import { TimeAgo } from "@/components/workspace/bot-bits";
+import { formatPrice } from "@/lib/price";
 import type { BotMarket } from "@/lib/workspace/types";
 
 /**
@@ -124,7 +125,7 @@ export function MarketStateDialog({
               <Cell label="Strategy" value={market.strategy ?? "watching"} />
               <Cell
                 label="Watching"
-                value={market.level === null ? "—" : String(market.level)}
+                value={formatPrice(market.level)}
               />
               {/* The second rung up, FIRST — an analyst reads top-down, and
                   this is the chart they start on. Only rendered once the bot

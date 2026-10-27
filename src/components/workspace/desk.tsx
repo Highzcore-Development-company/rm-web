@@ -38,6 +38,7 @@ import { LogoLink } from "@/components/logo";
 import { ScoraChat } from "@/components/workspace/scora-chat";
 import { CloseTradeButton } from "@/components/workspace/close-trade";
 import { tradingPnlFrom } from "@/lib/admin/trading-pnl";
+import { formatPrice } from "@/lib/price";
 import type { BotMarket, BotSettings, BotTrade } from "@/lib/workspace/types";
 
 /**
@@ -122,8 +123,8 @@ const money = (n: number | null | undefined, dp = 2) =>
     ? "—"
     : `${Number(n) < 0 ? "-" : ""}$${Math.abs(Number(n)).toFixed(dp)}`;
 
-const px = (n: number | null | undefined) =>
-  n == null || !Number.isFinite(Number(n)) ? "—" : String(n);
+/** Prices, rounded to what the instrument actually quotes. See lib/price. */
+const px = (n: number | null | undefined) => formatPrice(n);
 
 function since(iso: string | null | undefined, nowMs: number): string {
   if (!iso) return "—";

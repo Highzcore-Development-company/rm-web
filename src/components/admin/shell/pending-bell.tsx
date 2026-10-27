@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowUpRight, Hourglass } from "lucide-react";
 import { useLiveMarkets } from "@/components/workspace/use-live-markets";
 import { useDismissable } from "@/components/admin/shell/use-dismissable";
+import { formatPrice } from "@/lib/price";
 import type { BotMarket } from "@/lib/workspace/types";
 
 /**
@@ -95,7 +96,7 @@ export function PendingBell({ initial }: { initial: BotMarket[] }) {
                       {/* The level it is waiting at, which is the one number
                           that makes a pending setup actionable. */}
                       <span className="shrink-0 font-mono text-xs text-brand">
-                        {market.level !== null ? market.level : "—"}
+                        {formatPrice(market.level)}
                       </span>
                     </span>
                     {/* IN FULL, wrapped. Victor: "the column still have more

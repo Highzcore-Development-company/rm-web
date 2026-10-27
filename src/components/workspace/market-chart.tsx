@@ -573,7 +573,23 @@ export function MarketChart({
    * point" to "click the second" — which is exactly the missing feedback that
    * made the tools look dead. */
   const [drawPending, setDrawPending] = useState(false);
-  const [railHidden, setRailHidden] = useState(false);
+  /**
+   * The drawing rail starts HIDDEN ON A PHONE.
+   *
+   * It is a 48px fixed column, and the canvas is padded by the same amount to
+   * clear it. On a ~330px screen that is a sixth of the width spent on
+   * drawing tools nobody uses with a thumb — the chart was pushed right and
+   * the whole page read as lopsided.
+   *
+   * Lazy initial state, not an effect: reading matchMedia during the first
+   * client render keeps it out of the server render (where there is no
+   * window) without a second pass that visibly shifts the layout.
+   */
+  const [railHidden, setRailHidden] = useState<boolean>(
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia("(max-width: 639px)").matches,
+  );
   /* The line type the rail button arms when you just click it.
    *
    * TradingView's behaviour, and the reason it feels quick: the button is the
@@ -2244,7 +2260,9 @@ export function MarketChart({
             just eats width from the candles. */}
         {/* pl-12 clears the rail: it is absolutely positioned, so without this
             it would sit on top of the left-most candles and the price axis. */}
-        <div className="relative flex min-h-0 flex-1 pl-12">
+        <div
+          className={`relative flex min-h-0 flex-1 ${railHidden ? '' : 'pl-12'}`}
+        >
           {canvas}
 
           {/* Flush to the chart's left edge and full height, as in the design.
