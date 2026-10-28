@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatPrice, priceDigits } from "./price";
+import { formatPrice, parseMoney, priceDigits } from "./price";
 
 /**
  * Prices used to render raw, and that was a LAYOUT bug as much as a
@@ -46,5 +46,44 @@ describe("formatPrice", () => {
   it("handles negatives by magnitude, not by sign", () => {
     expect(priceDigits(-110.4)).toBe(3);
     expect(priceDigits(-1.23)).toBe(5);
+  });
+});
+
+// ---------- money people actually type ----------
+//
+// The profit target box used bare Number(), and Number("5$") is NaN — so
+// Victor's own phrasing, "keep it at 5$", was refused as "must be a number
+// greater than zero". The value was fine; the parser was fussy.
+
+describe("parseMoney", () => {
+  it("accepts the amount written the way a person writes it", () => {
+    expect(parseMoney("5$")).toBe(5);
+    expect(parseMoney("$5")).toBe(5);
+    expect(parseMoney("$ 5")).toBe(5);
+    expect(parseMoney(" 5 ")).toBe(5);
+    expect(parseMoney("0.30")).toBe(0.3);
+    expect(parseMoney("1,000")).toBe(1000);
+    expect(parseMoney("£5")).toBe(5);
+    expect(parseMoney("€0.5")).toBe(0.5);
+  });
+
+  it("treats blank as a real setting, not an error", () => {
+    // Empty means "no target", which is a thing somebody chooses.
+    expect(parseMoney("")).toBeNull();
+    expect(parseMoney("   ")).toBeNull();
+  });
+
+  it("refuses anything that is not a number", () => {
+    // NaN, not null: null would CLEAR the target. They mean opposite things.
+    expect(parseMoney("5 or 6")).toBeNaN();
+    expect(parseMoney("abc")).toBeNaN();
+    expect(parseMoney("5abc")).toBeNaN();
+    expect(parseMoney("--5")).toBeNaN();
+  });
+
+  it("does not quietly read a partial number", () => {
+    // parseFloat("5 or 6") is 5. That would set a live profit target from
+    // half a sentence.
+    expect(parseMoney("5 or 6")).toBeNaN();
   });
 });

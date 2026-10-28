@@ -6,6 +6,7 @@ import {
   TradingSwitch,
   type MarketConfig,
 } from "@/components/admin/bot-controls";
+import { BulkMarketSettings } from "@/components/admin/bulk-market-settings";
 import { getAdmin, requirePermission } from "@/lib/admin";
 import { getWorkspaceData } from "@/lib/workspace/data";
 import { canWriteToBot, writeBlockedReason } from "@/lib/supabase/rm-server-session";
@@ -139,6 +140,14 @@ export default async function AdminBotPage() {
           {t("lotNote")}
         </p>
         <div className="mt-4">
+          {/* Bulk first, the per-market table under it. Victor was editing
+              seventeen rows one at a time to reach the same answer; the
+              one-at-a-time path stays for the exceptions. */}
+          <BulkMarketSettings
+            markets={markets}
+            configurable={configurable}
+            quotes={quotes}
+          />
           <MarketControls
             markets={markets}
             configurable={configurable}

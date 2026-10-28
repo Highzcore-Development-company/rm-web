@@ -13,6 +13,7 @@ import {
 import { useToast } from "@/stores";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { pipLineFor, type Quotes } from "@/lib/admin/pip-value";
+import { parseMoney } from "@/lib/price";
 
 export type MarketConfig = {
   symbol: string;
@@ -476,7 +477,11 @@ function MarketRow({
       to: show(lot),
       apply: () =>
         start(async () => {
-          const res = await setLotSize(market.symbol, Number(lot));
+          // parseMoney here too: a lot size is not money, but somebody who
+          // has just typed "$5" in the box beside it should not be punished
+          // for a stray symbol. Same tolerance, same anchored refusal of
+          // anything that is not a number.
+          const res = await setLotSize(market.symbol, parseMoney(lot) ?? NaN);
           setConfirming(null);
           if (res.ok) {
             // Says what happens next, because it is not instant: the bot
@@ -500,7 +505,10 @@ function MarketRow({
       to: show(profit),
       apply: () =>
         start(async () => {
-          const value = profit.trim() === "" ? null : Number(profit);
+          // parseMoney, not Number(): Number("5$") is NaN, so typing the
+          // amount the way Victor wrote it — "keep it at 5$" — was refused
+          // as "must be a number greater than zero". The value was fine.
+          const value = parseMoney(profit);
           const res = await setCloseAtProfit(market.symbol, value);
           setConfirming(null);
           if (res.ok) {

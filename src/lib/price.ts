@@ -40,3 +40,38 @@ export function formatPrice(value: number | null | undefined): string {
   if (!Number.isFinite(n)) return "—";
   return n.toFixed(priceDigits(n));
 }
+
+/**
+ * An amount of money somebody typed, as a number.
+ *
+ * WHY THIS EXISTS. The profit target box used bare `Number()`, and
+ * `Number("5$")` is NaN — so typing the amount the way Victor wrote it,
+ * "keep it at 5$", was rejected as "must be a number greater than zero".
+ * The value was fine; the parser was fussy, and it said so in a way that
+ * sounds like the user got it wrong.
+ *
+ * Accepts a leading or trailing currency symbol, thousands separators and
+ * surrounding space. Deliberately does NOT accept anything else: "5 or 6" is
+ * not a number, and quietly reading it as 5 would set a live profit target
+ * from a guess.
+ *
+ * Returns null for blank — which is a real setting here, meaning "no target"
+ * — and NaN for input that is not a number, so the caller can tell the two
+ * apart. They mean opposite things: one clears the target, the other must be
+ * refused.
+ */
+export function parseMoney(typed: string): number | null {
+  const trimmed = typed.trim();
+  if (trimmed === "") return null;
+
+  // Currency symbols at either end, and separators between digits.
+  const cleaned = trimmed
+    .replace(/^[$£€]\s*/, "")
+    .replace(/\s*[$£€]$/, "")
+    .replace(/,/g, "")
+    .trim();
+
+  // Anchored: "5abc" must not parse as 5. parseFloat would take it.
+  if (!/^\d*\.?\d+$/.test(cleaned)) return Number.NaN;
+  return Number(cleaned);
+}
