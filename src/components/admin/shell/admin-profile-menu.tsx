@@ -65,7 +65,10 @@ export function AdminProfileMenu({ profile }: { profile: AdminProfile }) {
       {open ? (
         <div
           role="menu"
-          className="surface-raised absolute right-0 top-12 z-50 w-60 rounded-xl border border-border py-1.5 shadow-elev-2"
+          /* w-60 is 240px and the avatar is the right-most control, so
+             this one has always fitted. Left as it is rather than
+             changed for symmetry. */
+          className="surface-raised absolute right-0 top-12 z-50 w-60 max-w-[calc(100vw-1.5rem)] rounded-xl border border-border py-1.5 shadow-elev-2"
         >
           <div className="px-3.5 py-2">
             <p className="truncate text-xs font-medium">

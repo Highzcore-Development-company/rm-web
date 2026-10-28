@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   formatPipAmount,
   formatPipValue,
+  lotsForPipValue,
   pipLineFor,
   pipValueFor,
   type Quotes,
@@ -183,5 +184,68 @@ describe("pipLineFor", () => {
 
   it("goes quiet rather than guessing", () => {
     expect(pipLineFor("AUDCAD", "0.5")).toBe("");
+  });
+});
+
+// ---------- lots from a dollar target (Victor, 26 Oct) ----------
+//
+// "You've been struggling to make all markets have $0.30 per pip, where it
+// only calculates via lots, not via the dollar." Risk is decided in money;
+// the lot size that produces it differs per market and moves with the rate.
+
+describe("lotsForPipValue", () => {
+  const quotes = { EURUSD: 1.09, USDJPY: 157.0, GBPUSD: 1.27, USDCAD: 1.41 };
+
+  it("is the exact inverse of pipValueFor", () => {
+    // The property that matters: ask for $0.30, get a size worth $0.30.
+    const lots = lotsForPipValue("EURUSD", 0.3, quotes)!;
+    const back = pipValueFor("EURUSD", lots, quotes);
+
+    expect(back.kind).toBe("known");
+    if (back.kind === "known") expect(back.usd).toBeCloseTo(0.3, 2);
+  });
+
+  it("gives DIFFERENT lot sizes for the same money on different markets", () => {
+    // The whole reason the feature exists. One pip of USDJPY and one pip of
+    // EURUSD are not worth the same, so "$0.30 everywhere" is not one number.
+    const eur = lotsForPipValue("EURUSD", 0.3, quotes);
+    const jpy = lotsForPipValue("USDJPY", 0.3, quotes);
+
+    expect(eur).not.toBeNull();
+    expect(jpy).not.toBeNull();
+    expect(eur).not.toBe(jpy);
+  });
+
+  it("rounds DOWN to the broker step, never up", () => {
+    // Up would hand every market slightly more risk than was asked for —
+    // silently, across seventeen markets at once.
+    for (const target of [0.3, 0.37, 0.41, 1.03]) {
+      const lots = lotsForPipValue("EURUSD", target, quotes)!;
+      const value = pipValueFor("EURUSD", lots, quotes);
+      if (value.kind === "known") expect(value.usd).toBeLessThanOrEqual(target + 1e-9);
+    }
+  });
+
+  it("lands on the broker's 0.01 step", () => {
+    const lots = lotsForPipValue("GBPUSD", 0.77, quotes)!;
+    expect(Math.round(lots * 100) % 1).toBe(0);
+  });
+
+  it("never returns zero, even when one pip costs more than the target", () => {
+    // 0.01 is the smallest tradeable size. Returning 0 would read as "turn
+    // this market off", which is a different instruction entirely.
+    const lots = lotsForPipValue("USDJPY", 0.0001, quotes);
+    expect(lots).toBe(0.01);
+  });
+
+  it("refuses a target it cannot price rather than guessing", () => {
+    // A guess here is a lot size somebody trades.
+    expect(lotsForPipValue("XXXYYY", 0.3, {})).toBeNull();
+  });
+
+  it("refuses nonsense targets", () => {
+    expect(lotsForPipValue("EURUSD", 0, quotes)).toBeNull();
+    expect(lotsForPipValue("EURUSD", -1, quotes)).toBeNull();
+    expect(lotsForPipValue("EURUSD", Number.NaN, quotes)).toBeNull();
   });
 });

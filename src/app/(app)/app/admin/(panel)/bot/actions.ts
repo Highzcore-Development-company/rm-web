@@ -4,7 +4,14 @@ import { revalidatePath } from "next/cache";
 import { recordAdminAction, requirePermission } from "@/lib/admin";
 import { getBotWriteClient } from "@/lib/supabase/rm-server-session";
 
-export type BotActionResult = { ok: true } | { ok: false; error: string };
+export type BotActionResult =
+  /**
+   * `scheduledResume: false` means the action SUCCEEDED but a requested
+   * resume time could not be stored — the bot's migration 024 has not run.
+   * Absent means there was nothing to schedule, or it was stored fine.
+   */
+  | { ok: true; scheduledResume?: boolean }
+  | { ok: false; error: string };
 
 /**
  * A8 — the controls an investor must never get.
@@ -156,36 +163,106 @@ export async function setMarketEnabled(
 }
 
 /** The global trading switch. */
+/** The longest a resume may be scheduled out. */
+const MAX_RESUME_DAYS = 14;
+
 export async function setTradingEnabled(
   enabled: boolean,
+  /**
+   * ISO time to switch trading back on, when turning it OFF.
+   *
+   * Null means "until a person says", which stays the default — a deadline
+   * nobody chose would be worse than no deadline. Ignored when enabling,
+   * because a resume scheduled for a bot that is already running is a trap
+   * waiting for the next time it is stopped.
+   */
+  resumeAt: string | null = null,
 ): Promise<BotActionResult> {
   const admin = await requirePermission("bot.configure");
   if (!admin) return { ok: false, error: "forbidden" };
 
+  // Validated HERE, not only in the browser. A server action is a URL, and
+  // the thing on the other end of this one turns trading on by itself.
+  let resume: string | null = null;
+  if (!enabled && resumeAt) {
+    const when = new Date(resumeAt);
+    if (Number.isNaN(when.getTime())) return { ok: false, error: "bad_resume" };
+    // In the past would fire on the bot's very next cycle — the desk would
+    // stand down and come straight back up, which is not what anyone meant.
+    if (when.getTime() <= Date.now()) return { ok: false, error: "resume_past" };
+    if (when.getTime() > Date.now() + MAX_RESUME_DAYS * 86_400_000) {
+      return { ok: false, error: "resume_far" };
+    }
+    resume = when.toISOString();
+  }
+
   const client = await writeClient();
   if (!client) return { ok: false, error: "not_connected" };
 
-  const { data, error } = await client
-    .from("bot_settings")
-    .update({
-      trading_enabled: enabled,
-      updated_at: new Date().toISOString(),
-      updated_by: admin.email,
-    })
-    // bot_settings is a single row; the bot's own queries assume id = 1.
-    .eq("id", 1)
-    .select("id");
+  const base = {
+    trading_enabled: enabled,
+    updated_at: new Date().toISOString(),
+    updated_by: admin.email,
+  };
 
-  if (error || !data?.length) {
-    return refused("trading switch", error?.message);
+  // bot_settings is a single row; the bot's own queries assume id = 1.
+  const write = (patch: Record<string, unknown>) =>
+    client.from("bot_settings").update(patch).eq("id", 1).select("id");
+
+  /**
+   * THE STOP MUST SURVIVE THE SCHEDULE FAILING, and that is the whole reason
+   * this is two attempts rather than one.
+   *
+   * resume_at arrives with the bot's migration 024, which this repo cannot
+   * guarantee has been run. PostgREST rejects the WHOLE update on one unknown
+   * column (PGRST204), so naming it unconditionally would mean that until
+   * that migration lands, NOBODY CAN STOP THE BOT — the kill switch would
+   * report "refused" in both directions. That is the worst possible failure
+   * here, and strictly worse than not being able to schedule.
+   *
+   * So the schedule is attempted, and on any failure the switch is flipped
+   * without it. The caller is told which happened; it must not report a
+   * resume that was never stored.
+   */
+  let scheduled = false;
+  let result = await write({
+    ...base,
+    // ALWAYS written, including null. Starting the bot by hand must clear any
+    // pending schedule, or a resume set yesterday fires against a bot
+    // somebody has since stopped again for a different reason.
+    resume_at: resume,
+    resume_by: resume ? admin.email : null,
+  });
+
+  if (result.error) {
+    console.warn(
+      "[admin/bot] resume columns unavailable, flipping the switch without " +
+        `them — run the bot's db/migrations/024: ${result.error.message}`,
+    );
+    result = await write(base);
+  } else {
+    scheduled = true;
+  }
+
+  if (result.error || !result.data?.length) {
+    return refused("trading switch", result.error?.message);
   }
 
   await recordAdminAction(
     enabled ? "bot.trading_enabled" : "bot.trading_disabled",
     { type: "bot" },
+    // The schedule is part of the decision, so it belongs in the same audit
+    // entry rather than being inferable only from the settings row — which
+    // the bot overwrites the moment it fires.
+    resume && scheduled ? { resume_at: resume } : undefined,
   );
 
   revalidatePath("/app/admin/bot");
+
+  // Asked for a resume and could not store one. The STOP happened, so this is
+  // not a failure — but saying nothing would leave somebody believing the bot
+  // comes back at 08:00 when nothing will bring it back.
+  if (resume && !scheduled) return { ok: true, scheduledResume: false };
   return { ok: true };
 }
 

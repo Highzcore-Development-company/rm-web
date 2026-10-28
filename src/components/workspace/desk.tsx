@@ -38,6 +38,7 @@ import { LogoLink } from "@/components/logo";
 import { ScoraChat } from "@/components/workspace/scora-chat";
 import { CloseTradeButton } from "@/components/workspace/close-trade";
 import { tradingPnlFrom } from "@/lib/admin/trading-pnl";
+import { formatPrice } from "@/lib/price";
 import type { BotMarket, BotSettings, BotTrade } from "@/lib/workspace/types";
 
 /**
@@ -122,8 +123,8 @@ const money = (n: number | null | undefined, dp = 2) =>
     ? "—"
     : `${Number(n) < 0 ? "-" : ""}$${Math.abs(Number(n)).toFixed(dp)}`;
 
-const px = (n: number | null | undefined) =>
-  n == null || !Number.isFinite(Number(n)) ? "—" : String(n);
+/** Prices, rounded to what the instrument actually quotes. See lib/price. */
+const px = (n: number | null | undefined) => formatPrice(n);
 
 function since(iso: string | null | undefined, nowMs: number): string {
   if (!iso) return "—";
@@ -361,7 +362,16 @@ export function Desk({
         }
       >
         <header className="flex h-14 shrink-0 items-center gap-1 border-b border-border px-2">
-          <div role="tablist" aria-label="Bot" className="flex min-w-0 items-center gap-0.5">
+          {/* SCROLLS SIDEWAYS ON A PHONE. Five tabs did not fit, so the
+              last one ("Performance") was clipped and ran under the close
+              button — a section that exists and cannot be reached. Scrolling
+              the strip keeps every tab reachable without shortening the
+              labels into initials nobody recognises. */}
+          <div
+            role="tablist"
+            aria-label="Bot"
+            className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
             {visibleTabs.map(({ key, label, Icon }) => {
               const on = activeTab === key;
               return (
@@ -370,7 +380,7 @@ export function Desk({
                   role="tab"
                   aria-selected={on}
                   onClick={() => setTab(key)}
-                  className={`flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs transition-colors ${
+                  className={`flex shrink-0 items-center gap-1 rounded-lg px-2 py-1.5 text-xs transition-colors ${
                     on ? "bg-brand/15 font-medium text-brand" : "text-fg-muted hover:text-fg"
                   }`}
                 >
@@ -765,8 +775,15 @@ function ActivitiesTab({
             </div>
 
             {/* The sentence, not the badge. "Waiting for a pullback on a market
-                in a strong downtrend" is what someone actually wants to read. */}
-            <p className="mt-1.5 text-sm text-fg-muted">
+                in a strong downtrend" is what someone actually wants to read.
+
+                CLAMPED TO THREE LINES ON A PHONE. The bot's structure note
+                grew into a paragraph — floor and ceiling with touch counts,
+                the efficiency figure, the follow-through verdict — and
+                seventeen markets of that is a wall nobody scrolls past.
+                Tapping the card still opens the full reading, so nothing is
+                lost, only folded. Unclamped from sm up, where it fits. */}
+            <p className="mt-1.5 line-clamp-3 text-sm text-fg-muted sm:line-clamp-none">
               {m.reason ?? "—"}
               {/* Top-down: the highest chart first, the way it is read.
                   Only when it differs from the rung below — three timeframes

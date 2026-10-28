@@ -253,6 +253,10 @@ export interface BotSettings {
   /** True = the bot proposes and places nothing until a person approves
    *  (migration 015). False = it places its own orders, as it always has. */
   require_approval: boolean;
+  /** When trading switches itself back on (bot migration 024). Null = it stays
+   *  off until a person starts it. The bot clears this once it fires, so a
+   *  non-null value here always means a resume that has not happened yet. */
+  resume_at?: string | null;
   updated_at: string;
   updated_by: string | null;
   /** `updated_by` is stored as the issuer's EMAIL (see issuer() in

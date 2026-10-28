@@ -148,6 +148,54 @@ export function pipValueFor(
 }
 
 /**
+ * The lot size that makes one pip worth `targetUsd` on this market.
+ *
+ * THE INVERSE OF pipValueFor, and exact rather than a search, because pip
+ * value is linear in lots — ten times the size is ten times the money, with
+ * no threshold or step in between. So one probe at a known size gives the
+ * slope and the answer is one division.
+ *
+ * WHY THIS EXISTS. Victor, 26 Oct: "you've been struggling to make all
+ * markets have $0.30 per pip, where it only calculates via lots, not via the
+ * dollar." Risk is decided in money — the same $0.30 a pip everywhere — and
+ * the lot size that produces it differs per market and moves with the
+ * exchange rate. Asking a person to do that conversion for seventeen markets
+ * is asking them to do arithmetic the page already knows how to do.
+ *
+ * ROUNDED TO THE BROKER'S STEP, DOWN. 0.01 is the lot increment, so an exact
+ * answer of 0.037 has to become 0.03 or 0.04, and down is the only safe
+ * direction: rounding up would quietly give every market slightly MORE risk
+ * than was asked for. The caller is told what the rounded size really costs
+ * so the gap is visible rather than assumed away.
+ *
+ * Returns null when the pip value is unknown — no quote and no measured
+ * fallback. A guess here would be a lot size somebody trades.
+ */
+export function lotsForPipValue(
+  market: string,
+  targetUsd: number,
+  quotes: Quotes = {},
+): number | null {
+  if (!Number.isFinite(targetUsd) || targetUsd <= 0) return null;
+
+  const probe = pipValueFor(market, BROKER_MINIMUM_LOTS, quotes);
+  if (probe.kind === "unknown" || probe.usd <= 0) return null;
+
+  const perLot = probe.usd / BROKER_MINIMUM_LOTS;
+  const exact = targetUsd / perLot;
+
+  // Down to the step, then held at the broker minimum: a market whose pip is
+  // worth more than the whole target cannot be traded smaller than 0.01, and
+  // returning 0 would read as "turn this market off".
+  const stepped = Math.floor(exact / BROKER_MINIMUM_LOTS) * BROKER_MINIMUM_LOTS;
+  const lots = Math.max(stepped, BROKER_MINIMUM_LOTS);
+
+  // Two decimals: the step is 0.01, and floating point leaves 0.07000000001
+  // on a division that should have been clean.
+  return Number(lots.toFixed(2));
+}
+
+/**
  * The line shown under the input.
  *
  * Rounded to the cent above a cent, and to a tenth of a cent below it — at

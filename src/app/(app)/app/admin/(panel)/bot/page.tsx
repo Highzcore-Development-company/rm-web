@@ -6,6 +6,7 @@ import {
   TradingSwitch,
   type MarketConfig,
 } from "@/components/admin/bot-controls";
+import { BulkMarketSettings } from "@/components/admin/bulk-market-settings";
 import { getAdmin, requirePermission } from "@/lib/admin";
 import { getWorkspaceData } from "@/lib/workspace/data";
 import { canWriteToBot, writeBlockedReason } from "@/lib/supabase/rm-server-session";
@@ -119,9 +120,14 @@ export default async function AdminBotPage() {
           {t("settings")}
         </h2>
         <div className="mt-3">
+          {/* NOT `?? false`. A settings row we could not read is not a bot
+              that is stopped, and on 22 Oct this card said "The bot is
+              stopped" for two hours while it was trading — the select had
+              failed. On a kill switch, "unknown" must look like unknown. */}
           <TradingSwitch
-            enabled={data.settings?.trading_enabled ?? false}
+            enabled={data.settings ? data.settings.trading_enabled : null}
             configurable={configurable}
+            resumeAt={data.settings?.resume_at ?? null}
           />
         </div>
       </section>
@@ -134,6 +140,14 @@ export default async function AdminBotPage() {
           {t("lotNote")}
         </p>
         <div className="mt-4">
+          {/* Bulk first, the per-market table under it. Victor was editing
+              seventeen rows one at a time to reach the same answer; the
+              one-at-a-time path stays for the exceptions. */}
+          <BulkMarketSettings
+            markets={markets}
+            configurable={configurable}
+            quotes={quotes}
+          />
           <MarketControls
             markets={markets}
             configurable={configurable}

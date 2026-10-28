@@ -60,7 +60,7 @@ export async function getWorkspaceData(): Promise<WorkspaceData> {
 
   // Settled, not awaited in sequence: one missing table must not take the
   // whole desk down while the schema is still being applied.
-  const [markets, configs, specs, closed, equity, settings] = await Promise.all([
+  const [markets, configs, specs, closed, equity, settings, resumeAt] = await Promise.all([
     client.from("bot_market_state").select("*").then((r) => r.data ?? []),
     // Columns listed for the same reason as bot_settings below: rm-server
     // withholds `updated_by` (the email of whoever last changed a lot size)
@@ -95,7 +95,34 @@ export async function getWorkspaceData(): Promise<WorkspaceData> {
       .select("id, trading_enabled, require_approval, cutover_at, seen_by_bot_at, updated_at")
       .maybeSingle()
       .then((r) => r.data ?? null),
-  ]).catch(() => [[], [], [], [], [], null] as const);
+    /**
+     * resume_at ON ITS OWN, and allowed to fail.
+     *
+     * It arrives with the bot's migration 024, which this repo cannot
+     * guarantee has run — and PostgREST refuses the WHOLE select on one
+     * unknown column. Folding it into the query above cost us exactly that:
+     * the settings row came back null, the card read `?? false`, and the
+     * dashboard told everyone the bot was STOPPED while it was trading.
+     *
+     * A scheduling nicety must never be able to take the state of the kill
+     * switch down with it, so it is a separate request whose failure means
+     * only "no resume scheduled".
+     *
+     * resume_by is deliberately not read. It holds an admin's email, same as
+     * updated_by, and this payload reaches the investor desk.
+     */
+    // .then with both handlers rather than .catch: the builder returns a
+    // PromiseLike, which has no .catch. A rejection here must still resolve
+    // to "no resume scheduled" rather than taking Promise.all down.
+    client
+      .from("bot_settings")
+      .select("resume_at")
+      .maybeSingle()
+      .then(
+        (r) => (r.data as { resume_at?: string | null } | null)?.resume_at ?? null,
+        () => null,
+      ),
+  ]).catch(() => [[], [], [], [], [], null, null] as const);
 
   const curve = (equity as BotEquity[]).slice().reverse();
 
@@ -106,7 +133,11 @@ export async function getWorkspaceData(): Promise<WorkspaceData> {
     closedTrades: closed as BotTrade[],
     equity: curve.at(-1) ?? null,
     equityCurve: curve,
-    settings: settings as BotSettings | null,
+    // Merged here rather than selected together — see the note on the
+    // resume_at query above for why it is fetched separately.
+    settings: settings
+      ? ({ ...settings, resume_at: resumeAt } as unknown as BotSettings)
+      : null,
     // Approvals are an operator concern; an investor is never asked to decide
     // one, so the list stays empty regardless of what rm-server holds.
     proposals: [],

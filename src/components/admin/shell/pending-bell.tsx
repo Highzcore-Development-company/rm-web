@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowUpRight, Hourglass } from "lucide-react";
 import { useLiveMarkets } from "@/components/workspace/use-live-markets";
 import { useDismissable } from "@/components/admin/shell/use-dismissable";
+import { formatPrice } from "@/lib/price";
 import type { BotMarket } from "@/lib/workspace/types";
 
 /**
@@ -60,7 +61,14 @@ export function PendingBell({ initial }: { initial: BotMarket[] }) {
       {open ? (
         <div
           role="menu"
-          className="surface-raised absolute right-0 top-12 z-50 w-[min(34rem,calc(100vw-2rem))] rounded-xl border border-border shadow-elev-2"
+          /* PINNED TO THE VIEWPORT ON A PHONE, to the bell from sm up.
+             `absolute right-0` aligns this panel's right edge with the
+             BELL, and the bell sits left of the theme toggle and the
+             avatar. At nearly 100vw wide that pushed the left edge off the
+             screen, so the panel clipped its own text and every line began
+             mid-word. Anchoring to the viewport gives it equal margins and
+             nothing to hang off. */
+          className="surface-raised fixed inset-x-3 top-16 z-50 rounded-xl border border-border shadow-elev-2 sm:absolute sm:inset-x-auto sm:right-0 sm:top-12 sm:w-[min(34rem,calc(100vw-2rem))]"
         >
           <div className="flex items-baseline justify-between gap-3 border-b border-border px-4 py-3">
             <p className="text-xs uppercase tracking-wide text-fg-muted">
@@ -95,7 +103,7 @@ export function PendingBell({ initial }: { initial: BotMarket[] }) {
                       {/* The level it is waiting at, which is the one number
                           that makes a pending setup actionable. */}
                       <span className="shrink-0 font-mono text-xs text-brand">
-                        {market.level !== null ? market.level : "—"}
+                        {formatPrice(market.level)}
                       </span>
                     </span>
                     {/* IN FULL, wrapped. Victor: "the column still have more

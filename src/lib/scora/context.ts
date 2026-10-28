@@ -71,8 +71,11 @@ type ScoraMarketRow = {
   htf: string | null;
   entry_trend: string | null;
   htf_trend: string | null;
-  htf2: string | null;
-  htf2_trend: string | null;
+  // Optional: absent entirely on the fallback select, so `?` rather than
+  // `| null`. The difference matters — null is "the bot has not read it yet",
+  // undefined is "this database does not have the column".
+  htf2?: string | null;
+  htf2_trend?: string | null;
   trend_strength: string | null;
   state: string | null;
   reason: string | null;
@@ -145,6 +148,72 @@ const EMPTY: ScoraContext = {
 };
 
 /**
+ * The columns Scora may state as fact.
+ *
+ * Deliberately not `select *`: a narrow query is also the list of what the
+ * model is allowed to know, and widening it by accident widens that.
+ */
+const MARKET_COLUMNS =
+  "symbol, alias, timeframe, htf, entry_trend, htf_trend, trend_strength, state, reason, price, level, latest_signal, snapshot, updated_at";
+
+/**
+ * Columns the BOT adds, which this repo cannot guarantee exist.
+ *
+ * SEPARATE BECAUSE THE TWO REPOS DEPLOY INDEPENDENTLY. htf2 arrives with the
+ * bot's migration 023, and naming it in the select before that has run makes
+ * PostgREST reject the WHOLE query — Scora then answers with no market data at
+ * all, which reads as a vague model rather than as a broken one. That is
+ * exactly what happened on 21 Oct, and the `spread` column did the same thing
+ * before it.
+ *
+ * The bot solves this with has_columns() self-disabling. This is the same idea
+ * from the reading side, and it mirrors getAdmin() in lib/admin.ts, which
+ * already does it for the admin profile columns.
+ */
+const MARKET_COLUMNS_OPTIONAL = "htf2, htf2_trend";
+
+/** Logged once per process, not once per question. */
+let warnedAboutOptionalColumns = false;
+
+/**
+ * Market rows, with the bot's newer columns if the bot has created them.
+ *
+ * Tries the full select, and on ANY error retries without the optional
+ * columns. The fallback is deliberately blind to the error code: whether
+ * PostgREST says 42703 or something else, the question "can we still answer
+ * with what has always existed" has the same answer.
+ */
+async function readMarketRows(
+  client: NonNullable<ReturnType<typeof createRmServerClient>>,
+): Promise<ScoraMarketRow[]> {
+  const full = await client
+    .from("bot_market_state")
+    .select(`${MARKET_COLUMNS}, ${MARKET_COLUMNS_OPTIONAL}`);
+
+  if (!full.error) return (full.data ?? []) as unknown as ScoraMarketRow[];
+
+  const base = await client.from("bot_market_state").select(MARKET_COLUMNS);
+
+  if (base.error) {
+    // BOTH failed, so this is not a missing column — it is the market feed
+    // being unreadable. Said out loud: the caller turns an empty list into
+    // "not connected", and a silent return here is how Scora spent a week
+    // answering as a generic chatbot with nobody aware.
+    console.error("[scora] could not read bot_market_state:", base.error.message);
+    return [];
+  }
+
+  if (!warnedAboutOptionalColumns) {
+    warnedAboutOptionalColumns = true;
+    console.warn(
+      "[scora] bot_market_state is missing htf2 — run the bot's " +
+        "db/migrations/023 to give Scora the H4 trend. Answering without it.",
+    );
+  }
+  return (base.data ?? []) as unknown as ScoraMarketRow[];
+}
+
+/**
  * Everything Scora is allowed to state as fact.
  *
  * Read with the ordinary rm-server client. Scora answers questions about the
@@ -156,14 +225,7 @@ export async function getScoraContext(): Promise<ScoraContext> {
   if (!client) return EMPTY;
 
   const [marketRows, settings, costRows] = await Promise.all([
-    client
-      .from("bot_market_state")
-      .select(
-        "symbol, alias, timeframe, htf, entry_trend, htf_trend, htf2, htf2_trend, trend_strength, state, reason, price, level, latest_signal, snapshot, updated_at",
-      )
-      // Only the columns Scora may state as fact. Not `select *`: a narrower
-      // query is also a list of what the model is allowed to know.
-      .then((r) => (r.data ?? []) as ScoraMarketRow[]),
+    readMarketRows(client),
     client
       .from("bot_settings")
       .select("trading_enabled, updated_at")
@@ -191,8 +253,11 @@ export async function getScoraContext(): Promise<ScoraContext> {
     alias: m.alias,
     timeframe: m.timeframe,
     htf: m.htf,
-    htf2: m.htf2,
-    htf2Trend: m.htf2_trend,
+    // ?? null so a database without the column and a bot that has not read it
+    // yet look the same to everything downstream — both mean "no 4H reading",
+    // and the renderer already omits the line for null.
+    htf2: m.htf2 ?? null,
+    htf2Trend: m.htf2_trend ?? null,
     trend: m.entry_trend,
     htfTrend: m.htf_trend,
     state: m.state,

@@ -1155,12 +1155,15 @@
     "switch": {
       "on": "The bot is trading",
       "off": "The bot is stopped",
+      "unknown": "Can't tell if the bot is trading",
+      "unknownHint": "The settings could not be read, so this is not a reading — it is a missing answer. Do not treat it as stopped.",
       "hint": "Applies to the master account, and so to every linked investor.",
       "start": "Start trading",
       "stop": "Stop trading",
       "confirmOff": "This stops the bot opening anything new, on the master account and every account linked to it. Continue?",
       "started": "Trading started.",
-      "stopped": "Trading stopped."
+      "stopped": "Trading stopped.",
+      "resumeUnavailable": "Trading is stopped — but the start time was NOT saved, so nothing will turn it back on. Run the bot's migration 024, or start it by hand."
     },
     "cols": {
       "market": "Market",
@@ -1179,7 +1182,11 @@
       "bad_lot": "A lot size must be a number greater than zero.",
       "bad_profit": "A profit target must be a number greater than zero, or empty.",
       "generic": "That did not reach the bot. Try again.",
-      "not_connected": "You are not signed in to the bot. Connect above and try again."
+      "not_connected": "You are not signed in to the bot. Connect above and try again.",
+      "bad_resume": "That start time is not a real date.",
+      "resume_past": "That start time has already passed, so the bot would come straight back on.",
+      "resume_far": "Pick a start time within the next two weeks.",
+      "refused": "The bot refused that change. Nothing was altered."
     },
     "notReadable": "The bot's data is not readable from here right now, so the panels are empty. This is a connection problem, not the bot being idle.",
     "viewOnly": "You can see what the bot is doing but not change it.",
