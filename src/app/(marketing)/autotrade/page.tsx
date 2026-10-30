@@ -1,6 +1,4 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import { Hero } from "@/components/hero";
 import { PerformanceStrip } from "@/components/performance-strip";
 import { Analysis } from "@/components/sections/analysis";
@@ -73,14 +71,21 @@ export const metadata: Metadata = {
  * and closes on the page; managed trading closes on a call, so its only job
  * here is to send the right visitor to /investors.
  */
-export default async function HomePage() {
-  // A signed-in visitor landing on the pitch has to find their own way in.
-  // getUser rather than getSession: it verifies the token with Supabase rather
-  // than trusting a cookie that may be stale or forged.
-  const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
-  if (auth.user) redirect("/app/dashboard");
-
+/**
+ * NO LONGER REDIRECTS A SIGNED-IN VISITOR.
+ *
+ * This page used to be the root, where "you are signed in, go to your
+ * dashboard" is a reasonable thing to do with somebody who lands on the
+ * pitch. It is a PRODUCT PAGE now, and the same rule makes it unreachable:
+ * Esther opened /autotrade, got a header and a footer and nothing between
+ * them, and it read as broken. It was not — it was rendering and then
+ * navigating away.
+ *
+ * A landing page has to render for everyone, including the people who built
+ * it. The way in is the Dashboard button in the header, which is on every
+ * page and is where somebody signed in would look for it anyway.
+ */
+export default async function AutotradePage() {
   return (
     <>
       <Hero />
