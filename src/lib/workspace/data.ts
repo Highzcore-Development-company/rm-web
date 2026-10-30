@@ -150,3 +150,70 @@ export async function getWorkspaceData(): Promise<WorkspaceData> {
     connected: true,
   };
 }
+
+/**
+ * Just what the Bot controls page needs.
+ *
+ * WHY THIS IS NOT getWorkspaceData(). Esther: "it still takes time before it
+ * changes." Saving a lot size calls revalidatePath, which re-runs the page,
+ * which was re-running the full workspace read: market state with every
+ * indicator snapshot, 200 closed trades and 500 equity points — measured at
+ * ~800ms against the live database. The Bot page reads none of the trades and
+ * none of the equity. It was paying for 365 rows it never looks at, on every
+ * save, and that was most of the wait.
+ *
+ * THE COLUMNS ARE NAMED for the same reason they are named in the full read:
+ * rm-server grants the anon key specific columns and withholds `updated_by`,
+ * so `select *` is refused outright rather than quietly trimmed. The market
+ * read is narrower still — this page wants a PRICE per symbol to compute the
+ * pip line under each lot box, not the indicator snapshot.
+ *
+ * Returns the same shapes the page already consumes, so it is a swap rather
+ * than a rewrite of the page.
+ */
+export async function getBotControlsData(): Promise<{
+  configs: BotConfig[];
+  /** symbol/alias/price only — enough for the pip line. */
+  markets: Pick<BotMarket, "symbol" | "alias" | "price">[];
+  settings: BotSettings | null;
+  connected: boolean;
+}> {
+  const client = createRmServerClient();
+  if (!client) {
+    return { configs: [], markets: [], settings: null, connected: false };
+  }
+
+  const [configs, markets, settings, resumeAt] = await Promise.all([
+    client
+      .from("bot_symbol_config")
+      .select("symbol, alias, lot_size, close_at_profit, enabled, updated_at")
+      .then((r) => r.data ?? []),
+    client
+      .from("bot_market_state")
+      .select("symbol, alias, price")
+      .then((r) => r.data ?? []),
+    client
+      .from("bot_settings")
+      .select("id, trading_enabled, require_approval, cutover_at, seen_by_bot_at, updated_at")
+      .maybeSingle()
+      .then((r) => r.data ?? null),
+    // Separate and allowed to fail — see the note on the same read above.
+    client
+      .from("bot_settings")
+      .select("resume_at")
+      .maybeSingle()
+      .then(
+        (r) => (r.data as { resume_at?: string | null } | null)?.resume_at ?? null,
+        () => null,
+      ),
+  ]).catch(() => [[], [], null, null] as const);
+
+  return {
+    configs: configs as BotConfig[],
+    markets: markets as Pick<BotMarket, "symbol" | "alias" | "price">[],
+    settings: settings
+      ? ({ ...settings, resume_at: resumeAt } as unknown as BotSettings)
+      : null,
+    connected: true,
+  };
+}
