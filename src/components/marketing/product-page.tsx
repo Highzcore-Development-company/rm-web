@@ -1,30 +1,41 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { ArrowRight, Check } from "lucide-react";
 import { Container } from "@/components/ui";
+import { HeroBackdrop } from "@/components/hero-backdrop";
 import { PremiumCard } from "@/components/marketing/premium-card";
 import { SectionHeading } from "@/components/marketing/section-heading";
-import { headers } from "next/headers";
 import { PRODUCTS, type Product } from "@/lib/products";
 import { productUrl } from "@/lib/subdomain";
 
 /**
- * A product landing page — HS-WEB-v1, page three.
+ * A product landing page.
  *
- * ONE COMPONENT FOR ALL OF THEM, and that is the point rather than a
- * convenience. The brief sets a completion test: four questions answered the
- * moment the page loads, and "if any one of them is missing, the page is not
- * finished". Six hand-written pages would each be one edit away from losing
- * one; here the four are the component's structure, so a page cannot quietly
- * ship without them.
+ * Esther: "make a better UI for Scora and doc and blog — something like
+ * autotrade, it looks well." It does, and the difference was never the
+ * colour: /autotrade is the animated backdrop, a headline that arrives, a
+ * section that says what the thing DOES, a numbered how-it-works and a
+ * closing call to action. These three had a headline, a sentence and a
+ * button — four questions answered correctly and a page nobody would read
+ * twice.
  *
- * BUILT IN highscore-tech-web's IDIOM, in our colours — Esther, 29 Oct:
- * "use it for the others, just don't use its colour, maybe its design." So
- * the wide-tracked eyebrow, the large negatively-tracked display heading and
- * the lit card are theirs; `accent`, `fg` and `surface` are ours.
+ * So this now carries the same furniture:
  *
- * ORDER IS THE BRIEF'S ORDER. What it is, who it is for, how to start, why
- * us — and the button sits above the proof, because somebody already
- * convinced should not have to scroll past the argument to act.
+ *   hero       HeroBackdrop behind it — the same four drifting layers the
+ *              trading hero uses, reused rather than imitated
+ *   features   what it actually does. SEPARATE from "why us": that is
+ *              proof, this is capability, and a page with only proof is a
+ *              page of adjectives.
+ *   how        numbered steps, when the product has them
+ *   why us     the proof, as before
+ *   the rest   the other products, at their own doors
+ *
+ * STILL THE BRIEF'S FOUR QUESTIONS. What it is and who it is for in the
+ * hero, how to start in the button, why us below — none of that moved. What
+ * was added is the middle, which is where somebody decides.
+ *
+ * Sections render only when the data is there, so a product with no steps
+ * does not get an empty band with a heading over it.
  */
 export async function ProductPage({ product }: { product: Product }) {
   const others = PRODUCTS.filter((p) => p.slug !== product.slug);
@@ -33,14 +44,9 @@ export async function ProductPage({ product }: { product: Product }) {
 
   return (
     <>
-      <section className="relative overflow-hidden border-b border-border py-20 sm:py-28">
-        {/* Their ambient backdrop, as a clipped accent wash rather than the
-            3D shader — the effect that matters at this size is the glow
-            behind the heading, and a WebGL scene is a lot of weight for it. */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute left-1/2 top-0 h-[26rem] w-[44rem] -translate-x-1/2 rounded-full bg-accent/[0.07] blur-[120px]"
-        />
+      {/* ── Hero ─────────────────────────────────────────────────── */}
+      <section className="relative isolate overflow-hidden border-b border-border py-24 sm:py-32">
+        <HeroBackdrop />
 
         <Container>
           <div className="relative max-w-3xl">
@@ -48,8 +54,7 @@ export async function ProductPage({ product }: { product: Product }) {
               {product.name}
             </p>
 
-            {/* WHAT IT IS — one sentence, as the headline. The brief wants it
-                "the moment the page loads", and nothing loads sooner. */}
+            {/* WHAT IT IS — one sentence, as the headline. */}
             <h1 className="display text-4xl font-extrabold leading-[1.04] tracking-[-0.035em] sm:text-5xl md:text-6xl">
               {product.what}
             </h1>
@@ -80,25 +85,23 @@ export async function ProductPage({ product }: { product: Product }) {
         </Container>
       </section>
 
-      {/* WHY US — proof, and only proof we have. A product with nothing to
-          point at renders nothing here rather than three padded paragraphs;
-          see the note on Product.why. */}
-      {product.why.length > 0 ? (
+      {/* ── What it does ─────────────────────────────────────────── */}
+      {product.features?.length ? (
         <section className="border-b border-border py-16 sm:py-24">
           <Container>
-            <SectionHeading eyebrow="Why us" title="Why you can believe it" />
-            <div className="mt-8 grid gap-4 md:mt-12 md:grid-cols-2 lg:grid-cols-3 md:gap-6">
-              {product.why.map((point) => (
-                <PremiumCard key={point.claim} className="h-full">
+            <SectionHeading
+              eyebrow="What it does"
+              title={`Everything ${product.name} gives you.`}
+            />
+            <div className="mt-8 grid gap-4 md:mt-12 md:grid-cols-2 md:gap-6 lg:grid-cols-3">
+              {product.features.map((f) => (
+                <PremiumCard key={f.title} className="h-full">
                   <div className="p-5 md:p-6">
-                    <span className="inline-flex size-10 items-center justify-center rounded-md bg-accent/10 text-accent">
-                      <Check className="size-5" aria-hidden="true" />
-                    </span>
-                    <h3 className="mt-4 text-base font-semibold md:text-lg">
-                      {point.claim}
+                    <h3 className="text-base font-semibold md:text-lg">
+                      {f.title}
                     </h3>
-                    <p className="mt-1.5 text-sm leading-relaxed text-fg-muted">
-                      {point.detail}
+                    <p className="mt-2 text-sm leading-relaxed text-fg-muted">
+                      {f.body}
                     </p>
                   </div>
                 </PremiumCard>
@@ -108,18 +111,93 @@ export async function ProductPage({ product }: { product: Product }) {
         </section>
       ) : null}
 
-      {/* The index, from every page. The brief's rule is that the root
-          explains all of them; a visitor who lands deep should still see the
-          whole company without going back to the top. */}
+      {/* ── How it works ─────────────────────────────────────────── */}
+      {product.steps?.length ? (
+        <section className="border-b border-border py-16 sm:py-24">
+          <Container>
+            <SectionHeading eyebrow="How it works" title="Three steps." />
+            <ol className="mt-8 grid gap-6 md:mt-12 md:grid-cols-3">
+              {product.steps.map((s, i) => (
+                <li key={s.title} className="relative">
+                  {/* The number large and dim behind the text — the same
+                      device the trading page's Steps section uses, so the
+                      two read as one site. */}
+                  <span
+                    aria-hidden="true"
+                    className="display block text-5xl font-extrabold leading-none text-accent/20"
+                  >
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <h3 className="mt-3 text-base font-semibold">{s.title}</h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-fg-muted">
+                    {s.body}
+                  </p>
+                </li>
+              ))}
+            </ol>
+          </Container>
+        </section>
+      ) : null}
+
+      {/* ── Why us ───────────────────────────────────────────────── */}
+      {product.why.length > 0 ? (
+        <section className="border-b border-border py-16 sm:py-24">
+          <Container>
+            <SectionHeading eyebrow="Why us" title="Why you can believe it" />
+            <ul className="mt-8 grid gap-6 md:mt-12 md:grid-cols-2 lg:grid-cols-3">
+              {product.why.map((point) => (
+                <li key={point.claim}>
+                  <p className="flex items-start gap-2 font-medium">
+                    <Check
+                      className="mt-0.5 size-4 shrink-0 text-accent"
+                      aria-hidden="true"
+                    />
+                    {point.claim}
+                  </p>
+                  <p className="mt-2 pl-6 text-sm leading-relaxed text-fg-muted">
+                    {point.detail}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </Container>
+        </section>
+      ) : null}
+
+      {/* ── Closing ──────────────────────────────────────────────── */}
+      <section className="border-b border-border py-16 sm:py-24">
+        <Container>
+          <div className="rounded-2xl border border-accent/30 bg-accent/[0.04] p-6 text-center sm:p-10">
+            <h2 className="display text-2xl font-bold tracking-[-0.02em] sm:text-3xl">
+              {product.start.label}.
+            </h2>
+            {product.start.note ? (
+              <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-fg-muted">
+                {product.start.note}
+              </p>
+            ) : null}
+            <Link
+              href={product.start.href}
+              className="mt-7 inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-3 text-sm font-semibold text-[#0A0A0A] transition-colors hover:bg-accent-hot"
+            >
+              {product.start.label}
+              <ArrowRight className="size-4" aria-hidden="true" />
+            </Link>
+          </div>
+        </Container>
+      </section>
+
+      {/* ── The rest of the company ──────────────────────────────── */}
       <section className="py-16 sm:py-24">
         <Container>
-          <SectionHeading
-            eyebrow="Highzcore"
-            title="The rest of what we do"
-          />
-          <div className="mt-8 grid gap-4 md:mt-12 md:grid-cols-2 lg:grid-cols-3 md:gap-6">
+          <SectionHeading eyebrow="Highzcore" title="The rest of what we do" />
+          <div className="mt-8 grid gap-4 md:mt-12 md:grid-cols-2 md:gap-6 lg:grid-cols-3">
             {others.map((p) => (
-              <PremiumCard key={p.slug} href={productUrl(p.slug, host)} className="h-full">
+              <PremiumCard
+                key={p.slug}
+                href={productUrl(p.slug, host)}
+                className="h-full"
+              >
                 <div className="p-5 md:p-6">
                   <h3 className="text-base font-semibold md:text-lg">{p.name}</h3>
                   <p className="mt-1.5 text-sm leading-relaxed text-fg-muted">

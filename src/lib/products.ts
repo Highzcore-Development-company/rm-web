@@ -47,6 +47,19 @@ export type Product = {
   why: { claim: string; detail: string }[];
   /** False while the page is honest but unfinished — see `why`. */
   ready: boolean;
+
+  /**
+   * What it actually does, three to six of them.
+   *
+   * SEPARATE FROM `why`. `why` is proof — results and reasons to believe us.
+   * These are capabilities: the things somebody gets. A page that only
+   * answers "why us" and never says what the product DOES is a page of
+   * adjectives, which is what /analysis, /blog and /docs were.
+   */
+  features?: { title: string; body: string }[];
+
+  /** How somebody actually uses it, in order. Empty when it needs no steps. */
+  steps?: { title: string; body: string }[];
 };
 
 export const PRODUCTS: Product[] = [
@@ -114,6 +127,43 @@ export const PRODUCTS: Product[] = [
         detail:
           "Where there is no reading, it says so rather than filling the gap.",
       },
+      {
+        claim: "You place every trade yourself",
+        detail:
+          "Scora never touches an account. It answers, and the decision stays " +
+          "where it was — with you.",
+      },
+    ],
+    features: [
+      {
+        title: "Ask it about any market",
+        body: "In plain language. What is EURUSD doing, is gold trending, why has the spread widened — and it answers from the live reading rather than from training data.",
+      },
+      {
+        title: "Trend on two timeframes",
+        body: "The entry chart and the one above it, because a move that looks clean on fifteen minutes can be a pullback in a bigger trend going the other way.",
+      },
+      {
+        title: "Volatility and momentum",
+        body: "ATR, ADX, RSI and Bollinger position — the numbers that say whether a market is trending, ranging or stretched, and by how much.",
+      },
+      {
+        title: "What the trade actually costs",
+        body: "Spread and commission measured from recent real fills on that market, not a published figure. Cost is half of whether an edge survives.",
+      },
+      {
+        title: "The bot's own reading, beside yours",
+        body: "What our trading bot thinks of the same market right now — its structure read, the level it is watching and why it has not entered.",
+      },
+      {
+        title: "Honest about gaps",
+        body: "Where a reading is missing it says so. A confident answer built on nothing is worse than no answer.",
+      },
+    ],
+    steps: [
+      { title: "Sign in", body: "No brokerage account needed. Scora never trades." },
+      { title: "Pick a market", body: "Twenty-eight of them, forex and crypto, updating live." },
+      { title: "Ask", body: "In your own words, and keep asking. The context stays." },
     ],
     ready: true,
   },
@@ -180,6 +230,20 @@ export const PRODUCTS: Product[] = [
       "What we are learning as we build and trade, written down as it happens.",
     who: "Anyone deciding whether we know what we are doing.",
     start: { label: "Read the latest", href: "/blog" },
+    features: [
+      {
+        title: "What we are learning as we build",
+        body: "Written while it is happening rather than tidied up afterwards — including the things that did not work.",
+      },
+      {
+        title: "The trades, reviewed",
+        body: "What the bot did, what it read, and whether the person checking it agreed.",
+      },
+      {
+        title: "How the products are made",
+        body: "The decisions behind what we ship, and why we took one route over another.",
+      },
+    ],
     why: [
       {
         claim: "Written by the people doing the work",
@@ -201,6 +265,20 @@ export const PRODUCTS: Product[] = [
       "the staff system.",
     who: "Customers using the products, and staff running them.",
     start: { label: "Open the docs", href: "/docs" },
+    features: [
+      {
+        title: "For customers",
+        body: "How to use Scora, how managed trading works, what we can and cannot do with your account.",
+      },
+      {
+        title: "For staff",
+        body: "How the platform runs — permissions, the bot controls, and what every setting changes.",
+      },
+      {
+        title: "Written against the real thing",
+        body: "Every page describes the product as it is now, not as it was specified.",
+      },
+    ],
     why: [
       {
         claim: "Written against the real thing",
