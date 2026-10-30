@@ -146,6 +146,11 @@ export default async function AdminLayout({
                 label: "Portfolio & Studio",
                 icon: "portfolio" as const,
               },
+              {
+                href: "/app/admin/content",
+                label: "Blog & Docs",
+                icon: "content" as const,
+              },
             ],
           },
         ]

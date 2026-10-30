@@ -506,6 +506,55 @@ export type Database = {
         };
         Relationships: [];
       };
+      /** HS-WEB-v1 — blog posts and documentation. kind picks the door. */
+      posts: {
+        Row: {
+          id: string;
+          kind: string;
+          slug: string;
+          title: string;
+          excerpt: string;
+          body_md: string | null;
+          cover_image_url: string | null;
+          section: string | null;
+          author: string | null;
+          sort_order: number;
+          published: boolean;
+          published_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          kind: string;
+          slug: string;
+          title: string;
+          excerpt: string;
+          body_md?: string | null;
+          cover_image_url?: string | null;
+          section?: string | null;
+          author?: string | null;
+          sort_order?: number;
+          published?: boolean;
+          published_at?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          /** Settable so an update carries the same payload as an insert. */
+          kind?: string;
+          slug?: string;
+          title?: string;
+          excerpt?: string;
+          body_md?: string | null;
+          cover_image_url?: string | null;
+          section?: string | null;
+          author?: string | null;
+          sort_order?: number;
+          published?: boolean;
+          published_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       portfolio_projects: {
         Row: {
           id: string;

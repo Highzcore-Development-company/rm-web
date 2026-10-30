@@ -17,6 +17,7 @@ import {
   Users,
   Briefcase,
   ClipboardList,
+  FileText,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -25,6 +26,7 @@ const ICONS: Record<string, LucideIcon> = {
   overview: LayoutDashboard,
   reports: ClipboardList,
   portfolio: Briefcase,
+  content: FileText,
   chart: CandlestickChart,
   markets: Bot,
   controls: SlidersHorizontal,
