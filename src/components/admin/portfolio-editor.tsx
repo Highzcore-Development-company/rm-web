@@ -3,7 +3,15 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Eye, EyeOff, Pencil, Plus, Trash2, X } from "lucide-react";
+import {
+  ExternalLink,
+  Eye,
+  EyeOff,
+  Pencil,
+  Plus,
+  Trash2,
+  X,
+} from "lucide-react";
 import {
   deleteProject,
   deleteStudioWork,
@@ -14,6 +22,7 @@ import {
 } from "@/app/(app)/app/admin/(panel)/portfolio/actions";
 import { useToast } from "@/stores";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { ImageUpload } from "@/components/admin/image-upload";
 
 export type AdminProject = {
   id: string;
@@ -60,10 +69,11 @@ export type AdminWork = {
  * twelve inputs is one somebody flips without noticing. A new project is
  * always a draft.
  *
- * IMAGES ARE URLs, not uploads. rm-web has no storage bucket — that is a
- * bucket plus its own policies, and it is the one part of this that is not
- * another table. A URL works today with an image hosted anywhere, and
- * swapping it for an upload later changes this form, not the schema.
+ * PICTURES UPLOAD OR PASTE, either way. Esther: "why URL? What if I want to
+ * upload the picture?" — so there is a bucket now, and the file goes
+ * straight from the browser to it. The link box stays underneath because the
+ * ten projects already here point at highscore's storage, and removing it
+ * would mean re-uploading every image to change a title.
  */
 export function PortfolioEditor({
   projects,
@@ -187,21 +197,33 @@ function ProjectRow({
         </p>
       </div>
 
-      <div className="flex shrink-0 items-center gap-1">
+      {/* WORDS, NOT THREE BARE ICONS. Esther: how would someone know
+          what this means? A pencil, an eye and a bin side by side is a
+          guessing game, and the eye was the worst of them — it could
+          equally mean view or visible. Every button says what it does
+          now, and the publish one says which way it is about to go.
+
+          PREVIEW IS THE FIRST ACTION on a draft, because it is what you
+          want before deciding. The case study page already shows drafts
+          to anyone holding portfolio.manage, with a banner saying it is
+          not public — so this link always WAS the preview. It just never
+          said so. */}
+      <div className="flex shrink-0 flex-wrap items-center gap-1.5">
         <Link
           href={`/build/${project.slug}`}
           target="_blank"
-          className="rounded-lg border border-border px-2 py-1.5 text-xs text-fg-muted transition-colors hover:text-fg"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs text-fg-muted transition-colors hover:text-fg"
         >
-          View
+          <ExternalLink className="size-3.5" aria-hidden="true" />
+          {project.published ? "View" : "Preview"}
         </Link>
         <button
           type="button"
           onClick={onEdit}
-          aria-label={`Edit ${project.title}`}
-          className="rounded-lg border border-border p-1.5 text-fg-muted transition-colors hover:text-fg"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs text-fg-muted transition-colors hover:text-fg"
         >
           <Pencil className="size-3.5" aria-hidden="true" />
+          Edit
         </button>
         <button
           type="button"
@@ -209,20 +231,25 @@ function ProjectRow({
           onClick={() =>
             act(
               () => setProjectPublished(project.id, !project.published),
-              project.published ? "Unpublished." : "Published.",
+              project.published ? "Taken off the site." : "Published.",
             )
           }
-          aria-label={project.published ? "Unpublish" : "Publish"}
-          className={`rounded-lg border p-1.5 transition-colors disabled:opacity-50 ${
+          className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors disabled:opacity-50 ${
             project.published
-              ? "border-chart-up/40 text-chart-up"
-              : "border-border text-fg-subtle hover:text-fg"
+              ? "border-border text-fg-muted hover:text-fg"
+              : "border-chart-up/50 text-chart-up hover:bg-chart-up/10"
           }`}
         >
           {project.published ? (
-            <Eye className="size-3.5" aria-hidden="true" />
+            <>
+              <EyeOff className="size-3.5" aria-hidden="true" />
+              Unpublish
+            </>
           ) : (
-            <EyeOff className="size-3.5" aria-hidden="true" />
+            <>
+              <Eye className="size-3.5" aria-hidden="true" />
+              Publish
+            </>
           )}
         </button>
         <button
@@ -327,8 +354,23 @@ function ProjectForm({
       </div>
       <Field label="External link" value={f.externalUrl} onChange={set("externalUrl")} hint="The live thing, if it is public." />
       <Field label="Tech stack" value={f.techStack} onChange={set("techStack")} hint="Comma separated." />
-      <Field label="Cover image URL" value={f.coverImageUrl} onChange={set("coverImageUrl")} hint="Blank uses the first image below." />
-      <Field label="Image URLs" rows={3} value={f.images} onChange={set("images")} hint="One per line." />
+      {/* Upload or paste — both work. The ten projects already here point
+          at highscore's bucket, so the link box has to stay. */}
+      <ImageUpload
+        label="Cover image"
+        value={f.coverImageUrl}
+        onChange={set("coverImageUrl")}
+        folder={f.slug || "new"}
+        hint="Left empty, the first image below is used."
+      />
+      <ImageUpload
+        label="Images"
+        multiple
+        value={f.images}
+        onChange={set("images")}
+        folder={f.slug || "new"}
+        hint="Shown on the case study, in this order."
+      />
       <Field
         label="Case study"
         rows={10}
@@ -416,14 +458,27 @@ function WorkRow({ work, onEdit }: { work: AdminWork; onEdit: () => void }) {
         </p>
       </div>
 
-      <div className="flex shrink-0 items-center gap-1">
+      <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+        {/* Preview opens the film itself. There is no draft studio page to
+            send somebody to, and the film is the thing being judged. */}
+        {work.videoUrl ? (
+          <a
+            href={work.videoUrl}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs text-fg-muted transition-colors hover:text-fg"
+          >
+            <ExternalLink className="size-3.5" aria-hidden="true" />
+            Preview
+          </a>
+        ) : null}
         <button
           type="button"
           onClick={onEdit}
-          aria-label={`Edit ${work.title}`}
-          className="rounded-lg border border-border p-1.5 text-fg-muted transition-colors hover:text-fg"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs text-fg-muted transition-colors hover:text-fg"
         >
           <Pencil className="size-3.5" aria-hidden="true" />
+          Edit
         </button>
         <button
           type="button"
@@ -431,20 +486,25 @@ function WorkRow({ work, onEdit }: { work: AdminWork; onEdit: () => void }) {
           onClick={() =>
             act(
               () => setWorkPublished(work.id, !work.published),
-              work.published ? "Unpublished." : "Published.",
+              work.published ? "Taken off the site." : "Published.",
             )
           }
-          aria-label={work.published ? "Unpublish" : "Publish"}
-          className={`rounded-lg border p-1.5 transition-colors disabled:opacity-50 ${
+          className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors disabled:opacity-50 ${
             work.published
-              ? "border-chart-up/40 text-chart-up"
-              : "border-border text-fg-subtle hover:text-fg"
+              ? "border-border text-fg-muted hover:text-fg"
+              : "border-chart-up/50 text-chart-up hover:bg-chart-up/10"
           }`}
         >
           {work.published ? (
-            <Eye className="size-3.5" aria-hidden="true" />
+            <>
+              <EyeOff className="size-3.5" aria-hidden="true" />
+              Unpublish
+            </>
           ) : (
-            <EyeOff className="size-3.5" aria-hidden="true" />
+            <>
+              <Eye className="size-3.5" aria-hidden="true" />
+              Publish
+            </>
           )}
         </button>
         <button
@@ -533,11 +593,12 @@ function WorkForm({
         onChange={set("videoUrl")}
         hint="Paste the normal watch link. The still is filled in from it."
       />
-      <Field
-        label="Still image URL"
+      <ImageUpload
+        label="Still image"
         value={f.posterUrl}
         onChange={set("posterUrl")}
-        hint="Only needed if it is not a YouTube video."
+        folder="studio"
+        hint="Filled in automatically for a YouTube link. Only needed otherwise."
       />
       <Field
         label="Short description"

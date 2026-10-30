@@ -61,8 +61,10 @@ export default async function ProjectPage({
               never reaches this page for a draft, so anyone reading this
               line is previewing their own unpublished work. */}
           {!project.published ? (
-            <p className="mt-4 rounded-lg border border-accent/40 bg-accent/5 px-3 py-2 text-xs text-accent">
-              Draft — not visible to anyone else until you publish it.
+            <p className="mt-4 rounded-lg border border-accent/40 bg-accent/5 px-3 py-2 text-xs leading-relaxed text-accent">
+              <strong className="font-semibold">Preview.</strong> This is a
+              draft — you are seeing it because you can manage the portfolio.
+              Nobody else can open this page until you publish it.
             </p>
           ) : null}
 

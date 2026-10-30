@@ -35,6 +35,14 @@ const nextConfig: NextConfig = {
         hostname: "ggijavqgshazbctkwmwl.supabase.co",
         pathname: "/storage/v1/object/public/**",
       },
+      // OUR OWN bucket, which is where uploads land. Without this, a picture
+      // somebody has just uploaded renders as a broken image — next/image
+      // refuses any host not listed here.
+      {
+        protocol: "https",
+        hostname: "wprdtdlvyotfdkvxexxi.supabase.co",
+        pathname: "/storage/v1/object/public/**",
+      },
       // YouTube's own thumbnails, which is where the studio's poster frames
       // come from. Pinned to the thumbnail host, not to youtube.com.
       {
