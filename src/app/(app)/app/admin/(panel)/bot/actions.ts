@@ -490,3 +490,99 @@ export async function readCommand(id: string): Promise<CommandState | null> {
     processedAt: (data.processed_at as string | null) ?? null,
   };
 }
+
+/**
+ * Set size and profit target across many markets in ONE call.
+ *
+ * WHY THIS EXISTS: the first version of the bulk editor called
+ * setLotSize/setCloseAtProfit in a loop from the browser. Twenty-eight
+ * markets meant twenty-eight server actions, each re-checking the
+ * permission, writing its own audit row and revalidating the page — and Next
+ * runs a client's server actions one at a time, so they queued. Esther set
+ * 28 markets to $1000 and the dialog sat on "Working…" long enough to look
+ * hung. It was not hung; it was doing the same work twenty-eight times.
+ *
+ * SO THE LOOP MOVES TO THE SERVER, and most of it stops being a loop at all.
+ * A bulk edit applies the SAME profit target to every selected market, and
+ * usually the same lot size, so those are one UPDATE … WHERE symbol IN (…)
+ * each. Only a $/pip target produces different lot sizes per market, and even
+ * then markets sharing a size are grouped — seventeen markets typically
+ * collapse to a handful of statements.
+ *
+ * ONE PERMISSION CHECK, ONE AUDIT ENTRY, ONE REVALIDATE. The audit row
+ * records the whole change rather than twenty-eight fragments, which is also
+ * the version somebody can read afterwards.
+ */
+export async function setMarketSettingsBulk(changes: {
+  /** Symbol -> lot size. Omit a symbol to leave its size alone. */
+  lots?: Record<string, number>;
+  /** Applied to every symbol listed. Null clears the target. */
+  closeAtProfit?: number | null;
+  /** Which markets the profit target applies to. */
+  symbols: string[];
+}): Promise<BotActionResult & { changed?: number }> {
+  const admin = await requirePermission("bot.configure");
+  if (!admin) return { ok: false, error: "forbidden" };
+
+  const { lots = {}, closeAtProfit, symbols } = changes;
+  if (symbols.length === 0) return { ok: false, error: "no_markets" };
+
+  // Validated HERE as well as in the browser — a server action is a URL, and
+  // this one sets the size of live trades on every market at once.
+  for (const value of Object.values(lots)) {
+    if (!Number.isFinite(value) || value <= 0) return { ok: false, error: "bad_lot" };
+  }
+  if (
+    closeAtProfit !== undefined &&
+    closeAtProfit !== null &&
+    (!Number.isFinite(closeAtProfit) || closeAtProfit <= 0)
+  ) {
+    return { ok: false, error: "bad_profit" };
+  }
+
+  const client = await writeClient();
+  if (!client) return { ok: false, error: "not_connected" };
+
+  const stamp = { updated_at: new Date().toISOString(), updated_by: admin.email };
+  const touched = new Set<string>();
+
+  // The profit target: one statement for every market, because it is one
+  // value. This is the whole of what Esther was waiting on.
+  if (closeAtProfit !== undefined) {
+    const { data, error } = await client
+      .from("bot_symbol_config")
+      .update({ close_at_profit: closeAtProfit, ...stamp })
+      .in("symbol", symbols)
+      .select("symbol");
+
+    if (error || !data?.length) return refused("bulk profit target", error?.message);
+    for (const row of data) touched.add(row.symbol as string);
+  }
+
+  // Lot sizes, grouped by the size itself. Same size for every market is one
+  // statement; a $/pip target gives a handful.
+  const bySize = new Map<number, string[]>();
+  for (const [symbol, size] of Object.entries(lots)) {
+    bySize.set(size, [...(bySize.get(size) ?? []), symbol]);
+  }
+
+  for (const [size, group] of bySize) {
+    const { data, error } = await client
+      .from("bot_symbol_config")
+      .update({ lot_size: size, ...stamp })
+      .in("symbol", group)
+      .select("symbol");
+
+    if (error || !data?.length) return refused("bulk lot size", error?.message);
+    for (const row of data) touched.add(row.symbol as string);
+  }
+
+  await recordAdminAction("bot.markets_bulk_updated", { type: "bot" }, {
+    markets: touched.size,
+    close_at_profit: closeAtProfit,
+    lot_sizes: Object.keys(lots).length,
+  });
+
+  revalidatePath("/app/admin/bot");
+  return { ok: true, changed: touched.size };
+}
