@@ -3,10 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Loader2 } from "lucide-react";
-import {
-  setCloseAtProfit,
-  setLotSize,
-} from "@/app/(app)/app/admin/(panel)/bot/actions";
+import { setMarketSettingsBulk } from "@/app/(app)/app/admin/(panel)/bot/actions";
 import { useToast } from "@/stores";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import {
@@ -42,9 +39,11 @@ import type { MarketConfig } from "@/components/admin/bot-controls";
  * out AND what that size really costs after rounding to the broker's step.
  * "0.01 → 0.03 ($0.28/pip)" is a sentence somebody can catch an error in.
  *
- * PARTIAL FAILURE IS REPORTED, NOT SWALLOWED. Each market is its own write
- * and one can be refused while the rest succeed. A toast saying "done" over
- * four silent failures is worse than no toast.
+ * IT IS ONE SERVER CALL, not one per market. The first version looped, and
+ * since Next runs a client's server actions one at a time, 28 markets became
+ * 28 queued round trips — each re-checking the permission, writing its own
+ * audit row and revalidating the page. The dialog sat on "Working…" long
+ * enough to look hung. See run().
  */
 
 type Mode = "pip" | "lots";
@@ -131,40 +130,51 @@ export function BulkMarketSettings({
     !profitBad &&
     unpriceable.length === 0;
 
+  /**
+   * ONE CALL, not one per market.
+   *
+   * This looped over the plan calling setLotSize and setCloseAtProfit per
+   * symbol. Next runs a client's server actions ONE AT A TIME, and each of
+   * those re-checked the permission, wrote its own audit row and revalidated
+   * the page — so 28 markets was 28 queued round trips and the dialog sat on
+   * "Working…" long enough to look hung. It was not hung. It was doing the
+   * same work twenty-eight times.
+   *
+   * The server now takes the whole plan: the profit target is one statement
+   * because it is one value, and lot sizes are grouped by size.
+   */
   function run() {
     start(async () => {
-      const problems: string[] = [];
-
-      // Sequential on purpose. Seventeen parallel writes to one table through
-      // one PostgREST connection is a burst that can partially fail for
-      // reasons that have nothing to do with the values — and this is the
-      // size of live trades.
+      const lots: Record<string, number> = {};
       for (const p of plan) {
-        if (p.toLots !== null) {
-          const res = await setLotSize(p.symbol, p.toLots);
-          if (!res.ok) problems.push(`${p.alias} (size)`);
-        }
-        if (profitText.trim() !== "" && p.toProfit !== null) {
-          const res = await setCloseAtProfit(p.symbol, p.toProfit);
-          if (!res.ok) problems.push(`${p.alias} (target)`);
-        }
+        if (p.toLots !== null) lots[p.symbol] = p.toLots;
       }
 
-      setConfirming(false);
-      setFailed(problems);
+      const profit = parseMoney(profitText);
+      const res = await setMarketSettingsBulk({
+        symbols: plan.map((p) => p.symbol),
+        lots,
+        // undefined means "leave it alone"; null would CLEAR every target.
+        ...(profitText.trim() === "" ? {} : { closeAtProfit: profit }),
+      });
 
-      if (problems.length === 0) {
+      setConfirming(false);
+
+      if (res.ok) {
+        setFailed([]);
         toast.success(
-          `Updated ${plan.length} market${plan.length === 1 ? "" : "s"}.`,
+          `Updated ${res.changed ?? plan.length} market` +
+            `${(res.changed ?? plan.length) === 1 ? "" : "s"}.`,
         );
         setPicked(new Set());
         setSizeText("");
         setProfitText("");
         setOpen(false);
       } else {
-        toast.error(
-          `${problems.length} of ${plan.length} did not save. They are listed below.`,
-        );
+        // Named rather than counted: the whole batch is one statement now, so
+        // a failure is the batch, not a subset.
+        setFailed([MESSAGES[res.error] ?? MESSAGES.generic]);
+        toast.error(MESSAGES[res.error] ?? MESSAGES.generic);
       }
       router.refresh();
     });
@@ -313,7 +323,7 @@ export function BulkMarketSettings({
 
           {failed.length > 0 ? (
             <p className="rounded-lg border border-chart-down/40 bg-chart-down/5 px-3 py-2 text-xs text-fg-muted">
-              Did not save: {failed.join(", ")}. Everything else went through.
+              {failed.join(" ")}
             </p>
           ) : null}
 
@@ -391,3 +401,13 @@ export function BulkMarketSettings({
     </div>
   );
 }
+
+const MESSAGES: Record<string, string> = {
+  forbidden: "You do not have permission to configure the bot.",
+  not_connected: "Not connected to the bot. Nothing was changed.",
+  no_markets: "Pick at least one market.",
+  bad_lot: "A lot size must be a number greater than zero.",
+  bad_profit: "A profit target must be a number greater than zero.",
+  refused: "The bot refused the change. Nothing was altered.",
+  generic: "That did not reach the bot. Nothing was changed.",
+};
