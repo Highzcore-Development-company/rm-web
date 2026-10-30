@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Loader2 } from "lucide-react";
+import { Check, ChevronDown, Layers, Loader2 } from "lucide-react";
 import { setMarketSettingsBulk } from "@/app/(app)/app/admin/(panel)/bot/actions";
 import { useToast } from "@/stores";
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -182,27 +182,54 @@ export function BulkMarketSettings({
 
   if (!configurable) return null;
 
+  /*
+   * IT HAS TO LOOK LIKE A CONTROL, NOT A NOTICE.
+   *
+   * Esther: "I wouldn't know 'Set several markets at once' will stand on a
+   * grey card looking disabled will mean something." She is right. It was
+   * muted text on the same grey surface every read-only panel on this page
+   * uses, with a bordered "Open" that reads like a dismissed state. Nothing
+   * about it said it could be pressed — let alone that it is the fastest
+   * thing on the screen.
+   *
+   * So: the accent border and tint this product already uses for things that
+   * ACT, an icon, the whole header as one button, and a label that says what
+   * it does rather than what it is.
+   */
   return (
-    <div className="mb-4 rounded-xl border border-border bg-surface p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-sm font-medium">Set several markets at once</p>
-          <p className="mt-0.5 text-xs text-fg-muted">
-            Risk in dollars per pip, and the lot size is worked out for each
-            market.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          className="shrink-0 rounded-lg border border-border px-3 py-2 text-sm text-fg-muted transition-colors hover:text-fg"
-        >
-          {open ? "Close" : "Open"}
-        </button>
-      </div>
+    <div
+      className={`mb-4 overflow-hidden rounded-xl border transition-colors ${
+        open ? "border-accent/50 bg-accent/[0.04]" : "border-accent/30 bg-accent/[0.03]"
+      }`}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="flex w-full items-center gap-3 p-4 text-left transition-colors hover:bg-accent/[0.06]"
+      >
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-accent/15 text-accent">
+          <Layers className="size-4.5" aria-hidden="true" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold text-fg">
+            Change all {markets.length} markets at once
+          </span>
+          <span className="mt-0.5 block text-xs text-fg-muted">
+            Set the risk in dollars per pip and the profit target, instead of
+            editing each row below.
+          </span>
+        </span>
+        <ChevronDown
+          className={`size-4 shrink-0 text-accent transition-transform ${
+            open ? "rotate-180" : ""
+          }`}
+          aria-hidden="true"
+        />
+      </button>
 
       {open ? (
-        <div className="mt-4 space-y-4">
+        <div className="space-y-4 border-t border-accent/20 p-4">
           {/* ---------- which markets ---------- */}
           <div>
             <div className="flex flex-wrap items-center justify-between gap-2">
