@@ -59,13 +59,35 @@ export default async function ProjectPage({
 
           {/* Said plainly, and only to the people who can see it. A visitor
               never reaches this page for a draft, so anyone reading this
-              line is previewing their own unpublished work. */}
+              line is previewing their own unpublished work.
+
+              AND IT CARRIES THE WAY BACK. Esther: "when I press the back
+              button after preview it takes me to their main web." It would —
+              Preview opens a NEW TAB, so the browser has no record of the
+              admin page in it, and Back falls through to whatever that tab
+              held before. Nothing on this page offered a route home either:
+              "All work" goes to the public listing, which is further from
+              the admin rather than closer.
+
+              So the banner has the link. It is the one place somebody
+              previewing is certain to look, and it is only rendered for the
+              people who have an admin to go back to. */}
           {!project.published ? (
-            <p className="mt-4 rounded-lg border border-accent/40 bg-accent/5 px-3 py-2 text-xs leading-relaxed text-accent">
-              <strong className="font-semibold">Preview.</strong> This is a
-              draft — you are seeing it because you can manage the portfolio.
-              Nobody else can open this page until you publish it.
-            </p>
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-accent/40 bg-accent/5 px-3 py-2.5">
+              <p className="text-xs leading-relaxed text-accent">
+                <strong className="font-semibold">Preview.</strong> This is a
+                draft — you are seeing it because you can manage the
+                portfolio. Nobody else can open this page until you publish
+                it.
+              </p>
+              <Link
+                href="/app/admin/portfolio"
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-accent/40 px-2.5 py-1.5 text-xs font-medium text-accent transition-colors hover:bg-accent/10"
+              >
+                <ArrowLeft className="size-3.5" aria-hidden="true" />
+                Back to Portfolio
+              </Link>
+            </div>
           ) : null}
 
           <div className="mt-6 flex flex-wrap items-center gap-2 text-[11px] text-fg-subtle">
