@@ -71,7 +71,13 @@ export default async function AdminLayout({
   const groups: NavGroup[] = [
     {
       label: null,
-      items: [{ href: "/app/admin", label: "Overview", icon: "overview" }],
+      items: [
+        { href: "/app/admin", label: "Overview", icon: "overview" },
+        // NO PERMISSION ON THIS ONE. Every staff member has a day to file,
+        // so gating it would mean granting people the right to do their own
+        // admin. reports.view_all gates the TEAM half inside the page.
+        { href: "/app/admin/reports", label: "My day", icon: "reports" },
+      ],
     },
     ...(canSeeBot
       ? [

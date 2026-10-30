@@ -47,6 +47,15 @@ const SELF_ONLY: Record<string, string> = {
   "profile/page.tsx":
     "Your own admin profile, scoped to admin.userId. Every admin has one and " +
     "nobody else's is reachable from it.",
+  "reports/page.tsx":
+    "Your own start-of-day and end-of-day report. Every staff member has a " +
+    "day to file, so gating the page would mean granting people the right " +
+    "to do their own admin. The TEAM half of the page is gated on " +
+    "reports.view_all, and the RLS policy refuses the rows as well.",
+  "reports/actions.ts":
+    "Writes only the signed-in user's own day — every statement is scoped " +
+    "to auth.uid(), and the RLS policy says the same from the other side. " +
+    "reports.view_all grants READING the team, never writing it.",
 };
 
 const pages = filesUnder(PANEL, (n) => n === "page.tsx");
@@ -93,8 +102,22 @@ describe("every admin page names a permission", () => {
 describe("every admin server action names a permission", () => {
   it.each(actions.map((f) => [f.slice(PANEL.length + 1), f]))(
     "%s",
-    (_label, file) => {
+    (label, file) => {
       const source = readFileSync(file, "utf8");
+      const key = label.split(sep).join("/");
+
+      if (SELF_ONLY[key]) {
+        // Same bar as the pages: the exception is about not needing a
+        // PERMISSION, not about being unguarded. It must still establish who
+        // is calling, and it must still refuse "any admin at all".
+        expect(source).toMatch(/getAdmin\(\)/);
+        expect(source).not.toMatch(/await isAdmin\(\)/);
+        // And it must actually be self-scoped, which is the whole claim the
+        // allowlist entry is making.
+        expect(source).toMatch(/auth\.user\.id|userId/);
+        return;
+      }
+
       expect(source).toMatch(/requirePermission\(/);
       expect(source).not.toMatch(/await isAdmin\(\)/);
     },

@@ -26,6 +26,10 @@ export const PERMISSIONS = [
   "bot.configure",
   "finance.view",
   "admins.manage",
+  // HS-WEB-v1. Only the "everyone's" half is a permission: filing and reading
+  // your OWN day is not granted per person, because every staff member has a
+  // day and a report nobody can file is not a section anyone would grant.
+  "reports.view_all",
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];
@@ -84,6 +88,13 @@ export const PERMISSION_LABELS: Record<Permission, { label: string; hint: string
   "finance.view": {
     label: "View money",
     hint: "Revenue, billing, payments and Scora spend",
+  },
+  "reports.view_all": {
+    label: "Read everyone's day",
+    hint:
+      "The team's start-of-day plans and end-of-day results. Everybody can " +
+      "file and read their own without this — it is their work. This is the " +
+      "manager's view of the whole team.",
   },
   "admins.manage": {
     label: "Manage admins",

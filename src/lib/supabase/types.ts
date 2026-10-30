@@ -453,6 +453,58 @@ export type ApiKey = {
 export type Database = {
   public: {
     Tables: {
+      /**
+       * HS-WEB-v1 — the start-of-day plan and the end-of-day result.
+       *
+       * Two tables rather than one, because EOD is answered AGAINST the
+       * morning's list rather than written fresh. See the migration.
+       */
+      staff_days: {
+        Row: {
+          id: string;
+          user_id: string;
+          day: string;
+          sod_at: string | null;
+          eod_at: string | null;
+          note: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: { user_id: string; day: string; note?: string | null };
+        Update: {
+          sod_at?: string | null;
+          eod_at?: string | null;
+          note?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      staff_day_items: {
+        Row: {
+          id: string;
+          day_id: string;
+          plan: string;
+          /** Null = not answered yet, which is NOT the same as "not done". */
+          done: boolean | null;
+          outcome: string | null;
+          position: number;
+          created_at: string;
+        };
+        Insert: { day_id: string; plan: string; position?: number };
+        Update: { done?: boolean | null; outcome?: string | null };
+        // Declared so the team view can read a day and its items in ONE
+        // round trip — without it, PostgREST embedding does not typecheck
+        // and the page would need a second query per day.
+        Relationships: [
+          {
+            foreignKeyName: "staff_day_items_day_id_fkey";
+            columns: ["day_id"];
+            isOneToOne: false;
+            referencedRelation: "staff_days";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       investors: {
         Row: Investor;
         // Status and account are not insertable: the column grants in the

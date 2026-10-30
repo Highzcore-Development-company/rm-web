@@ -15,12 +15,14 @@ import {
   ShieldCheck,
   Sparkles,
   Users,
+  ClipboardList,
   X,
   type LucideIcon,
 } from "lucide-react";
 
 const ICONS: Record<string, LucideIcon> = {
   overview: LayoutDashboard,
+  reports: ClipboardList,
   chart: CandlestickChart,
   markets: Bot,
   controls: SlidersHorizontal,
