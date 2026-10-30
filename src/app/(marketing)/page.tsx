@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
-import { Container, Eyebrow } from "@/components/ui";
+import { Container } from "@/components/ui";
+import { PremiumCard } from "@/components/marketing/premium-card";
+import { SectionHeading } from "@/components/marketing/section-heading";
 import { PRODUCTS } from "@/lib/products";
 
 export const metadata: Metadata = {
@@ -42,11 +44,13 @@ export default function HomePage() {
         />
         <Container>
           <div className="relative max-w-3xl">
-            <Eyebrow>Highscore Tech · Lagos</Eyebrow>
-            <h1 className="display mt-4 text-4xl font-semibold leading-[1.1] sm:text-5xl">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-accent">
+              Highscore Tech · Lagos
+            </p>
+            <h1 className="display text-4xl font-extrabold leading-[1.04] tracking-[-0.035em] sm:text-5xl md:text-6xl lg:text-7xl">
               One company, four things we are good at.
             </h1>
-            <p className="mt-6 max-w-2xl text-base leading-relaxed text-fg-muted">
+            <p className="mt-6 max-w-2xl text-base leading-relaxed text-fg-muted sm:text-lg">
               We build and run software. Two of our products trade and read the
               markets; the other half of the company builds software and makes
               content for other businesses. Everything below is ours, running,
@@ -60,34 +64,35 @@ export default function HomePage() {
           the brief's rule for the whole site. */}
       <section className="border-b border-border py-16 sm:py-20">
         <Container>
-          <h2 className="text-xs uppercase tracking-wide text-fg-muted">
-            What we do
-          </h2>
-          <ul className="mt-6 grid gap-4 md:grid-cols-2">
+          <SectionHeading
+            eyebrow="What we do"
+            title="Every part of the company, and the door into it."
+          />
+          <div className="mt-8 grid gap-4 md:mt-12 md:grid-cols-2 lg:grid-cols-3 md:gap-6">
             {PRODUCTS.map((product) => (
-              <li key={product.slug}>
-                <Link
-                  href={`/${product.slug}`}
-                  className="group flex h-full flex-col rounded-xl border border-border bg-surface p-5 transition-colors hover:border-accent/40"
-                >
-                  <p className="font-medium">{product.name}</p>
-                  <p className="mt-1 text-sm leading-relaxed text-fg-muted">
+              <PremiumCard
+                key={product.slug}
+                href={`/${product.slug}`}
+                className="h-full"
+              >
+                <div className="flex h-full flex-col p-5 md:p-6">
+                  <h3 className="text-base font-semibold md:text-lg">
+                    {product.name}
+                  </h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-fg-muted">
                     {product.tagline}
                   </p>
                   <p className="mt-3 text-sm leading-relaxed text-fg-subtle">
                     {product.who}
                   </p>
-                  <span className="mt-4 inline-flex items-center gap-1 text-xs text-accent">
+                  <span className="mt-auto inline-flex items-center gap-1 pt-4 text-xs text-accent">
                     Open {product.name}
-                    <ArrowRight
-                      className="size-3 transition-transform group-hover:translate-x-0.5"
-                      aria-hidden="true"
-                    />
+                    <ArrowRight className="size-3" aria-hidden="true" />
                   </span>
-                </Link>
-              </li>
+                </div>
+              </PremiumCard>
             ))}
-          </ul>
+          </div>
         </Container>
       </section>
 
@@ -98,11 +103,13 @@ export default function HomePage() {
         <Container>
           <div className="rounded-2xl border border-accent/30 bg-accent/[0.04] p-6 sm:p-10">
             <div className="max-w-2xl">
-              <Eyebrow>For investors</Eyebrow>
-              <h2 className="display mt-4 text-2xl font-semibold sm:text-3xl">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-accent">
+                For investors
+              </p>
+              <h2 className="display text-2xl font-bold leading-[1.08] tracking-[-0.025em] sm:text-3xl md:text-4xl">
                 We are raising, and the products are already running.
               </h2>
-              <p className="mt-4 text-sm leading-relaxed text-fg-muted">
+              <p className="mt-4 text-sm leading-relaxed text-fg-muted sm:text-base">
                 The trading bot trades a live account daily and every trade is
                 recorded. The analysis product answers on the same live market
                 data. We would rather show you the system working than talk
