@@ -54,17 +54,32 @@ export function DayReport({
 
   const answered = items.filter((i) => i.done !== null).length;
   const achieved = items.filter((i) => i.done === true).length;
-  const open = items.length - answered;
 
-  function run(fn: () => Promise<{ ok: boolean; error?: string }>, ok?: string) {
+  function run(
+    fn: () => Promise<{ ok: boolean; error?: string; unanswered?: number }>,
+    ok?: string,
+  ) {
     start(async () => {
       const res = await fn();
       if (res.ok) {
         if (ok) toast.success(ok);
         router.refresh();
-      } else {
-        toast.error(MESSAGES[res.error ?? "generic"] ?? MESSAGES.generic);
+        return;
       }
+
+      // The count comes from the SERVER, not from what this component thinks
+      // it is showing. Another tab, or a stale page, and the two disagree —
+      // the one that refused the close is the one telling the truth.
+      if (res.error === "unanswered" && res.unanswered) {
+        const n = res.unanswered;
+        toast.error(
+          `${n} still unanswered. Mark ${n === 1 ? "it" : "each one"} done or ` +
+            "not done — not done is a fine answer.",
+        );
+        return;
+      }
+
+      toast.error(MESSAGES[res.error ?? "generic"] ?? MESSAGES.generic);
     });
   }
 
@@ -217,6 +232,12 @@ export function DayReport({
           </>
         ) : (
           <>
+            {/* NOT DISABLED while things are unanswered, and no standing
+                hint under it. A line that sits there all afternoon saying "1
+                still unanswered" is read once and then becomes furniture; the
+                answer belongs at the moment somebody actually tries to close
+                the day, which is the moment they care. The server refuses and
+                the toast says why — see run(). */}
             <button
               type="button"
               disabled={pending || items.length === 0}
@@ -225,13 +246,6 @@ export function DayReport({
             >
               Close off the day
             </button>
-            {open > 0 ? (
-              // Said BEFORE they press it, not as an error afterwards.
-              <p className="text-xs text-fg-muted">
-                {open} still unanswered. Mark each one done or not done — not
-                done is a fine answer.
-              </p>
-            ) : null}
           </>
         )}
       </div>
