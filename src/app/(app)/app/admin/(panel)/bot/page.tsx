@@ -8,7 +8,7 @@ import {
 } from "@/components/admin/bot-controls";
 import { BulkMarketSettings } from "@/components/admin/bulk-market-settings";
 import { getAdmin, requirePermission } from "@/lib/admin";
-import { getWorkspaceData } from "@/lib/workspace/data";
+import { getBotControlsData } from "@/lib/workspace/data";
 import { canWriteToBot, writeBlockedReason } from "@/lib/supabase/rm-server-session";
 import type { Quotes } from "@/lib/admin/pip-value";
 import type { BotConfig } from "@/lib/workspace/types";
@@ -55,7 +55,11 @@ export default async function AdminBotPage() {
 
   const t = await getTranslations("adminBot");
   const admin = await getAdmin();
-  const data = await getWorkspaceData();
+  // The LEAN read, not the whole workspace. Saving a lot size revalidates
+  // this page, and the full read pulled 200 closed trades and 500 equity
+  // points that nothing here renders — about 800ms of the wait after every
+  // save, for rows the page never looks at.
+  const data = await getBotControlsData();
 
   // Viewing and configuring are still separate permissions: support can watch
   // the bot without being able to touch it. That is a role decision of ours,
@@ -74,8 +78,8 @@ export default async function AdminBotPage() {
 
   const blocked = writeBlockedReason();
 
-  // Live prices for the pip line under each lot box. getWorkspaceData already
-  // carries them, so this is a reshape rather than a read.
+  // Live prices for the pip line under each lot box. The lean read already
+  // carries symbol/alias/price, so this is a reshape rather than a read.
   const quotes: Quotes = {};
   for (const row of data.markets) {
     const pair = (row.alias || row.symbol).toUpperCase().replace(/[^A-Z]/g, "");
