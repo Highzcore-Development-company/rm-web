@@ -128,22 +128,31 @@ export const PRODUCTS: Product[] = [
       "Businesses who need something built properly and do not have the team " +
       "to build it.",
     start: {
-      label: "Book a call",
-      href: "/contact?from=build",
-      note: "Tell us what you need built. We will say whether we are the right people.",
+      label: "See the work",
+      href: "/portfolio",
+      note: "Ten projects, written up — the problem, what we built, what happened.",
     },
     why: [
+      {
+        claim: "Ten projects you can read in full",
+        detail:
+          "Commerce, real estate, schools, clinics and games — each with the " +
+          "problem, what we built and what changed afterwards.",
+      },
       {
         claim: "We run our own products on what we build",
         detail:
           "The trading platform, the analysis product and the staff system " +
           "behind this company are ours, in production, used daily.",
       },
+      {
+        claim: "Shipped, not pitched",
+        detail:
+          "Every project listed is live or was delivered. There is no " +
+          "roadmap section on this page.",
+      },
     ],
-    // NOT READY: one honest proof point and no client work on it. Victor or
-    // Olivia need to supply projects and results before this faces an
-    // investor — inventing them is the one mistake an edit cannot undo.
-    ready: false,
+    ready: true,
   },
   {
     slug: "studio",

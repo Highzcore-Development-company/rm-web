@@ -459,6 +459,60 @@ export type Database = {
        * Two tables rather than one, because EOD is answered AGAINST the
        * morning's list rather than written fresh. See the migration.
        */
+      /** HS-WEB-v1 — the projects we show the world we have built. */
+      portfolio_projects: {
+        Row: {
+          id: string;
+          slug: string;
+          title: string;
+          client: string | null;
+          summary: string;
+          body_md: string | null;
+          tech_stack: string[];
+          category: string | null;
+          cover_image_url: string | null;
+          images: string[];
+          year: number | null;
+          external_url: string | null;
+          sort_order: number;
+          /** False = a draft. Only published rows are public (RLS). */
+          published: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          slug: string;
+          title: string;
+          summary: string;
+          client?: string | null;
+          body_md?: string | null;
+          tech_stack?: string[];
+          category?: string | null;
+          cover_image_url?: string | null;
+          images?: string[];
+          year?: number | null;
+          external_url?: string | null;
+          sort_order?: number;
+          published?: boolean;
+        };
+        Update: {
+          slug?: string;
+          title?: string;
+          summary?: string;
+          client?: string | null;
+          body_md?: string | null;
+          tech_stack?: string[];
+          category?: string | null;
+          cover_image_url?: string | null;
+          images?: string[];
+          year?: number | null;
+          external_url?: string | null;
+          sort_order?: number;
+          published?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       staff_days: {
         Row: {
           id: string;

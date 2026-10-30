@@ -14,6 +14,29 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  images: {
+    /**
+     * The portfolio screenshots live in highscore-tech-web's public storage
+     * bucket, and next/image refuses a remote host that is not listed here —
+     * it would be an open image proxy otherwise.
+     *
+     * The HOST is pinned, not just the protocol. Allowing "any https" would
+     * let anybody who can edit a project row point our renderer at anything
+     * on the internet.
+     *
+     * The images are rendered `unoptimized` anyway, so this is about the
+     * allowlist rather than about resizing: routing them through our
+     * optimiser would make our deploy a dependency of their pictures
+     * loading, and they are already compressed webp.
+     */
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "ggijavqgshazbctkwmwl.supabase.co",
+        pathname: "/storage/v1/object/public/**",
+      },
+    ],
+  },
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },
