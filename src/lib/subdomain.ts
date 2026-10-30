@@ -10,10 +10,10 @@
  * address bar; sending it to /autotrade would show the visitor the plumbing
  * and undo the point of giving each product a door of its own.
  *
- * INERT UNTIL THE DOMAIN MOVES. highzcore.com has no subdomains configured,
- * so `rewriteFor` returns null for every host we serve today and the site
- * behaves exactly as it does now. The cutover is DNS plus this table, not a
- * rebuild — which is what one codebase was supposed to buy.
+ * NOTHING HAPPENS ON highzcore.com. It has no subdomains, so `rewriteFor`
+ * returns null for every host on the old domain and that site behaves
+ * exactly as it always has. The .tech subdomains are live, and this table is
+ * what makes each one serve its own page out of the same deploy.
  *
  * Pure and dependency-free so it can be unit tested without a request: host
  * in, path out.
@@ -36,7 +36,12 @@ const SUBDOMAIN_ROOT: Record<string, string> = {
   staff: "/app/admin",
 };
 
-/** Hosts that are the root of the site rather than a product. */
+/**
+ * Hosts that are the root of the site rather than a product.
+ *
+ * The root serves `/`, which is the company index — so there is nothing to
+ * rewrite and this returns null for them.
+ */
 const ROOTS = new Set(["highzcore.tech", "www.highzcore.tech"]);
 
 /**
