@@ -418,8 +418,25 @@ export function MarketControls({
         </thead>
         <tbody className="divide-y divide-border">
           {markets.map((market) => (
+            /**
+             * THE KEY CARRIES THE VALUES, not just the symbol, and that is
+             * what makes a saved change appear without a reload.
+             *
+             * Each row holds its boxes in useState seeded from props —
+             * useState(market.closeAtProfit). An initial value is only used
+             * on MOUNT. So after a save, router.refresh() re-rendered these
+             * rows with fresh props and every box went on showing the old
+             * number: same component instance, same state. Changing 28
+             * markets at once and seeing nothing move was this, and it looked
+             * exactly like a write that had not happened.
+             *
+             * Putting the server's values in the key makes React treat a
+             * changed row as a NEW row and remount it, which re-seeds the
+             * boxes. An effect syncing state to props would be the other
+             * way, and the React Compiler lint rightly objects to it.
+             */
             <MarketRow
-              key={market.symbol}
+              key={`${market.symbol}:${market.lotSize ?? ""}:${market.closeAtProfit ?? ""}:${market.enabled}`}
               market={market}
               configurable={configurable}
               quotes={quotes}
