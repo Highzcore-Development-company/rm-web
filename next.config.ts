@@ -35,6 +35,13 @@ const nextConfig: NextConfig = {
         hostname: "ggijavqgshazbctkwmwl.supabase.co",
         pathname: "/storage/v1/object/public/**",
       },
+      // YouTube's own thumbnails, which is where the studio's poster frames
+      // come from. Pinned to the thumbnail host, not to youtube.com.
+      {
+        protocol: "https",
+        hostname: "i.ytimg.com",
+        pathname: "/vi/**",
+      },
     ],
   },
   async headers() {

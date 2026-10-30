@@ -460,6 +460,52 @@ export type Database = {
        * morning's list rather than written fresh. See the migration.
        */
       /** HS-WEB-v1 — the projects we show the world we have built. */
+      /** HS-WEB-v1 — Highscore Studio's work. Video, not case studies. */
+      studio_works: {
+        Row: {
+          id: string;
+          title: string;
+          client: string | null;
+          project_type: string | null;
+          summary: string | null;
+          media_type: string | null;
+          video_url: string | null;
+          audio_url: string | null;
+          poster_url: string | null;
+          sort_order: number;
+          published: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          title: string;
+          client?: string | null;
+          project_type?: string | null;
+          summary?: string | null;
+          media_type?: string | null;
+          video_url?: string | null;
+          audio_url?: string | null;
+          poster_url?: string | null;
+          sort_order?: number;
+          published?: boolean;
+          updated_at?: string;
+        };
+        Update: {
+          title?: string;
+          client?: string | null;
+          project_type?: string | null;
+          summary?: string | null;
+          /** Derived from whether a video URL was given — see saveStudioWork. */
+          media_type?: string | null;
+          video_url?: string | null;
+          audio_url?: string | null;
+          poster_url?: string | null;
+          sort_order?: number;
+          published?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       portfolio_projects: {
         Row: {
           id: string;
@@ -494,6 +540,7 @@ export type Database = {
           external_url?: string | null;
           sort_order?: number;
           published?: boolean;
+          updated_at?: string;
         };
         Update: {
           slug?: string;

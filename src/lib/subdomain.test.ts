@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { rewriteFor, subdomainOf } from "./subdomain";
+import { productUrl, rewriteFor, subdomainOf } from "./subdomain";
 
 /**
  * HS-WEB-v1 — the host decides which door a visitor came through.
@@ -70,5 +70,32 @@ describe("subdomain routing", () => {
     expect(subdomainOf("AUTOTRADE.Highzcore.Tech")).toBe("autotrade");
     expect(subdomainOf("autotrade.highzcore.tech:443")).toBe("autotrade");
     expect(subdomainOf(" docs.highzcore.tech ")).toBe("docs");
+  });
+});
+
+describe("linking between products", () => {
+  it("uses the subdomain once we are on the real domain", () => {
+    expect(productUrl("build", "highzcore.tech")).toBe("https://build.highzcore.tech");
+    expect(productUrl("studio", "autotrade.highzcore.tech")).toBe(
+      "https://studio.highzcore.tech",
+    );
+  });
+
+  it("stays on the path everywhere the subdomains do not exist", () => {
+    // highzcore.com has no subdomains; a preview and localhost have none
+    // either. A link to one would be a dead end.
+    for (const host of [
+      "highzcore.com",
+      "www.highzcore.com",
+      "localhost:3000",
+      "deploy-preview-12--rm-web.netlify.app",
+      null,
+    ]) {
+      expect(productUrl("build", host)).toBe("/build");
+    }
+  });
+
+  it("does not invent a door for something we never opened", () => {
+    expect(productUrl("careers", "highzcore.tech")).toBe("/careers");
   });
 });

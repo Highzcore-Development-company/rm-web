@@ -5,6 +5,8 @@ import { Container } from "@/components/ui";
 import { PremiumCard } from "@/components/marketing/premium-card";
 import { SectionHeading } from "@/components/marketing/section-heading";
 import { PRODUCTS } from "@/lib/products";
+import { productUrl } from "@/lib/subdomain";
+import { headers } from "next/headers";
 
 export const metadata: Metadata = {
   title: "Highzcore — one company, one domain",
@@ -31,7 +33,12 @@ export const metadata: Metadata = {
  * ONE LINE EACH, from lib/products, so this page cannot describe a product
  * as something its own page no longer says.
  */
-export default function HomePage() {
+export default async function HomePage() {
+  // The host decides whether a card links to build.highzcore.tech or to
+  // /build — see productUrl. On a preview or on localhost the subdomains do
+  // not resolve, and a link to one would be a dead end.
+  const host = (await headers()).get("host");
+
   return (
     <>
       <section className="relative overflow-hidden border-b border-border py-20 sm:py-28">
@@ -72,7 +79,7 @@ export default function HomePage() {
             {PRODUCTS.map((product) => (
               <PremiumCard
                 key={product.slug}
-                href={`/${product.slug}`}
+                href={productUrl(product.slug, host)}
                 className="h-full"
               >
                 <div className="flex h-full flex-col p-5 md:p-6">

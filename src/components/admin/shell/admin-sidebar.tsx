@@ -15,6 +15,7 @@ import {
   ShieldCheck,
   Sparkles,
   Users,
+  Briefcase,
   ClipboardList,
   X,
   type LucideIcon,
@@ -23,6 +24,7 @@ import {
 const ICONS: Record<string, LucideIcon> = {
   overview: LayoutDashboard,
   reports: ClipboardList,
+  portfolio: Briefcase,
   chart: CandlestickChart,
   markets: Bot,
   controls: SlidersHorizontal,

@@ -30,6 +30,11 @@ export const PERMISSIONS = [
   // your OWN day is not granted per person, because every staff member has a
   // day and a report nobody can file is not a section anyone would grant.
   "reports.view_all",
+  // HS-WEB-v1. One permission for both sections: the portfolio and the
+  // studio reel are the same job — what we show the world we have built —
+  // and splitting them would mean granting two things to let one person do
+  // one thing.
+  "portfolio.manage",
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];
@@ -95,6 +100,13 @@ export const PERMISSION_LABELS: Record<Permission, { label: string; hint: string
       "The team's start-of-day plans and end-of-day results. Everybody can " +
       "file and read their own without this — it is their work. This is the " +
       "manager's view of the whole team.",
+  },
+  "portfolio.manage": {
+    label: "Manage the portfolio",
+    hint:
+      "Add, edit and publish the projects on build.highzcore.tech and the " +
+      "videos on studio.highzcore.tech. Publishing is what makes something " +
+      "visible to the public.",
   },
   "admins.manage": {
     label: "Manage admins",

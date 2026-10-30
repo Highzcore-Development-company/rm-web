@@ -455,3 +455,17 @@ summary {
 .control[type="radio"]:checked::after {
   transform: scale(1);
 }
+
+/* The Studio hero's spectrum bars. Scales each bar about its base so the
+   row reads as a level meter rather than a row of jumping blocks.
+   motion-safe: on the element means this never runs for somebody who has
+   asked for reduced motion. */
+@keyframes spectrum {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}

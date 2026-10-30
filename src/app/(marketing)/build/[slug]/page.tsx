@@ -50,7 +50,7 @@ export default async function ProjectPage({
       <Container>
         <div className="mx-auto max-w-3xl">
           <Link
-            href="/portfolio"
+            href="/build"
             className="inline-flex items-center gap-1.5 text-xs text-fg-muted transition-colors hover:text-fg"
           >
             <ArrowLeft className="size-3.5" aria-hidden="true" />

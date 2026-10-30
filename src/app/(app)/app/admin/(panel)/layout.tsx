@@ -56,6 +56,7 @@ export default async function AdminLayout({
   const canSeeBot = admin.permissions.includes("bot.view");
   const canSeeFinance = admin.permissions.includes("finance.view");
   const canManageAdmins = admin.permissions.includes("admins.manage");
+  const canManagePortfolio = admin.permissions.includes("portfolio.manage");
 
   // What the sidebar badges and the bell need. Read here so every page has it
   // without each one fetching its own copy — and read only where the admin is
@@ -128,6 +129,23 @@ export default async function AdminLayout({
                     },
                   ]
                 : []),
+            ],
+          },
+        ]
+      : []),
+    // HS-WEB-v1 — what we show the world. Its own group rather than inside
+    // "Company": it is the marketing site's content, not an internal record,
+    // and it is the one section whose writes are visible to the public.
+    ...(canManagePortfolio
+      ? [
+          {
+            label: "Website",
+            items: [
+              {
+                href: "/app/admin/portfolio",
+                label: "Portfolio & Studio",
+                icon: "portfolio" as const,
+              },
             ],
           },
         ]

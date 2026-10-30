@@ -89,3 +89,40 @@ export function rewriteFor(host: string | null, pathname: string): string | null
   if (pathname === "/" || pathname === "") return root;
   return null;
 }
+
+/**
+ * The address of a product, from anywhere on the site.
+ *
+ * Esther: "all these routes, remember they have their own subdomain."
+ *
+ * WHY A HELPER RATHER THAN href="/build". Every product is reachable two
+ * ways — as a path on whichever host you are on, and as its own subdomain —
+ * and the two are not interchangeable. A link from the root to /build keeps
+ * the visitor on highzcore.tech, where the page renders but the address bar
+ * says something different from the door we told them to use. Over time the
+ * subdomains stop being the real addresses and become an alias nobody sees.
+ *
+ * So links BETWEEN products go to the subdomain, and links WITHIN one stay
+ * relative. `/build/my-poker` is a case study inside the agency's own door
+ * and should stay there; a card on the root pointing AT the agency should
+ * send somebody to build.highzcore.tech.
+ *
+ * FALLS BACK TO THE PATH when we are not on highzcore.tech — on
+ * highzcore.com, on a Netlify preview, and on localhost, where the
+ * subdomains do not resolve and a link to one would be a dead end. Which is
+ * why this takes the current host rather than reading a constant.
+ */
+export function productUrl(slug: string, host: string | null): string {
+  const path = `/${slug}`;
+  if (!host) return path;
+
+  const clean = host.split(":")[0].toLowerCase().trim();
+  // Only on the real domain. Anywhere else the subdomain does not exist.
+  const live = clean === "highzcore.tech" || clean.endsWith(".highzcore.tech");
+  if (!live) return path;
+
+  // Not a product we have opened a door for.
+  if (!(slug in SUBDOMAIN_ROOT)) return path;
+
+  return `https://${slug}.highzcore.tech`;
+}

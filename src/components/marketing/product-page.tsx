@@ -3,7 +3,9 @@ import { ArrowRight, Check } from "lucide-react";
 import { Container } from "@/components/ui";
 import { PremiumCard } from "@/components/marketing/premium-card";
 import { SectionHeading } from "@/components/marketing/section-heading";
+import { headers } from "next/headers";
 import { PRODUCTS, type Product } from "@/lib/products";
+import { productUrl } from "@/lib/subdomain";
 
 /**
  * A product landing page — HS-WEB-v1, page three.
@@ -24,8 +26,10 @@ import { PRODUCTS, type Product } from "@/lib/products";
  * us — and the button sits above the proof, because somebody already
  * convinced should not have to scroll past the argument to act.
  */
-export function ProductPage({ product }: { product: Product }) {
+export async function ProductPage({ product }: { product: Product }) {
   const others = PRODUCTS.filter((p) => p.slug !== product.slug);
+  // Links to OTHER products go to their own doors; see productUrl.
+  const host = (await headers()).get("host");
 
   return (
     <>
@@ -115,7 +119,7 @@ export function ProductPage({ product }: { product: Product }) {
           />
           <div className="mt-8 grid gap-4 md:mt-12 md:grid-cols-2 lg:grid-cols-3 md:gap-6">
             {others.map((p) => (
-              <PremiumCard key={p.slug} href={`/${p.slug}`} className="h-full">
+              <PremiumCard key={p.slug} href={productUrl(p.slug, host)} className="h-full">
                 <div className="p-5 md:p-6">
                   <h3 className="text-base font-semibold md:text-lg">{p.name}</h3>
                   <p className="mt-1.5 text-sm leading-relaxed text-fg-muted">

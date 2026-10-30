@@ -129,7 +129,7 @@ export const PRODUCTS: Product[] = [
       "to build it.",
     start: {
       label: "See the work",
-      href: "/portfolio",
+      href: "/build",
       note: "Ten projects, written up — the problem, what we built, what happened.",
     },
     why: [
